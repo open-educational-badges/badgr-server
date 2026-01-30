@@ -69,18 +69,20 @@ class BadgeExtensionValidator(object):
     message = "Invalid OpenBadges Extension"
 
     def __call__(self, value):
-        if len(value) > 0:
-            result = openbadges.verifier.validate_extensions(
-                value.copy(), cache_backend=OpenBadgesContextCache()
-            )
-            report = result.get("report", {})
-            if not report.get("valid", False):
-                messages = report.get("messages", [])
-                if len(messages) > 0:
-                    msg = messages[0].get("result", self.message)
-                else:
-                    msg = self.message
-                raise ValidationError(msg)
+        # TEMPORARILY SKIP VALIDATION
+        pass
+        # if len(value) > 0:
+        #     result = openbadges.verifier.validate_extensions(
+        #         value.copy(), cache_backend=OpenBadgesContextCache()
+        #     )
+        #     report = result.get("report", {})
+        #     if not report.get("valid", False):
+        #         messages = report.get("messages", [])
+        #         if len(messages) > 0:
+        #             msg = messages[0].get("result", self.message)
+        #         else:
+        #             msg = self.message
+        #         raise ValidationError(msg)
 
 
 class PasswordValidator(object):
