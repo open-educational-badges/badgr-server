@@ -2056,13 +2056,13 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                 if self.expires_at
                 else None,
                 "certUrl": self.share_url,
-                "certId": self.slug,
+                "certId": self.entity_id,
                 "organizationId": self.issuer.linkedinId
                 if hasattr(self.issuer, "linkedinId") and self.issuer.linkedinId
                 else None,
             }
             share_params = {k: v for k, v in share_params.items() if v is not None}
-            linked_in_share_url = f"https://www.linkedin.com/profile/add?{urllib.parse.urlencode(share_params)}"
+            linked_in_share_url = f"https://www.linkedin.com/profile/add?{urllib.parse.urlencode(share_params, quote_via=urllib.parse.quote)}"
 
             email_context = {
                 "name": name,
