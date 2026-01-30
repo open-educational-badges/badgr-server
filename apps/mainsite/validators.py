@@ -8,10 +8,6 @@ from rest_framework.exceptions import ValidationError
 
 from mainsite.utils import verify_svg
 
-from issuer.helpers import OpenBadgesContextCache
-
-import openbadges.verifier
-
 
 class ValidImageValidator(object):
     """
