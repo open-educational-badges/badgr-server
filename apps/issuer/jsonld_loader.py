@@ -50,6 +50,20 @@ def cached_document_loader(url, options=None):
             logger.info(f"Loaded JSON-LD context from local file: {url}")
             return doc
 
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        doc = {
+            "contextUrl": None,
+            "documentUrl": url,
+            "document": response.json(),
+        }
+        _doc_cache[url] = doc
+        return doc
+    except Exception as e:
+        logger.error(f"JSON-LD loader failed for {url}: {e}")
+        raise
+
 
 _context_resolver = ContextResolver(_resolved_context_cache, cached_document_loader)
 
