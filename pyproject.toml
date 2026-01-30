@@ -133,9 +133,9 @@ style = [
 ]
 
 [tool.tox]
-env_list = ["py310"]
+env_list = ["py312"]
 
-[tool.tox.env.py310]
+[tool.tox.env.py312]
 system_site_packages = true
 skip_install = true
 setenv = { DJANGO_SETTINGS_MODULE = "mainsite.settings_tests" }
