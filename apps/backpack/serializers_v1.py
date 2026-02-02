@@ -200,6 +200,7 @@ class LocalBadgeInstanceUploadSerializerV1(serializers.Serializer):
             representation["image"] = obj.image_url()
 
         representation["shareUrl"] = obj.share_url
+        representation["courseUrl"] = obj.course_url
 
         networkShare = obj.cached_badgeclass.network_shares.filter(
             is_active=True

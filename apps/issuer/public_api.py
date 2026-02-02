@@ -601,7 +601,8 @@ class IssuerSearch(JSONListView):
         search_term = kwargs.get("searchterm", "")
         if search_term:
             issuers = objects.filter(
-                Q(name__icontains=search_term) | Q(description__icontains=search_term)
+                Q(name__icontains=search_term) | Q(description__icontains=search_term),
+                is_network=False,
             )
         serializer_class = self.serializer_class
         serializer = serializer_class(
@@ -757,36 +758,6 @@ class BadgeInstanceJson(JSONComponentView):
             expand_badgeclass=("badge" in expands),
             expand_issuer=("badge.issuer" in expands),
         )
-
-        networkShare = self.current_object.cached_badgeclass.network_shares.filter(
-            is_active=True
-        ).first()
-        if networkShare:
-            network = networkShare.network
-            json["sharedOnNetwork"] = {
-                "slug": network.entity_id,
-                "name": network.name,
-                "image": network.image.url,
-                "description": network.description,
-            }
-        else:
-            json["sharedOnNetwork"] = None
-
-        json["isNetworkBadge"] = (
-            self.current_object.cached_badgeclass.cached_issuer.is_network
-            and json["sharedOnNetwork"] is None
-        )
-
-        if json["isNetworkBadge"]:
-            json["networkName"] = (
-                self.current_object.cached_badgeclass.cached_issuer.name
-            )
-            json["networkImage"] = (
-                self.current_object.cached_badgeclass.cached_issuer.image.url
-            )
-        else:
-            json["networkImage"] = None
-            json["networkName"] = None
 
         return json
 

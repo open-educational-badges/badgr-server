@@ -15,7 +15,11 @@
         ,
     {% endif %}
     <br />
-    du hast einen
+    {% if issuer_name %}
+        du hast von {{ issuer_name }} einen
+    {% else %}
+        du hast einen
+    {% endif %}
     <span style="font-weight: bold;">
         {% if badge_category == "learningpath" %}
             MICRO DEGREE

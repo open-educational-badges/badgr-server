@@ -436,6 +436,9 @@ class BadgeInstanceManager(BaseOpenBadgeObjectManager):
                         name=name, original_json=json.dumps(ext)
                     )
 
+            # force recreation to include extensions and evidence in the json
+            new_instance.get_json(obi_version="3_0", force_recreate=True)
+
         if not notify and getattr(settings, "GDPR_COMPLIANCE_NOTIFY_ON_FIRST_AWARD"):
             # always notify if this is the first time issuing to a recipient if configured for GDPR compliance
             if self.filter(recipient_identifier=recipient_identifier).count() == 1:

@@ -190,9 +190,13 @@ class NetworkDetail(BaseEntityDetailView):
     ]
     valid_scopes = ["rw:issuer", "rw:issuer:*", "rw:serverAdmin"]
 
-    @extend_schema(summary="Get a single Network", tags=["Issuers"])
+    @extend_schema(summary="Get a single Network", tags=["Networks"])
     def get(self, request, **kwargs):
         return super(NetworkDetail, self).get(request, **kwargs)
+
+    @extend_schema(summary="Update a single Network", tags=["Network"])
+    def put(self, request, **kwargs):
+        return super(NetworkDetail, self).put(request, **kwargs)
 
 
 class NetworkUserIssuersList(BaseEntityListView):
@@ -514,19 +518,21 @@ class IssuerAwardableBadgeClassList(
 
         own_badges = BadgeClass.objects.filter(issuer=issuer)
 
-        network_badges = BadgeClass.objects.filter(
-            issuer__is_network=True, issuer__memberships__issuer=issuer
-        )
-
-        # Badges shared with networks where this issuer is a partner
-        shared_badges = BadgeClass.objects.filter(
-            network_shares__network__memberships__issuer=issuer,
-            network_shares__is_active=True,
-        )
-
-        awardable_badges = own_badges.union(network_badges, shared_badges)
-
-        return awardable_badges
+        if issuer.is_network:
+            shared_to_network = BadgeClass.objects.filter(
+                network_shares__network=issuer,
+                network_shares__is_active=True,
+            )
+            return own_badges.union(shared_to_network)
+        else:
+            network_badges = BadgeClass.objects.filter(
+                issuer__is_network=True, issuer__memberships__issuer=issuer
+            )
+            shared_badges = BadgeClass.objects.filter(
+                network_shares__network__memberships__issuer=issuer,
+                network_shares__is_active=True,
+            )
+            return own_badges.union(network_badges, shared_badges)
 
     def get_context_data(self, **kwargs):
         context = super(IssuerAwardableBadgeClassList, self).get_context_data(**kwargs)
@@ -708,6 +714,7 @@ def process_batch_assertions(
         errors = []
 
         for assertion in assertions:
+            request_entity_id = assertion.get("request_entity_id")
             assertion["create_notification"] = create_notification
 
             serializer = BadgeInstanceSerializerV1(
@@ -722,7 +729,12 @@ def process_batch_assertions(
             if serializer.is_valid():
                 try:
                     instance = serializer.save(created_by=user)
-                    successful.append(BadgeInstanceSerializerV1(instance).data)
+                    successful.append(
+                        {
+                            "badge_instance": BadgeInstanceSerializerV1(instance).data,
+                            "request_entity_id": request_entity_id,
+                        }
+                    )
                 except Exception as e:
                     errors.append({"assertion": assertion, "error": str(e)})
             else:
@@ -1270,15 +1282,22 @@ class NetworkBadgeInstanceList(
     def get_object(self, request=None, **kwargs):
         badgeSlug = kwargs.get("slug")
         badgeclass = BadgeClass.objects.get(entity_id=badgeSlug)
-        if not badgeclass.issuer.is_network:
+        is_network_badge = badgeclass.issuer.is_network
+        is_shared_on_network = badgeclass.network_shares.exists()
+
+        if not (is_network_badge or is_shared_on_network):
             raise ValidationError(
-                "This endpoint is only available for badges created by networks"
+                "This endpoint is only available for badges created by or shared on networks"
             )
         return badgeclass
 
     def get_queryset(self, request=None, **kwargs):
         badgeclass = self.get_object(request, **kwargs)
-        network = badgeclass.issuer
+        if badgeclass.issuer.is_network:
+            network = badgeclass.issuer
+        else:
+            network_share = badgeclass.network_shares.filter(is_active=True).first()
+            network = network_share.network if network_share else None
 
         queryset = BadgeInstance.objects.filter(
             badgeclass=badgeclass, issuer__network_memberships__network=network
@@ -1325,8 +1344,16 @@ class NetworkBadgeInstanceList(
     def group_instances_by_issuer(self, instances, request, badgeclass):
         grouped = {}
         request_user = request.user
-        network_issuer = badgeclass.issuer
-        partner_issuers = network_issuer.partner_issuers.all()
+
+        if badgeclass.issuer.is_network:
+            network = badgeclass.issuer
+        else:
+            network_share = badgeclass.network_shares.filter(is_active=True).first()
+            network = network_share.network if network_share else None
+
+        if not network:
+            return []
+        partner_issuers = network.partner_issuers.all()
 
         for partner in partner_issuers:
             user_has_access = self.user_has_access_to_issuer(request_user, partner)

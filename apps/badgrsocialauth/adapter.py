@@ -4,7 +4,7 @@ import urllib.parse
 import urllib.error
 
 from allauth.account.utils import user_email
-from allauth.exceptions import ImmediateHttpResponse
+from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 from django.http import HttpResponseForbidden, HttpResponseRedirect

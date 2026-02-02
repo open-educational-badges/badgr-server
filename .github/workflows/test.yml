@@ -26,7 +26,7 @@ jobs:
               run: cp ./.docker/etc/settings_local.dev.py.example ./.docker/etc/settings_local.dev.py
 
             - name: 🐳 Set up Docker Compose
-              uses: hoverkraft-tech/compose-action@v2.4.2
+              uses: hoverkraft-tech/compose-action@v2.4.3
               with:
                   compose-file: docker-compose.debug.yml
                   up-flags: "--build -d"

@@ -1018,6 +1018,7 @@ class BadgeClass(
     # TODO: criteria_url and criteria_text are deprecated and should be removed once the migration to the criteria field was done
     criteria_url = models.CharField(max_length=254, blank=True, null=True, default=None)
     criteria_text = models.TextField(blank=True, null=True)
+    course_url = models.CharField(max_length=255, blank=True, null=True, default=None)
     expiration = models.IntegerField(
         blank=True,
         null=True,
@@ -1284,6 +1285,7 @@ class BadgeClass(
         activity_zip=None,
         activity_city=None,
         activity_online=False,
+        course_url="",
         **kwargs,
     ):
         return BadgeInstance.objects.create(
@@ -1304,6 +1306,7 @@ class BadgeClass(
             activity_zip=activity_zip,
             activity_city=activity_city,
             activity_online=activity_online,
+            course_url=course_url,
             **kwargs,
         )
 
@@ -1663,6 +1666,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
     )
 
     image = models.FileField(upload_to="uploads/badges", blank=True)
+    course_url = models.CharField(max_length=255, blank=True, null=True, default=None)
 
     # slug has been deprecated for now, but preserve existing values
     slug = models.CharField(
@@ -2141,6 +2145,36 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
             if expand_badgeclass:
                 json["badge"] = self.cached_badgeclass.get_json(obi_version=obi_version)
                 json["badge"]["slug"] = self.cached_badgeclass.entity_id
+                networkShare = self.cached_badgeclass.network_shares.filter(
+                    is_active=True
+                ).first()
+                if networkShare:
+                    network = networkShare.network
+                    json["badge"]["sharedOnNetwork"] = {
+                        "slug": network.entity_id,
+                        "name": network.name,
+                        "image": network.image.url,
+                        "description": network.description,
+                    }
+                else:
+                    json["badge"]["sharedOnNetwork"] = None
+
+                json["badge"]["isNetworkBadge"] = (
+                    self.cached_badgeclass.cached_issuer.is_network
+                    and json["badge"]["sharedOnNetwork"] is None
+                )
+
+                if json["badge"]["isNetworkBadge"]:
+                    json["badge"]["networkName"] = (
+                        self.cached_badgeclass.cached_issuer.name
+                    )
+                    json["badge"]["networkImage"] = (
+                        self.cached_badgeclass.cached_issuer.image.url
+                    )
+                else:
+                    json["badge"]["networkImage"] = None
+                    json["badge"]["networkName"] = None
+
                 if expand_issuer:
                     json["badge"]["issuer"] = self.cached_issuer.get_json(
                         obi_version=obi_version
@@ -2382,6 +2416,46 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
             # unique
             extension_contexts = list(set(extension_contexts))
             json["@context"] += extension_contexts
+
+        badgeclass_extensions = self.cached_badgeclass.cached_extensions()
+        if badgeclass_extensions:
+            extension_contexts = []
+
+            for extension in badgeclass_extensions:
+                if extension.name == "extensions:OrgImageExtension":
+                    continue
+                extension_json = json_loads(extension.original_json)
+                extension_name = extension.name
+
+                # Extract contexts from extension data
+                items = (
+                    extension_json
+                    if isinstance(extension_json, list)
+                    else [extension_json]
+                )
+                for item in items:
+                    if isinstance(item, dict) and "@context" in item:
+                        ctx = item["@context"]
+                        extension_contexts += ctx if isinstance(ctx, list) else [ctx]
+
+                # Add cleaned extension data to credential
+                if isinstance(extension_json, list):
+                    json[extension_name] = [
+                        {k: v for k, v in item.items() if k not in ["@context", "type"]}
+                        for item in extension_json
+                        if isinstance(item, dict)
+                    ]
+                else:
+                    json[extension_name] = {
+                        k: v
+                        for k, v in extension_json.items()
+                        if k not in ["@context", "type"]
+                    }
+
+            # Add unique contexts to top-level context
+            json["@context"] += [
+                ctx for ctx in set(extension_contexts) if ctx not in json["@context"]
+            ]
 
         ##### proof / signing #####
 
@@ -2883,9 +2957,13 @@ class QrCode(BaseVersionedEntity):
     activity_city = models.CharField(max_length=255, null=True, blank=True)
     activity_online = models.BooleanField(blank=True, null=False, default=False)
 
+    course_url = models.CharField(max_length=255, blank=True, null=True, default=None)
+
     valid_from = models.DateTimeField(blank=True, null=True, default=None)
 
     expires_at = models.DateTimeField(blank=True, null=True, default=None)
+
+    evidence_items = JSONField(default=list, blank=True)
 
     notifications = models.BooleanField(null=False, default=False)
 
