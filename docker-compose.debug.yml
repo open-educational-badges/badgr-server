@@ -8,7 +8,6 @@ services:
             - "db"
             - "memcached"
             - "redis"
-            - "celery_worker"
         command:
             [
                 "sh",
@@ -107,11 +106,11 @@ services:
             - "MYSQL_HOST=db"
             - "MYSQL_ROOT_PASSWORD=password"
             - TZ=Europe/Berlin
-        networks:
-            - badgr
+        network_mode: "service:api"
         restart: unless-stopped
         depends_on:
             - redis
+            - api
 
     redis:
         image: redis:latest
