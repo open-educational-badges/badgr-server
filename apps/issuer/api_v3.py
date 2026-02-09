@@ -358,7 +358,7 @@ class RequestIframe(APIView):
     def get(self, request, **kwargs):
         # for easier in-browser testing
         if settings.DEBUG:
-            request.data.update({x: y[0] for x,y in request.GET.items()})
+            request.data.update(request.GET.dict())
             return self.post(request, **kwargs)
         else:
             return HttpResponse(b"", status=405)
