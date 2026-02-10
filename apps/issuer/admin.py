@@ -260,7 +260,7 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
                 "quota_aiskills_requests",
                 "quota_pdfeditor",
             )
-        }) if "ISSUER" in settings.QUOTAS else (None, { "fields": ()})
+        })
     )
 
     def get_inlines(self, request, obj):
