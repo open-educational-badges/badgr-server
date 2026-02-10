@@ -212,7 +212,7 @@ class BadgeInstances(EntityViewSet):
     ),
 )
 class Issuers(EntityViewSet):
-    queryset = Issuer.objects.all()
+    queryset = Issuer.objects.filter(is_network=False)
     serializer_class = IssuerSerializerV1
     filterset_class = IssuerFilter
 
@@ -220,7 +220,7 @@ class Issuers(EntityViewSet):
     ordering = ["-badge_count"]
 
     def get_queryset(self):
-        return Issuer.objects.all().annotate(
+        return Issuer.objects.filter(is_network=False).annotate(
             badge_count=Count("badgeclasses", distinct=True)
         )
 
@@ -358,7 +358,7 @@ class RequestIframe(APIView):
     def get(self, request, **kwargs):
         # for easier in-browser testing
         if settings.DEBUG:
-            request._request.POST = request.GET
+            request.data.update(request.GET.dict())
             return self.post(request, **kwargs)
         else:
             return HttpResponse(b"", status=405)

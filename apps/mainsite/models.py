@@ -25,6 +25,16 @@ import uuid
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
 
+# https://docs.djangoproject.com/en/5.0/releases/5.0/#migrating-existing-uuidfield-on-mariadb-10-7
+class Char32UUIDField(models.UUIDField):
+    def db_type(self, connection):
+        return "char(32)"
+
+    def get_db_prep_value(self, value, connection, prepared=False):
+        value = super().get_db_prep_value(value, connection, prepared)
+        if value is not None:
+            value = value.hex
+        return value
 
 class EmailBlacklist(models.Model):
     email = models.EmailField(unique=True)
@@ -440,9 +450,8 @@ class LegacyTokenProxy(Token):
         if self.key:
             return "{}***".format(self.key[:4])
 
-
 class AltchaChallenge(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = Char32UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     salt = models.CharField(max_length=24)  # 12-byte hex encoded salt
     challenge = models.CharField(max_length=64)  # SHA-256 hash is 64 chars
     signature = models.CharField(max_length=64)
@@ -459,7 +468,7 @@ class AltchaChallenge(models.Model):
 
 
 class IframeUrl(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = Char32UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     params = JSONField()
     created_at = models.DateTimeField(auto_now_add=True)

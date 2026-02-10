@@ -2161,6 +2161,27 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
 
             url = "{url}?a={badgr_app}".format(url=save_url, badgr_app=badgr_app)
 
+            share_params = {
+                "startTask": "CERTIFICATION_NAME",  # this is the name LinkedIn has given the task
+                "name": self.badgeclass.name,
+                "organizationName": self.issuer.name,
+                "issueYear": str(self.issued_on.year),
+                "issueMonth": f"{self.issued_on.month:02d}",  # Zero-padded month
+                "expirationYear": str(self.expires_at.year)
+                if self.expires_at
+                else None,
+                "expirationMonth": f"{self.expires_at.month:02d}"
+                if self.expires_at
+                else None,
+                "certUrl": self.share_url,
+                "certId": self.entity_id,
+                "organizationId": self.issuer.linkedinId
+                if hasattr(self.issuer, "linkedinId") and self.issuer.linkedinId
+                else None,
+            }
+            share_params = {k: v for k, v in share_params.items() if v is not None}
+            linked_in_share_url = f"https://www.linkedin.com/profile/add?{urllib.parse.urlencode(share_params, quote_via=urllib.parse.quote)}"
+
             email_context = {
                 "name": name,
                 "badge_name": self.badgeclass.name,
@@ -2184,6 +2205,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                 "badgr_app": badgr_app,
                 "activate_url": url,
                 "call_to_action_label": "Badge im Rucksack sammeln",
+                "linked_in_share_url": linked_in_share_url,
             }
             if badgr_app.cors == "badgr.io":
                 email_context["promote_mobile"] = True
@@ -2534,6 +2556,46 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
             # unique
             extension_contexts = list(set(extension_contexts))
             json["@context"] += extension_contexts
+
+        badgeclass_extensions = self.cached_badgeclass.cached_extensions()
+        if badgeclass_extensions:
+            extension_contexts = []
+
+            for extension in badgeclass_extensions:
+                if extension.name == "extensions:OrgImageExtension":
+                    continue
+                extension_json = json_loads(extension.original_json)
+                extension_name = extension.name
+
+                # Extract contexts from extension data
+                items = (
+                    extension_json
+                    if isinstance(extension_json, list)
+                    else [extension_json]
+                )
+                for item in items:
+                    if isinstance(item, dict) and "@context" in item:
+                        ctx = item["@context"]
+                        extension_contexts += ctx if isinstance(ctx, list) else [ctx]
+
+                # Add cleaned extension data to credential
+                if isinstance(extension_json, list):
+                    json[extension_name] = [
+                        {k: v for k, v in item.items() if k not in ["@context", "type"]}
+                        for item in extension_json
+                        if isinstance(item, dict)
+                    ]
+                else:
+                    json[extension_name] = {
+                        k: v
+                        for k, v in extension_json.items()
+                        if k not in ["@context", "type"]
+                    }
+
+            # Add unique contexts to top-level context
+            json["@context"] += [
+                ctx for ctx in set(extension_contexts) if ctx not in json["@context"]
+            ]
 
         ##### proof / signing #####
 
