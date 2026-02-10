@@ -29,6 +29,7 @@ from .models import (
     LearningPathTag,
     NetworkInvite,
     NetworkMembership,
+    Quota,
     RequestedBadge,
     QrCode,
     RequestedLearningPath,
@@ -249,7 +250,7 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
         ("JSON", {"fields": ("old_json",)}),
         ("Quotas", {
             "fields": (
-                "quota_account_level",
+                "quota",
                 "quota_period_start",
                 "quota_badge_create",
                 "quota_badge_award",
@@ -865,3 +866,10 @@ class BadgeClassNetworkShareAdmin(ModelAdmin):
 
 
 badgr_admin.register(BadgeClassNetworkShare, BadgeClassNetworkShareAdmin)
+
+
+class QuotaAdmin(ModelAdmin):
+    list_display = ("name", "price")
+
+
+badgr_admin.register(Quota, QuotaAdmin)

@@ -11,7 +11,6 @@ from badgeuser.serializers_v1 import (
     BadgeUserIdentifierFieldV1,
     BadgeUserProfileSerializerV1,
 )
-from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import EmailValidator, URLValidator
 from django.db.models import Q
@@ -51,6 +50,7 @@ from .models import (
     LearningPathBadge,
     NetworkInvite,
     QrCode,
+    Quota,
     RequestedBadge,
     RequestedLearningPath,
 )
@@ -412,54 +412,63 @@ class IssuerSerializerPrivateV1(IssuerSerializerV1):
     def to_representation(self, instance):
         representation = super(IssuerSerializerPrivateV1, self).to_representation(instance)
 
-        def quota_dict(quota_name: str):
-            quota = instance.get_quota(quota_name)
-            max_quota = instance.get_max_quota(quota_name)
-            custom = instance.is_custom_quota(quota_name)
+        quota = instance.quota
+        if not quota:
+            quota = Quota.objects.filter(default=True).first()
 
-            if type(quota) is int:
-                return {
-                    "used": max_quota - quota,
-                    "quota": quota,
-                    "max": max_quota,
-                    "custom": custom,
-                }
-            else:
-                return {
-                    "quota": quota,
-                    "custom": custom,
-                }
+        if quota:
 
-        nextLevel = instance.get_next_quota_level()
+            def quota_dict(quota_name: str):
+                quota = instance.get_quota(quota_name)
+                max_quota = -1 if instance.get_max_quota(quota_name) == 0 else instance.get_max_quota(quota_name)
+                custom = instance.is_custom_quota(quota_name)
 
-        representation["quotas"] = {
-            "level": instance.quota_account_level,
-            "nextLevel": {
-                "level": nextLevel,
-                "price": settings.QUOTAS["ISSUER"][nextLevel]["PRICE"],
+                if type(quota) is int:
+                    return {
+                        "used": max_quota - quota,
+                        "quota": quota,
+                        "max": max_quota,
+                        "custom": custom,
+                    }
+                else:
+                    return {
+                        "quota": quota,
+                        "custom": custom,
+                    }
+
+
+
+            # nextLevel = instance.get_next_quota_level()
+            upgradeQuota = quota.upgrade
+
+            representation["quotas"] = {
+                "level": quota.name,
+                "nextLevel": {
+                    "level": upgradeQuota.name,
+                    "price": upgradeQuota.price,
+                    "quotas": {
+                        "BADGE_CREATE": upgradeQuota.badge_create,
+                        "BADGE_AWARD": upgradeQuota.badge_award,
+                        "LEARNINGPATH_CREATE": upgradeQuota.learningpath_create,
+                        "ACCOUNTS_ADMIN": upgradeQuota.accounts_admin,
+                        "ACCOUNTS_MEMBER": upgradeQuota.accounts_member,
+                        "AISKILLS_REQUESTS": upgradeQuota.aiskills_requests,
+                        "PDFEDITOR": upgradeQuota.pdfeditor,
+                    }
+                } if upgradeQuota else None,
+                "periodStart": instance.quota_period_start,
+                "paymentPeriod": "month", # TODO
+                "nextPayment": instance.get_next_quota_payment(),
                 "quotas": {
-                    "BADGE_CREATE": instance.get_max_quota('BADGE_CREATE', nextLevel),
-                    "BADGE_AWARD": instance.get_max_quota('BADGE_AWARD', nextLevel),
-                    "LEARNINGPATH_CREATE": instance.get_max_quota('LEARNINGPATH_CREATE', nextLevel),
-                    "ACCOUNTS_ADMIN": instance.get_max_quota('ACCOUNTS_ADMIN', nextLevel),
-                    "ACCOUNTS_MEMBER": instance.get_max_quota('ACCOUNTS_MEMBER', nextLevel),
-                    "AISKILLS_REQUESTS": instance.get_max_quota('AISKILLS_REQUESTS', nextLevel),
-                    "PDFEDITOR": instance.get_max_quota('PDFEDITOR', nextLevel),
-                } if nextLevel else None
-            },
-            "periodStart": instance.quota_period_start,
-            "paymentPeriod": "month", # TODO
-            "nextPayment": instance.get_next_quota_payment(),
-            "quotas": {
-                "BADGE_CREATE": quota_dict('BADGE_CREATE'),
-                "BADGE_AWARD": quota_dict('BADGE_AWARD'),
-                "LEARNINGPATH_CREATE": quota_dict('LEARNINGPATH_CREATE'),
-                "ACCOUNTS_ADMIN": quota_dict('ACCOUNTS_ADMIN'),
-                "ACCOUNTS_MEMBER": quota_dict('ACCOUNTS_MEMBER'),
-                "AISKILLS_REQUESTS": quota_dict('AISKILLS_REQUESTS'),
-                "PDFEDITOR": quota_dict('PDFEDITOR'),
+                    "BADGE_CREATE": quota_dict('BADGE_CREATE'),
+                    "BADGE_AWARD": quota_dict('BADGE_AWARD'),
+                    "LEARNINGPATH_CREATE": quota_dict('LEARNINGPATH_CREATE'),
+                    "ACCOUNTS_ADMIN": quota_dict('ACCOUNTS_ADMIN'),
+                    "ACCOUNTS_MEMBER": quota_dict('ACCOUNTS_MEMBER'),
+                    "AISKILLS_REQUESTS": quota_dict('AISKILLS_REQUESTS'),
+                    "PDFEDITOR": quota_dict('PDFEDITOR'),
+                }
             }
-        }
 
         return representation
 

@@ -14,7 +14,9 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from geopy.geocoders import Nominatim
 from ratelimit import limits, sleep_and_retry
+from rest_framework.response import Response
 
+from apps.mainsite.exceptions import BadgrQuotaExceededException
 from mainsite.utils import OriginSetting
 
 
@@ -216,3 +218,15 @@ def geocode(addr_string: str):
     nom = Nominatim(user_agent="OpenEducationalBadges")
     geoloc = nom.geocode(addr_string)
     return geoloc
+
+
+def quota_check(quota_name: str):
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            issuer = args[0].get_object(args[1], **kwargs)
+            quota = issuer.get_quota(quota_name)
+            if not quota:
+                raise BadgrQuotaExceededException
+            return function(*args, **kwargs)
+        return wrapper
+    return decorator

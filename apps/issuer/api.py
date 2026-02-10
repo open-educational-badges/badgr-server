@@ -22,6 +22,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from apps.issuer.utils import quota_check
 from entity.api import (
     BaseEntityDetailView,
     BaseEntityListView,
@@ -456,6 +457,7 @@ class IssuerBadgeClassList(
         description="Authenticated user must have owner, editor, or staff status on the Issuer",
         tags=["Issuers", "BadgeClasses"],
     )
+    @quota_check('BADGE_CREATE')
     def post(self, request, **kwargs):
         self.get_object(request, **kwargs)  # trigger a has_object_permissions() check
         return super(IssuerBadgeClassList, self).post(request, **kwargs)
@@ -603,6 +605,7 @@ class IssuerLearningPathList(
         description="Authenticated user must have owner, editor, or staff status",
         tags=["Issuers", "LearningPaths"],
     )
+    @quota_check('LEARNINGPATH_CREATE')
     def post(self, request, **kwargs):
         self.get_object(request, **kwargs)  # trigger a has_object_permissions() check
         return super(IssuerLearningPathList, self).post(request, **kwargs)
@@ -1250,6 +1253,7 @@ class IssuerBadgeInstanceList(
         summary="Issue a new Assertion to a recipient",
         tags=["Assertions", "Issuers"],
     )
+    @quota_check('BADGE_AWARD')
     def post(self, request, **kwargs):
         kwargs["issuer"] = self.get_object(
             request, **kwargs

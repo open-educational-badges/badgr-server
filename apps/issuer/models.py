@@ -23,7 +23,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
-from django.db.models import ProtectedError
+from django.db.models import Q, ProtectedError
 from django.urls import reverse
 from django.utils import timezone
 from apps.issuer.services.image_composer import ImageComposer
@@ -304,24 +304,8 @@ class Issuer(
         max_length=512, blank=True, null=True, default=generate_private_key_pem
     )
 
-    def get_quota_choices():
-        try:
-            return {x: x.title() for x in settings.QUOTAS["ISSUER"]["QUOTAS"].keys()}
-        except KeyError:
-            return {}
+    quota = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
 
-    def get_quota_default():
-        try:
-            return list(settings.QUOTAS["ISSUER"]["QUOTAS"].keys())[0]
-        except:
-            return None
-
-    quota_account_level = models.CharField(
-        max_length=254, choices=get_quota_choices, default=get_quota_default,
-        verbose_name="Account Level",
-        blank=True,
-        null=True
-    )
     quota_period_start = models.DateTimeField(blank=False, null=False, default=timezone.now, verbose_name="Period start")
 
     quota_badge_create = models.PositiveIntegerField(blank=True, null=True, verbose_name="Create Badges")
@@ -389,22 +373,25 @@ class Issuer(
         else:
             return value
 
-    def get_max_quota(self, quota_name: str, level: str|None=None):
-        if level is None:
-            try:
-                attr = getattr(self, f'quota_{quota_name.lower()}')
-                if attr is not None:
-                    return attr
-            except AttributeError as e:
-                print(e)
-            level = str(self.quota_account_level)
-
-
+    def get_max_quota(self, quota_name: str):
         try:
-            key = 'NETWORK' if self.is_network else 'ISSUER'
-            return settings.QUOTAS[key][level]["QUOTAS"][quota_name]
-        except KeyError:
-            return None
+            attr = getattr(self, f'quota_{quota_name.lower()}')
+            if attr is not None:
+                return attr
+        except AttributeError as e:
+            print(e)
+
+        quota = self.quota
+        if not quota:
+            quota = Quota.objects.filter(default=True).first()
+
+        if quota:
+            try:
+                return getattr(quota, quota_name.lower())
+            except AttributeError:
+                pass
+
+        return None
 
     # check if a custom value has been set and differs from the default value
     def is_custom_quota(self, quota_name: str):
@@ -412,10 +399,9 @@ class Issuer(
             attr = getattr(self, f'quota_{quota_name.lower()}')
             if attr is not None:
                 try:
-                    key = 'NETWORK' if self.is_network else 'ISSUER'
-                    return settings.QUOTAS[key][str(self.quota_account_level)]["QUOTAS"][quota_name] != attr
-                except KeyError:
-                    return True
+                    return getattr(self.quota, quota_name.lower()) != attr
+                except AttributeError:
+                    return False
         except AttributeError as e:
             print(e)
 
@@ -429,11 +415,9 @@ class Issuer(
         return dt_next
 
     def get_next_quota_level(self):
-        levelList = list(settings.QUOTAS["ISSUER"].keys())
-        current = levelList.index(self.quota_account_level)
         try:
-            return levelList[current + 1]
-        except IndexError:
+            return self.quota.upgrade.name
+        except:
             return None
 
     def publish(self, publish_staff=True, *args, **kwargs):
@@ -3341,3 +3325,21 @@ class RequestedLearningPath(BaseVersionedEntity):
     status = models.CharField(
         max_length=254, blank=False, null=False, default="Pending"
     )
+
+
+class Quota(cachemodel.CacheModel):
+    name = models.CharField(max_length=254, blank=False, null=False)
+    price = models.FloatField(blank=True, null=True)
+    upgrade = models.OneToOneField("Quota", on_delete=models.SET_NULL, blank=True, null=True)
+    default = models.BooleanField(default=False)
+
+    badge_create = models.PositiveIntegerField(verbose_name="Create Badges")
+    badge_award = models.PositiveIntegerField(verbose_name="Award Badges")
+    learningpath_create = models.PositiveIntegerField(verbose_name="Create Learningpaths")
+    accounts_admin = models.PositiveIntegerField(verbose_name="Admin Accounts")
+    accounts_member = models.PositiveIntegerField(verbose_name="Member Accounts")
+    aiskills_requests = models.PositiveIntegerField(verbose_name="AI Tool Requests")
+    pdfeditor = models.BooleanField(verbose_name="PDF Editor")
+
+    def __str__(self):
+        return self.name

@@ -61,5 +61,5 @@ class BadgrValidationMultipleFieldError(BadgrValidationError):
 
 class BadgrQuotaExceededException(APIException):
 
-    # status_code = 422 ?
     status_code = 402
+    default_detail = "Quota exceeded"
