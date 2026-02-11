@@ -361,9 +361,8 @@ class Issuer(
                 [x for x in staff if x.role != "owner" and x.role != "editor"]
             )
 
-        # TODO
         if quota_name == "AISKILLS_REQUESTS":
-            pass
+            value = len(self.aiskill_requests.filter(created_at__date__range=(dt_start, dt_end)))
 
         if quota_name == "PDFEDITOR":
             value = max_quota
@@ -3405,3 +3404,10 @@ class Quota(cachemodel.CacheModel):
 
     def __str__(self):
         return self.name
+
+class AiSkillRequest(BaseAuditedModel):
+    issuer = models.ForeignKey(
+        Issuer,
+        on_delete=models.CASCADE,
+        related_name="aiskill_requests",
+    )

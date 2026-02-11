@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+from django.conf import settings
+from django.http import HttpResponse
+from django.views import View
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
@@ -13,16 +16,17 @@ from rest_framework.exceptions import ValidationError, PermissionDenied, NotFoun
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.mainsite.views import call_aiskills_api
 from badgeuser.models import CachedEmailAddress, UserRecipientIdentifier
 from entity.api import VersionedObjectMixin
-from issuer.models import Issuer, IssuerStaff
+from issuer.models import AiSkillRequest, Issuer, IssuerStaff
 from issuer.permissions import IsOwnerOrStaff, BadgrOAuthTokenHasEntityScope
 from issuer.serializers_v1 import (
     BadgeClassSerializerV1,
     IssuerRoleActionSerializerV1,
     IssuerStaffSerializerV1,
 )
-from issuer.utils import get_badgeclass_by_identifier
+from issuer.utils import get_badgeclass_by_identifier, quota_check
 from mainsite.permissions import AuthenticatedWithVerifiedIdentifier, IsServerAdmin
 from mainsite.utils import throttleable
 
@@ -341,3 +345,46 @@ class FindBadgeClassDetail(APIView):
 
         serializer = BadgeClassSerializerV1(badge)
         return Response(serializer.data)
+
+class IssuerAiSkills(APIView):
+
+    permission_classes = (AuthenticatedWithVerifiedIdentifier,)
+
+    def get_object(self, request, **kwargs):
+        issuerSlug = kwargs.get("issuerSlug")
+
+        return Issuer.objects.get(entity_id=issuerSlug)
+
+    def get(self, request, **kwargs):
+        # for easier in-browser testing
+        if settings.DEBUG:
+            request.data.update(request.GET.dict())
+            return self.post(request, **kwargs)
+        else:
+            return HttpResponse(b"", status=405)
+
+    @quota_check('AISKILLS_REQUESTS')
+    def post(self, request, **kwargs):
+
+        issuer = self.get_object(request, **kwargs)
+
+        searchterm = request.data["text"]
+
+        endpoint = getattr(
+            settings,
+            "AISKILLS_ENDPOINT_CHATS",
+            getattr(settings, "AISKILLS_ENDPOINT", None),
+        )
+        payload = {"text_to_analyze": searchterm}
+
+        response = call_aiskills_api(endpoint, "POST", payload)
+
+        # log AiSkillRequest if api call was successful
+        if response.status_code == 200:
+            AiSkillRequest.objects.create(
+                issuer = issuer,
+                created_by=request.user,
+                updated_by=request.user
+            )
+
+        return response
