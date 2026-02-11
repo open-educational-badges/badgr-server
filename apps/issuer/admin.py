@@ -12,6 +12,7 @@ from django.conf import settings
 from mainsite.admin import badgr_admin
 
 from .models import (
+    AiSkillRequest,
     BadgeClassNetworkShare,
     ImportedBadgeAssertionExtension,
     Issuer,
@@ -873,3 +874,8 @@ class QuotaAdmin(ModelAdmin):
 
 
 badgr_admin.register(Quota, QuotaAdmin)
+
+class AiSkillRequestsAdmin(ModelAdmin):
+    list_display = ("issuer", "created_at")
+
+badgr_admin.register(AiSkillRequest, AiSkillRequestsAdmin)

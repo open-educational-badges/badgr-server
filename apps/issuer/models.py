@@ -324,30 +324,36 @@ class Issuer(
 
         value = 0
 
-        # find current quota period based on period start
-        dt_end = self.quota_period_start
-        while(dt_end < timezone.now()):
-            dt_end = dt_end + relativedelta(years=1)
-        dt_start = dt_end - relativedelta(years=1)
+        # find current yearly quota period based on period start
+        dt_end_yr = self.quota_period_start
+        while(dt_end_yr < timezone.now()):
+            dt_end_yr = dt_end_yr + relativedelta(years=1)
+        dt_start_yr = dt_end_yr - relativedelta(years=1)
+
+        # find current monthly quota period based on period start
+        dt_end_mo = self.quota_period_start
+        while(dt_end_mo < timezone.now()):
+            dt_end_mo = dt_end_mo + relativedelta(months=1)
+        dt_start_mo = dt_end_mo - relativedelta(months=1)
 
 
         if quota_name == "BADGE_CREATE":
             value = len(
                 self.cached_badgeclasses()
-                    .filter(created_at__date__range=(dt_start, dt_end))
+                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
             )
 
         if quota_name == "BADGE_AWARD":
             value = len(
                 self.badgeinstance_set.all()
                     .filter(revoked=False)
-                    .filter(created_at__date__range=(dt_start, dt_end))
+                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
             )
 
         if quota_name == "LEARNINGPATH_CREATE":
             value = len(
                 self.cached_learningpaths()
-                    .filter(created_at__date__range=(dt_start, dt_end))
+                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
             )
 
         staff = self.cached_issuerstaff()
@@ -362,7 +368,7 @@ class Issuer(
             )
 
         if quota_name == "AISKILLS_REQUESTS":
-            value = len(self.aiskill_requests.filter(created_at__date__range=(dt_start, dt_end)))
+            value = len(self.aiskill_requests.filter(created_at__date__range=(dt_start_mo, dt_end_mo)))
 
         if quota_name == "PDFEDITOR":
             value = max_quota
