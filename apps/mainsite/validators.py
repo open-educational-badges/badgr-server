@@ -11,8 +11,10 @@ from mainsite.utils import verify_svg
 
 class ValidImageValidator(object):
     """
-    Verify a value is file-like and is either a PNG or a SVG
+    Verify a value is file-like and is either a PNG, a SVG or other format
     """
+    def __init__(self, formats=['PNG']):
+        self.formats = formats
 
     def __call__(self, image):
         if image:
@@ -25,8 +27,8 @@ class ValidImageValidator(object):
                 if not verify_svg(image):
                     raise ValidationError("Invalid image.")
             else:
-                if img.format != "PNG":
-                    raise ValidationError("Invalid PNG")
+                if not img.format in self.formats:
+                    raise ValidationError("Invalid image.")
 
 
 class ChoicesValidator(object):
@@ -119,3 +121,20 @@ class ComplexityPasswordValidator:
 
     def get_help_text(self):
         return "Your password must contain at least one uppercase letter, one number, and one special character."
+
+
+class SimpleChoicesValidator(object):
+    """
+    Verify a value is within a set of choices
+    """
+
+    def __init__(self, choices):
+        self.choices = choices
+
+    def __call__(self, value):
+        if value not in self.choices:
+            raise ValidationError(
+                "'{}' is not supported. Only {} is available".format(
+                    value, self.choices
+                )
+            )
