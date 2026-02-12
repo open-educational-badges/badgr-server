@@ -210,7 +210,7 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
         representation["json"] = instance.get_json(
             obi_version="1_1", use_canonical_id=True
         )
-        representation["badgeClassCount"] = len(instance.cached_badgeclasses())
+        # representation["badgeClassCount"] = len(instance.cached_badgeclasses())
         # TODO: retrieve from cache?
         representation["learningPathCount"] = instance.learningpaths.count()
         representation["partnerBadgesCount"] = instance.shared_badges.count()
@@ -407,10 +407,10 @@ class IssuerSerializerV1(BaseIssuerSerializerV1):
         return representation
 
 # serializer including private informationen for members
-class IssuerSerializerPrivateV1(IssuerSerializerV1):
+class QuotaRepresentationMixin(serializers.Serializer):
 
     def to_representation(self, instance):
-        representation = super(IssuerSerializerPrivateV1, self).to_representation(instance)
+        representation = super(QuotaRepresentationMixin, self).to_representation(instance)
 
         quota = instance.quota
         if not quota:
@@ -472,7 +472,10 @@ class IssuerSerializerPrivateV1(IssuerSerializerV1):
 
         return representation
 
-class NetworkSerializerV1Private(NetworkSerializerV1, IssuerSerializerPrivateV1):
+class IssuerNetworkSerializerPrivateV1(QuotaRepresentationMixin, IssuerSerializerV1):
+    pass
+
+class NetworkSerializerV1Private(QuotaRepresentationMixin, NetworkSerializerV1):
     pass
 
 class IssuerRoleActionSerializerV1(serializers.Serializer):

@@ -1,6 +1,7 @@
 # encoding: utf-8
 
-from django.conf import settings
+import json
+from django.conf import Settings, settings
 from django.http import HttpResponse
 from django.views import View
 from drf_spectacular.utils import (
@@ -367,6 +368,14 @@ class IssuerAiSkills(APIView):
     def post(self, request, **kwargs):
 
         issuer = self.get_object(request, **kwargs)
+
+        if hasattr(settings, 'AISKILLS_DEMO_RESULT'):
+            AiSkillRequest.objects.create(
+                issuer = issuer,
+                created_by=request.user,
+                updated_by=request.user
+            )
+            return Response(json.loads(settings.AISKILLS_DEMO_RESULT))
 
         searchterm = request.data["text"]
 

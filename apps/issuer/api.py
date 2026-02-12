@@ -61,7 +61,7 @@ from issuer.permissions import (
 from issuer.serializers_v1 import (
     BadgeClassSerializerV1,
     BadgeInstanceSerializerV1,
-    IssuerSerializerPrivateV1,
+    IssuerNetworkSerializerPrivateV1,
     IssuerSerializerV1,
     IssuerStaffRequestSerializer,
     LearningPathParticipantSerializerV1,
@@ -111,7 +111,7 @@ class IssuerList(BaseEntityListView):
     """
 
     model = Issuer
-    v1_serializer_class = IssuerSerializerPrivateV1
+    v1_serializer_class = IssuerNetworkSerializerPrivateV1
     v2_serializer_class = IssuerSerializerV2
     permission_classes = [
         IsServerAdmin
@@ -150,7 +150,7 @@ class NetworkList(BaseEntityListView):
     """
 
     model = Issuer
-    v1_serializer_class = NetworkSerializerV1
+    v1_serializer_class = NetworkSerializerV1Private
     permission_classes = [
         IsServerAdmin
         | (
@@ -208,7 +208,7 @@ class NetworkUserIssuersList(BaseEntityListView):
     """
 
     model = Issuer
-    v1_serializer_class = IssuerSerializerPrivateV1
+    v1_serializer_class = IssuerNetworkSerializerPrivateV1
     v2_serializer_class = IssuerSerializerV2
     permission_classes = [
         IsServerAdmin
@@ -247,7 +247,7 @@ class NetworkUserIssuersList(BaseEntityListView):
 
 class IssuerDetail(BaseEntityDetailView):
     model = Issuer
-    v1_serializer_class = IssuerSerializerPrivateV1
+    v1_serializer_class = IssuerNetworkSerializerPrivateV1
     v2_serializer_class = IssuerSerializerV2
     permission_classes = [
         IsServerAdmin
