@@ -321,7 +321,12 @@ class BadgePDFCreator:
         page_used_space = 0
 
         if num_competencies > 0:
-            max_studyload = str(max(c["studyLoad"] for c in competencies))
+            max_studyload = max(c["studyLoad"] for c in competencies)
+            max_studyload = "%s:%s h" % (
+                math.floor(max_studyload / 60),
+                str(max_studyload % 60).zfill(2),
+            )
+
             competenciesPerPage = 9
 
             Story.append(PageBreak())
@@ -942,7 +947,7 @@ class RoundedRectFlowable(Flowable):
         clockIcon = ImageReader("{}images/clock-icon.png".format(settings.STATIC_URL))
         self.canv.drawImage(
             clockIcon,
-            self.x + 475 - (max_studyload_width + 35),
+            self.x + 500 - (15 + 10 + max_studyload_width + 10),
             self.y + 12.5,
             width=15,
             height=15,
@@ -1012,7 +1017,7 @@ class PageNumCanvas(canvas.Canvas):
     def draw_esco_info(self, page_width):
         self.setStrokeColor("#777777")
         self.setLineWidth(1)
-        self.line(10, 75, page_width, 75)
+        self.line(10, 75, page_width - 10, 75)
         text_style = ParagraphStyle(
             name="Text_Style",
             fontName="Rubik-Italic",
