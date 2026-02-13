@@ -127,11 +127,10 @@ class BadgePDFCreator:
             text += " <strong>online</strong>"
 
         p = Paragraph(text, text_style)
-        p.wrap(document_width - 40, 3 * 22.5)
+        _, h = p.wrap(document_width - 40, 3 * 22.5)
         first_page_content.append(p)
-
         first_page_content.append(Spacer(1, 10))
-        self.used_space += 10 + len(p.blPara.lines) * 22.5  # spacer and paragraph
+        self.used_space += h + 10
 
         text = "den folgenden Badge erworben:"
         first_page_content.append(Paragraph(text, text_style))
@@ -155,8 +154,8 @@ class BadgePDFCreator:
         width = document_width - 40
         max_h = line_height * 2
         p = Paragraph(f"<strong>{title}</strong>", title_style)
-        p.wrap(width, max_h)
-        if len(p.blPara.lines) <= 2:
+        _, h = p.wrap(width, max_h)
+        if h / line_height <= 2:
             first_page_content.append(KeepInFrame(width, max_h, [p]))
         else:
             ellipsis = "\u2026"
@@ -164,15 +163,13 @@ class BadgePDFCreator:
             while words:
                 trial = " ".join(words) + ellipsis
                 p = Paragraph(f"<strong>{trial}</strong>", title_style)
-                p.wrap(width, max_h)
-                if len(p.blPara.lines) <= 2:
+                _, h = p.wrap(width, max_h)
+                if h / line_height <= 2:
                     first_page_content.append(KeepInFrame(width, max_h, [p]))
                     break
                 words.pop()
         first_page_content.append(Spacer(1, 15))
-        self.used_space += (
-            len(p.blPara.lines) * line_height + 25
-        )  # badge class name and spaces
+        self.used_space += h + 25  # badge class name and spaces
 
     def truncate_text(text, max_words=70):
         words = text.split()
