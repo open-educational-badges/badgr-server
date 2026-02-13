@@ -77,6 +77,7 @@ class BadgePDFCreator:
         activityCity=None,
         activityOnline=False,
     ):
+        document_width, _ = A4
         first_page_content.append(Spacer(1, 58))
         self.used_space += 58
         recipient_style = ParagraphStyle(
@@ -93,7 +94,9 @@ class BadgePDFCreator:
         first_page_content.append(Spacer(1, 25))
         self.used_space += 46.6  # spacer and paragraph
 
-        text_style = ParagraphStyle(name="Text_Style", fontSize=18, alignment=TA_CENTER)
+        text_style = ParagraphStyle(
+            name="Text_Style", fontSize=18, alignment=TA_CENTER, leading=22.5
+        )
 
         if (
             activityStartDate
@@ -123,10 +126,11 @@ class BadgePDFCreator:
         elif activityOnline:
             text += " <strong>online</strong>"
 
-        first_page_content.append(Paragraph(text, text_style))
-
+        p = Paragraph(text, text_style)
+        _, h = p.wrap(document_width - 40, 3 * 22.5)
+        first_page_content.append(p)
         first_page_content.append(Spacer(1, 10))
-        self.used_space += 28  # spacer and paragraph
+        self.used_space += h + 10
 
         text = "den folgenden Badge erworben:"
         first_page_content.append(Paragraph(text, text_style))
@@ -150,8 +154,8 @@ class BadgePDFCreator:
         width = document_width - 40
         max_h = line_height * 2
         p = Paragraph(f"<strong>{title}</strong>", title_style)
-        p.wrap(width, max_h)
-        if len(p.blPara.lines) <= 2:
+        _, h = p.wrap(width, max_h)
+        if h / line_height <= 2:
             first_page_content.append(KeepInFrame(width, max_h, [p]))
         else:
             ellipsis = "\u2026"
@@ -159,15 +163,13 @@ class BadgePDFCreator:
             while words:
                 trial = " ".join(words) + ellipsis
                 p = Paragraph(f"<strong>{trial}</strong>", title_style)
-                p.wrap(width, max_h)
-                if len(p.blPara.lines) <= 2:
+                _, h = p.wrap(width, max_h)
+                if h / line_height <= 2:
                     first_page_content.append(KeepInFrame(width, max_h, [p]))
                     break
                 words.pop()
         first_page_content.append(Spacer(1, 15))
-        self.used_space += (
-            len(p.blPara.lines) * line_height + 25
-        )  # badge class name and spaces
+        self.used_space += h + 25  # badge class name and spaces
 
     def truncate_text(text, max_words=70):
         words = text.split()
@@ -177,10 +179,13 @@ class BadgePDFCreator:
             return text
 
     def add_dynamic_spacer(self, first_page_content, text):
+        _, document_height = A4
         line_char_count = 79
         line_height = 16.5
         num_lines = math.ceil(len(text) / line_char_count)
-        spacer_height = 160 - (num_lines - 1) * line_height
+        spacer_height = (
+            160 + document_height - self.used_space - (num_lines - 1) * line_height
+        )
         spacer_height = max(spacer_height, 0)
         first_page_content.append(Spacer(1, spacer_height))
         self.used_space += spacer_height
