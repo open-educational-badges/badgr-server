@@ -10,11 +10,10 @@ from django.utils import timezone
 from django_filters import rest_framework as filters
 from oauth2_provider.models import AccessToken, Application
 from oauthlib.oauth2.rfc6749.tokens import random_token_generator
-from rest_framework import permissions
+from rest_framework import viewsets, permissions, serializers
 from rest_framework.response import Response
 from rest_framework.filters import OrderingFilter
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework.decorators import action
 
 
 from issuer.serializers_v3 import (
@@ -26,6 +25,7 @@ from badgeuser.api import LearningPathList
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
+    inline_serializer,
     OpenApiParameter,
 )
 from rest_framework.views import APIView
@@ -51,16 +51,13 @@ from .serializers_v1 import (
     LearningPathSerializerV1,
     NetworkSerializerV1,
 )
-
-from .serializers_v3 import TagSerializerV3
-
 from .models import (
     BadgeClass,
     BadgeClassTag,
+    BadgeClassArea,
     BadgeInstance,
     Issuer,
     LearningPath,
-    LearningPathTag,
     BadgeInstanceExtension,
     LearningPathBadge,
 )
@@ -146,27 +143,6 @@ class Badges(EntityViewSet):
     filterset_class = BadgeFilter
     ordering_fields = ["name", "created_at"]
 
-    @action(
-        detail=False,
-        methods=["get"],
-        permission_classes=[permissions.AllowAny],
-        url_path="tags",
-        serializer_class=TagSerializerV3,
-    )
-    @extend_schema(
-        summary="Get a list of all available badge tags",
-        tags=["BadgeClasses"],
-        description="Fetch all available tags that existing Badges may be filtered by",
-        responses=TagSerializerV3,
-    )
-    def tags(self, request, **kwargs):
-        tag_names = (
-            BadgeClassTag.objects.order_by("name")
-            .values_list("name", flat=True)
-            .distinct()
-        )
-        return Response(list(tag_names))
-
     def get(self, request, **kwargs):
         pass
 
@@ -183,6 +159,50 @@ class BadgeInstances(EntityViewSet):
     filterset_class = BadgeInstanceV3FilterSet
     ordering_fields = ["created_at", "recipient_identifier"]
     ordering = ["-created_at"]
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="Get a list of all available badge tags",
+        tags=["BadgeClasses"],
+        description="Fetch all available tags that existing Badges may be filtered by",
+        responses={
+            200: inline_serializer(
+                name="BadgeTagsResponse",
+                fields={"tags": serializers.ListField(child=serializers.CharField())},
+            )
+        },
+    ),
+)
+class BadgeTags(viewsets.ViewSet):
+    """A ViewSet to fetch all available tags the existing Badges may be filtered by"""
+
+    permission_classes = [permissions.AllowAny]  # anybody may see all badge tags
+
+    def list(self, request, **kwargs):
+        tag_names = (
+            BadgeClassTag.objects.order_by("name")
+            .values_list("name", flat=True)
+            .distinct()
+        )
+        return Response(list(tag_names))
+
+class BadgeAreas(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    def list(self, request, **kwargs):
+        qs = BadgeClassArea.objects.all()
+
+        q = request.query_params.get("q")
+        if q:
+            qs = qs.filter(name__icontains=q)
+
+        area_names = (
+            qs.order_by("name")
+            .values_list("name", flat=True)
+            .distinct()
+        )
+        return Response(list(area_names))
 
 
 @extend_schema_view(
@@ -282,7 +302,9 @@ class Networks(EntityViewSet):
 
 
 class LearningPathFilter(EntityFilter):
-    tags = TagFilter(field_name="learningpathtag__name", lookup_expr="icontains")
+    tags = filters.CharFilter(
+        field_name="learningpathtag__name", lookup_expr="icontains"
+    )
 
 
 @extend_schema_view(
@@ -322,36 +344,6 @@ class LearningPaths(EntityViewSet):
     queryset = LearningPath.objects.all()
     serializer_class = LearningPathSerializerV1
     filterset_class = LearningPathFilter
-
-    @action(
-        detail=False,
-        methods=["get"],
-        permission_classes=[permissions.AllowAny],
-        url_path="tags",
-        serializer_class=TagSerializerV3,
-    )
-    @extend_schema(
-        summary="Get a list of all available learningpath tags",
-        tags=["LearningPaths"],
-        description="Fetch all available tags that existing LearningPaths may be filtered by",
-        responses=TagSerializerV3,
-    )
-    def tags(self, request, **kwargs):
-        tag_names = (
-            LearningPathTag.objects.order_by("name")
-            .values_list("name", flat=True)
-            .distinct()
-        )
-        return Response(list(tag_names))
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-
-        queryset = queryset.select_related(
-            "issuer", "participationBadge"
-        ).prefetch_related("learningpathtag_set", "learningpathbadge_set__badge")
-
-        return queryset.distinct()
 
 
 class RequestIframe(APIView):

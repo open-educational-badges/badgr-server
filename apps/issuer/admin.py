@@ -19,6 +19,7 @@ from .models import (
     BadgeInstanceEvidence,
     BadgeClassAlignment,
     BadgeClassTag,
+    BadgeClassArea,
     BadgeClassExtension,
     IssuerExtension,
     BadgeInstanceExtension,
@@ -26,6 +27,7 @@ from .models import (
     LearningPath,
     LearningPathBadge,
     LearningPathTag,
+    LearningPathArea,
     NetworkInvite,
     NetworkMembership,
     RequestedBadge,
@@ -317,6 +319,11 @@ class BadgeClassTagInline(TabularInline):
     extra = 0
     fields = ("name",)
 
+class BadgeClassAreaInline(TabularInline):
+    model = BadgeClassArea
+    extra = 0
+    fields = ("name",)
+
 
 class BadgeClassExtensionInline(TabularInline):
     model = BadgeClassExtension
@@ -415,6 +422,7 @@ class BadgeClassAdmin(DjangoObjectActions, ModelAdmin):
     )
     inlines = [
         BadgeClassTagInline,
+        BadgeClassAreaInline,
         BadgeClassAlignmentInline,
         BadgeClassExtensionInline,
     ]
@@ -744,6 +752,11 @@ badgr_admin.register(RequestedLearningPath, ReqeustedLearningPathAdmin)
 
 
 class LearningPathTagInline(TabularInline):
+    model = LearningPathTag
+    extra = 0
+    fields = ("name",)
+
+class LearningPathAreaInline(TabularInline):
     model = LearningPathTag
     extra = 0
     fields = ("name",)

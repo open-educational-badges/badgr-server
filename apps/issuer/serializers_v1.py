@@ -482,6 +482,11 @@ class BadgeClassSerializerV1(
         child=StripTagsCharField(max_length=254), source="tag_items", required=False
     )
 
+    areas = serializers.ListField(
+        child=StripTagsCharField(max_length=254), source="area_items", required=False
+    )
+
+
     extensions = serializers.DictField(
         source="extension_items", required=False, validators=[BadgeExtensionValidator()]
     )
@@ -623,7 +628,7 @@ class BadgeClassSerializerV1(
 
             instance.alignment_items = validated_data.get("alignment_items")
             instance.tag_items = validated_data.get("tag_items")
-
+            instance.area_items = validated_data.get("area_items")
             instance.expiration = validated_data.get("expiration", None)
             instance.course_url = validated_data.get("course_url", "")
             instance.imageFrame = validated_data.get("imageFrame", True)
@@ -663,6 +668,7 @@ class BadgeClassSerializerV1(
         logger.debug(validated_data)
 
         tags = validated_data.pop("tag_items", [])
+        areas = validated_data.pop("area_items", [])
         alignments = validated_data.pop("alignment_items", [])
         extension_data = validated_data.pop("extension_items", [])
 
@@ -676,6 +682,8 @@ class BadgeClassSerializerV1(
             new_badgeclass = BadgeClass.objects.create(**validated_data)
 
             new_badgeclass.tag_items = tags
+
+            new_badgeclass.area_items = areas
 
             new_badgeclass.alignment_items = alignments
 
@@ -1112,6 +1120,9 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
     tags = serializers.ListField(
         child=StripTagsCharField(max_length=254), source="tag_items", required=False
     )
+    areas = serializers.ListField(
+        child=StripTagsCharField(max_length=254), source="area_items", required=False
+    )
     badges = BadgeOrderSerializer(many=True, required=False)
 
     participationBadge_image = serializers.SerializerMethodField()
@@ -1145,6 +1156,7 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             instance
         )
         representation["tags"] = list(instance.tag_items.values_list("name", flat=True))
+        representation["areas"] = list(instance.area_items.values_list("name", flat=True))
         representation["issuerOwnerAcceptedTos"] = any(
             user.agreed_terms_version == TermsVersion.cached.latest_version()
             for user in instance.cached_issuer.owners
@@ -1232,6 +1244,7 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
         required_badges_count = validated_data.get("required_badges_count")
         activated = validated_data.get("activated")
         tags = validated_data.get("tag_items")
+        areas = validated_data.get("area_items")
         issuer_id = validated_data.get("issuer_id")
         participationBadge_id = validated_data.get("participationBadge_id")
         badges_data = validated_data.get("badges")
@@ -1273,7 +1286,7 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             participationBadge=participationBadge,
         )
         new_learningpath.tag_items = tags
-
+        new_learningpath.area_items = areas
         new_learningpath.learningpath_badges = badges_with_order
         return new_learningpath
 
@@ -1288,6 +1301,10 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
         tags = validated_data.get("tag_items", None)
         if tags is not None:
             instance.tag_items = tags
+        
+        areas = validated_data.get("area_items", None)
+        if areas is not None:
+            instance.area_items = areas
 
         badges_data = validated_data.get("badges", None)
         if badges_data is not None:
