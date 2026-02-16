@@ -13,7 +13,8 @@ RUN apt-get install -y default-libmysqlclient-dev \
     pkg-config \
     default-mysql-client \
     curl \
-    xz-utils
+    xz-utils \
+    gettext
 
 RUN pip install uwsgi
 
