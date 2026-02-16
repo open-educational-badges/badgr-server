@@ -316,6 +316,16 @@ class Issuer(
     quota_aiskills_requests = models.PositiveIntegerField(blank=True, null=True, verbose_name="AI Tool Requests")
     quota_pdfeditor = models.BooleanField(blank=True, null=True, verbose_name="PDF Editor")
 
+    def get_quota_object(self):
+        quota = self.quota
+        if not quota:
+            if self.is_network:
+                quota = Quota.objects.filter(default=QuotaDefaults.NETWORK).first()
+            else:
+                quota = Quota.objects.filter(default=QuotaDefaults.ISSUER).first()
+
+        return quota
+
     def get_quota(self, quota_name: str):
         max_quota = self.get_max_quota(quota_name)
 
@@ -386,9 +396,7 @@ class Issuer(
         except AttributeError as e:
             print(e)
 
-        quota = self.quota
-        if not quota:
-            quota = Quota.objects.filter(default=True).first()
+        quota = self.get_quota_object()
 
         if quota:
             try:
@@ -3393,12 +3401,18 @@ class RequestedLearningPath(BaseVersionedEntity):
         max_length=254, blank=False, null=False, default="Pending"
     )
 
-
+class QuotaDefaults(models.TextChoices):
+    NONE = "NONE", "None"
+    ISSUER = "ISSUER", "Issuer"
+    NETWORK = "NETWORK", "Network"
 class Quota(cachemodel.CacheModel):
+
     name = models.CharField(max_length=254, blank=False, null=False)
     price = models.FloatField(blank=True, null=True)
     upgrade = models.OneToOneField("Quota", on_delete=models.SET_NULL, blank=True, null=True)
-    default = models.BooleanField(default=False)
+    default = models.CharField(
+        max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE
+    )
 
     badge_create = models.PositiveIntegerField(verbose_name="Create Badges")
     badge_award = models.PositiveIntegerField(verbose_name="Award Badges")

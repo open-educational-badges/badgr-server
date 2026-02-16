@@ -412,9 +412,7 @@ class QuotaRepresentationMixin(serializers.Serializer):
     def to_representation(self, instance):
         representation = super(QuotaRepresentationMixin, self).to_representation(instance)
 
-        quota = instance.quota
-        if not quota:
-            quota = Quota.objects.filter(default=True).first()
+        quota = instance.get_quota_object()
 
         if quota:
 
