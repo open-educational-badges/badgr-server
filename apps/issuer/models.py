@@ -1,4 +1,5 @@
 import datetime
+from django.db.models.fields import PositiveIntegerField
 import io
 import math
 import os
@@ -315,6 +316,7 @@ class Issuer(
     quota_accounts_member = models.PositiveIntegerField(blank=True, null=True, verbose_name="Member Accounts")
     quota_aiskills_requests = models.PositiveIntegerField(blank=True, null=True, verbose_name="AI Tool Requests")
     quota_pdfeditor = models.BooleanField(blank=True, null=True, verbose_name="PDF Editor")
+    quota_network_memberships = models.PositiveIntegerField(blank=True, null=True, verbose_name="Network Memberships")
 
     def get_quota_object(self):
         quota = self.quota
@@ -326,7 +328,7 @@ class Issuer(
 
         return quota
 
-    def get_quota(self, quota_name: str):
+    def get_quota_usage(self, quota_name: str):
         max_quota = self.get_max_quota(quota_name)
 
         if max_quota is None:
@@ -383,10 +385,10 @@ class Issuer(
         if quota_name == "PDFEDITOR":
             value = max_quota
 
-        if type(value) is int:
-            return -1 if max_quota == 0 else max(0, max_quota - value)
-        else:
-            return value
+        if quota_name == "NETWORK_MEMBERSHIPS":
+            value = len(self.partner_issuers.all()) + len(self.invites.filter(status="Pending").all())
+
+        return value
 
     def get_max_quota(self, quota_name: str):
         try:
@@ -3419,11 +3421,12 @@ class Quota(cachemodel.CacheModel):
     learningpath_create = models.PositiveIntegerField(verbose_name="Create Learningpaths")
     accounts_admin = models.PositiveIntegerField(verbose_name="Admin Accounts")
     accounts_member = models.PositiveIntegerField(verbose_name="Member Accounts")
-    aiskills_requests = models.PositiveIntegerField(verbose_name="AI Tool Requests")
+    aiskills_requests: PositiveIntegerField = models.PositiveIntegerField(verbose_name="AI Tool Requests")
     pdfeditor = models.BooleanField(verbose_name="PDF Editor")
+    network_memberships = models.PositiveIntegerField(verbose_name="Network Memberships")
 
     def __str__(self):
-        return self.name
+        return str(self.name)
 
 class AiSkillRequest(BaseAuditedModel):
     issuer = models.ForeignKey(

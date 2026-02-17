@@ -224,7 +224,7 @@ def quota_check(quota_name: str):
     def decorator(function):
         def wrapper(*args, **kwargs):
             issuer = args[0].get_object(args[1], **kwargs)
-            quota = issuer.get_quota(quota_name)
+            quota = issuer.get_quota_usage(quota_name)
             if not quota:
                 raise BadgrQuotaExceededException
             return function(*args, **kwargs)

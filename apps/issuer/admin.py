@@ -260,6 +260,7 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
                 "quota_accounts_member",
                 "quota_aiskills_requests",
                 "quota_pdfeditor",
+                "quota_network_memberships",
             )
         })
     )
@@ -316,7 +317,7 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
 
         def help_text_int_fn(quota_name):
             try:
-                return f"{( instance.get_max_quota(quota_name) - instance.get_quota(quota_name))} / {instance.get_max_quota(quota_name)}"
+                return f"{( instance.get_quota_usage(quota_name))} / {instance.get_max_quota(quota_name)}"
             except TypeError:
                 return ""
 
@@ -334,7 +335,10 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
             form_instance.fields['quota_accounts_member'].widget.attrs['placeholder'] = instance.get_max_quota('ACCOUNTS_MEMBER')
             form_instance.fields['quota_accounts_member'].help_text = help_text_int_fn('ACCOUNTS_MEMBER')
             form_instance.fields['quota_aiskills_requests'].widget.attrs['placeholder'] = instance.get_max_quota('AISKILLS_REQUESTS')
+            form_instance.fields['quota_aiskills_requests'].help_text = help_text_int_fn('AISKILLS_REQUESTS')
             form_instance.fields['quota_pdfeditor'].help_text = f"Value: {'Yes' if instance.get_max_quota('PDFEDITOR') else 'No'}"
+            form_instance.fields['quota_network_memberships'].widget.attrs['placeholder'] = instance.get_max_quota('NETWORK_MEMBERSHIPS')
+            form_instance.fields['quota_network_memberships'].help_text = help_text_int_fn('NETWORK_MEMBERSHIPS')
         except KeyError:
             pass
 

@@ -417,20 +417,20 @@ class QuotaRepresentationMixin(serializers.Serializer):
         if quota:
 
             def quota_dict(quota_name: str):
-                quota = instance.get_quota(quota_name)
+                usage = instance.get_quota_usage(quota_name)
                 max_quota = -1 if instance.get_max_quota(quota_name) == 0 else instance.get_max_quota(quota_name)
                 custom = instance.is_custom_quota(quota_name)
 
-                if type(quota) is int:
+                if type(usage) is int:
                     return {
-                        "used": max_quota - quota,
-                        "quota": quota,
+                        "used": usage,
+                        "quota": max(0, max_quota - usage),
                         "max": max_quota,
                         "custom": custom,
                     }
                 else:
                     return {
-                        "quota": quota,
+                        "quota": usage,
                         "custom": custom,
                     }
 
@@ -452,6 +452,7 @@ class QuotaRepresentationMixin(serializers.Serializer):
                         "ACCOUNTS_MEMBER": upgradeQuota.accounts_member,
                         "AISKILLS_REQUESTS": upgradeQuota.aiskills_requests,
                         "PDFEDITOR": upgradeQuota.pdfeditor,
+                        "NETWORK_MEMBERSHIPS": upgradeQuota.network_memberships,
                     }
                 } if upgradeQuota else None,
                 "periodStart": instance.quota_period_start,
@@ -465,6 +466,7 @@ class QuotaRepresentationMixin(serializers.Serializer):
                     "ACCOUNTS_MEMBER": quota_dict('ACCOUNTS_MEMBER'),
                     "AISKILLS_REQUESTS": quota_dict('AISKILLS_REQUESTS'),
                     "PDFEDITOR": quota_dict('PDFEDITOR'),
+                    "NETWORK_MEMBERSHIPS": quota_dict('NETWORK_MEMBERSHIPS'),
                 }
             }
 
