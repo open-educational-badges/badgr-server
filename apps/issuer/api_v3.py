@@ -20,6 +20,7 @@ from rest_framework.decorators import action
 from issuer.serializers_v3 import (
     RequestIframeBadgeProcessSerializer,
     RequestIframeSerializer,
+    IssuerGeoJSONSerializer,
 )
 from backpack.api import BackpackAssertionList
 from badgeuser.api import LearningPathList
@@ -224,6 +225,11 @@ class Issuers(EntityViewSet):
             badge_count=Count("badgeclasses", distinct=True)
         )
 
+    def paginate_queryset(self, queryset):
+        if self.request.accepted_renderer.format == "geojson":
+            return None  # No pagination for GeoJSON
+        return super().paginate_queryset(queryset)
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         # some fields have to be excluded due to data privacy concerns
@@ -235,6 +241,11 @@ class Issuers(EntityViewSet):
                 "created_by",
             ]
         return context
+
+    def get_serializer_class(self):
+        if self.request.accepted_media_type == "application/geo+json":
+            return IssuerGeoJSONSerializer
+        return IssuerSerializerV1
 
 
 @extend_schema_view(
