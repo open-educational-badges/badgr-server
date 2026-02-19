@@ -36,6 +36,8 @@ from .models import (
     RequestedLearningPath,
     IssuerStaffRequest,
     ImportedBadgeAssertion,
+    UpgradeQuotaRequest,
+    IndividualQuotaRequest,
 )
 from .tasks import resend_notifications
 import csv
@@ -878,6 +880,19 @@ class QuotaAdmin(ModelAdmin):
 
 
 badgr_admin.register(Quota, QuotaAdmin)
+
+
+class UpgradeQuotaRequestAdmin(ModelAdmin):
+    list_display = ("name", "email", "issuer", "package")
+
+badgr_admin.register(UpgradeQuotaRequest, UpgradeQuotaRequestAdmin)
+
+
+class IndividualQuotaRequestAdmin(ModelAdmin):
+    list_display = ("name", "email", "issuer", "message")
+
+badgr_admin.register(IndividualQuotaRequest, IndividualQuotaRequestAdmin)
+
 
 class AiSkillRequestsAdmin(ModelAdmin):
     list_display = ("issuer", "created_at")

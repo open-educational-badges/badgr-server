@@ -43,6 +43,8 @@ from issuer.models import (
     NetworkMembership,
     QrCode,
     RequestedBadge,
+    UpgradeQuotaRequest,
+    IndividualQuotaRequest,
 )
 from issuer.permissions import (
     ApprovedIssuersOnly,
@@ -73,6 +75,8 @@ from issuer.serializers_v1 import (
     QrCodeSerializerV1,
     RequestedBadgeSerializer,
     BadgeClassNetworkShareSerializerV1,
+    UpgradeQuotaRequestSerializer,
+    IndividualQuotaRequestSerializer,
 )
 from issuer.serializers_v2 import (
     BadgeClassSerializerV2,
@@ -2807,3 +2811,47 @@ class BadgeClassNetworkShareView(BaseEntityDetailView):
 
         serializer = self.get_serializer_class()(share)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UpgradeQuotaRequestView(BaseEntityListView):
+    model = UpgradeQuotaRequest
+    permission_classes = [
+        IsServerAdmin
+        | (
+            AuthenticatedWithVerifiedIdentifier
+            & BadgrOAuthTokenHasScope
+        )
+        | BadgrOAuthTokenHasEntityScope
+    ]
+    serializer_class = UpgradeQuotaRequestSerializer
+    valid_scopes = ["rw:issuer", "rw:issuer:*"]
+
+    @extend_schema(
+        summary="Create a new upgrade quota request",
+        tags=["QuotaRequests"],
+        request=UpgradeQuotaRequestSerializer(many=True),
+    )
+    def post(self, request, **kwargs):
+        return super().post(request, **kwargs)
+
+
+class IndividualQuotaRequestView(BaseEntityListView):
+    model = IndividualQuotaRequest
+    permission_classes = [
+        IsServerAdmin
+        | (
+            AuthenticatedWithVerifiedIdentifier
+            & BadgrOAuthTokenHasScope
+        )
+        | BadgrOAuthTokenHasEntityScope
+    ]
+    serializer_class = IndividualQuotaRequestSerializer
+    valid_scopes = ["rw:issuer", "rw:issuer:*"]
+
+    @extend_schema(
+        summary="Create a new individual quota request",
+        tags=["QuotaRequests"],
+        request=IndividualQuotaRequestSerializer(many=True),
+    )
+    def post(self, request, **kwargs):
+        return super().post(request, **kwargs)

@@ -3428,6 +3428,35 @@ class Quota(cachemodel.CacheModel):
     def __str__(self):
         return str(self.name)
 
+
+class QuotaRequest(models.Model):
+    name = models.CharField(max_length=254, blank=False, null=False)
+    email = models.EmailField(blank=False, null=False)
+    issuer = models.ForeignKey(
+        Issuer,
+        on_delete=models.CASCADE,
+        related_name="quota_requests",
+    )
+
+class QuotaPackageDefaults(models.TextChoices):
+    FREE = "free", "Free"
+    PRO = "pro", "Pro"
+    ENTERPRISE = "enterprise", "Enterprise"
+    NETWORK = "network", "Network"
+
+class UpgradeQuotaRequest(QuotaRequest):
+    package = models.CharField(max_length=254, choices=QuotaPackageDefaults.choices, blank=False, null=False)
+
+    class Meta:
+        verbose_name_plural  = "Quotas: Upgrade Requests"
+
+class IndividualQuotaRequest(QuotaRequest):
+    message = models.TextField(blank=False, null=False)
+
+    class Meta:
+        verbose_name_plural  = "Quotas: Individual Requests"
+
+
 class AiSkillRequest(BaseAuditedModel):
     issuer = models.ForeignKey(
         Issuer,

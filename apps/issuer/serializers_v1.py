@@ -53,6 +53,9 @@ from .models import (
     Quota,
     RequestedBadge,
     RequestedLearningPath,
+    UpgradeQuotaRequest,
+    IndividualQuotaRequest,
+    QuotaPackageDefaults,
 )
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
@@ -1462,3 +1465,58 @@ class BadgeClassNetworkShareSerializerV1(serializers.ModelSerializer):
             revoked=False,
             issued_on__gte=obj.shared_at,
         ).count()
+
+
+class UpgradeQuotaRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=254, required=True)
+    email = serializers.EmailField(max_length=254, required=True)
+    issuer_id = serializers.CharField(max_length=254, required=True)
+    package = serializers.CharField(
+        validators=[ChoicesValidator(list(dict(QuotaPackageDefaults.choices).keys()))],
+        required=True
+    )
+
+    def create(self, validated_data, **kwargs):
+        issuer_id = validated_data.get("issuer_id")
+
+        try:
+            issuer = Issuer.objects.get(entity_id=issuer_id)
+        except Issuer.DoesNotExist:
+            raise serializers.ValidationError(
+                f"Issuer with ID '{issuer_id}' does not exist."
+            )
+
+        new_upgradequotarequest = UpgradeQuotaRequest.objects.create(
+            name=validated_data.get("name"),
+            email=validated_data.get("email"),
+            issuer=issuer,
+            package=validated_data.get("package")
+        )
+
+        return new_upgradequotarequest
+
+
+class IndividualQuotaRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=254, required=True)
+    email = serializers.EmailField(max_length=254, required=True)
+    issuer_id = serializers.CharField(max_length=254, required=True)
+    message = serializers.CharField(required=True)
+
+    def create(self, validated_data, **kwargs):
+        issuer_id = validated_data.get("issuer_id")
+
+        try:
+            issuer = Issuer.objects.get(entity_id=issuer_id)
+        except Issuer.DoesNotExist:
+            raise serializers.ValidationError(
+                f"Issuer with ID '{issuer_id}' does not exist."
+            )
+
+        new_individualquotarequest = IndividualQuotaRequest.objects.create(
+            name=validated_data.get("name"),
+            email=validated_data.get("email"),
+            issuer=issuer,
+            message=validated_data.get("message")
+        )
+
+        return new_individualquotarequest
