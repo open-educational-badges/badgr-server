@@ -1493,6 +1493,8 @@ class UpgradeQuotaRequestSerializer(serializers.Serializer):
             package=validated_data.get("package")
         )
 
+        new_upgradequotarequest.notify()
+
         return new_upgradequotarequest
 
 
@@ -1518,5 +1520,7 @@ class IndividualQuotaRequestSerializer(serializers.Serializer):
             issuer=issuer,
             message=validated_data.get("message")
         )
+
+        new_individualquotarequest.notify()
 
         return new_individualquotarequest

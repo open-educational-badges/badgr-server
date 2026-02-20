@@ -3438,6 +3438,29 @@ class QuotaRequest(models.Model):
         related_name="quota_requests",
     )
 
+    def notify(self):
+        """
+        Send an email notification to the sales team.
+        """
+
+        adapter = get_adapter()
+
+        email_context = {
+            "name": self.name,
+            "email": self.email,
+            "issuer": self.issuer.name,
+            "category": "default",
+        }
+
+        template_name = "issuer/email/quotas/notify_sales"
+
+        adapter.send_mail(
+            template_name,
+            getattr(settings, "QUOTAS_RECIPIENT_EMAIL", "sales@openbadges.education"),
+            context=email_context
+        )
+
+
 class QuotaPackageDefaults(models.TextChoices):
     FREE = "free", "Free"
     PRO = "pro", "Pro"
@@ -3450,11 +3473,58 @@ class UpgradeQuotaRequest(QuotaRequest):
     class Meta:
         verbose_name_plural  = "Quotas: Upgrade Requests"
 
+    def notify(self):
+        """
+        Send an email notification to the sales team.
+        """
+
+        adapter = get_adapter()
+
+        email_context = {
+            "name": self.name,
+            "email": self.email,
+            "issuer": self.issuer.name,
+            "package": self.get_package_display,
+            "category": "upgrade",
+        }
+
+        template_name = "issuer/email/quotas/notify_sales"
+
+        adapter.send_mail(
+            template_name,
+            getattr(settings, "QUOTAS_RECIPIENT_EMAIL", "sales@openbadges.education"),
+            context=email_context
+        )
+
+
 class IndividualQuotaRequest(QuotaRequest):
     message = models.TextField(blank=False, null=False)
 
     class Meta:
         verbose_name_plural  = "Quotas: Individual Requests"
+
+    def notify(self):
+        """
+        Send an email notification to the sales team.
+        """
+
+        adapter = get_adapter()
+
+        email_context = {
+            "name": self.name,
+            "email": self.email,
+            "issuer": self.issuer.name,
+            "message": self.message,
+            "category": "individual",
+        }
+
+        template_name = "issuer/email/quotas/notify_sales"
+
+        adapter.send_mail(
+            template_name,
+            getattr(settings, "QUOTAS_RECIPIENT_EMAIL", "sales@openbadges.education"),
+            context=email_context
+        )
 
 
 class AiSkillRequest(BaseAuditedModel):

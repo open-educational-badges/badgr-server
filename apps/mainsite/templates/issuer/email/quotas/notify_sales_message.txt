@@ -1,0 +1,10 @@
+Herzlichen Glückwunsch,
+du hast von {% if name %}{{ name }}{% endif %} ({% if email %}{{ email }}{% endif %})
+eine Qutoa Anfrage ({% if category == "upgrade" %}UPGRADE{% endif %}{% if category == "individual" %}INDIVIDUAL{% endif %}{% if category == "default" %}DEFAULT{% endif %})
+für die Institution {% if issuer %}{{ issuer }}{% endif %}
+erhalten!
+
+{% if category == "upgrade" %}Upgrade zum {% if package %}{{ package }}-Packet{% endif %}{% endif %}
+{% if category == "individual" %}Gewünschten Konditionen:
+{% if message %}{{ message }}{% endif %}
+{% endif %}

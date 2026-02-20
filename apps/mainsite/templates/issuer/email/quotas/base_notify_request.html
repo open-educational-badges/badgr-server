@@ -1,0 +1,39 @@
+{% extends "email/base.html" %}
+{% load static %}
+{% load mjml %}
+{% mjml %}
+{% block main %}
+    <mj-section>
+        <mj-column>
+            <mj-image src="{% static '/images/Logo-Oeb.png' %}" alt="Logo" href="https://openbadges.education" padding-right="25px" width="150px" height="77px" align="right" />
+            <mj-text font-size="20px">
+                <span style="font-weight: 600;">Herzlichen Glückwunsch</span>,
+                <br />
+                du hast von <span style="font-weight: 600;">{% if name %}{{ name }}{% endif %}</span> (<span style="font-weight: 600;">{% if email %}{{ email }}{% endif %}</span>)
+                <br />
+                eine Qutoa Anfrage (<span style="font-weight: 600;">
+                    {% if category == "upgrade" %}UPGRADE{% endif %}
+                    {% if category == "individual" %}INDIVIDUAL{% endif %}
+                    {% if category == "default" %}DEFAULT{% endif %}
+                </span>)
+                <br />
+                für die Institution <span style="font-weight: 600;">{% if issuer %}{{ issuer }}{% endif %}</span>
+                <br />
+                erhalten!
+                <br />
+                <br />
+                {% if category == "upgrade" %}
+                    Upgrade zum {% if package %}<span style="font-weight: 600;">{{ package }}-Packet</span>{% endif %}
+                {% endif %}
+
+                {% if category == "individual" %}
+                    Gewünschten Konditionen:<br />
+                    {% if message %}{{ message }}{% endif %}
+                {% endif %}
+            </mj-text>
+        </mj-column>
+    </mj-section>
+{% endblock main %}
+{% block button %}
+{% endblock button %}
+{% endmjml %}

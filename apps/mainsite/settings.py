@@ -606,3 +606,4 @@ MJML_EXEC_CMD = ["mjml", "--config.fonts", "{}"]
 # }
 
 QUOTAS = {}
+QUOTAS_RECIPIENT_EMAIL = "sales@openbadges.education"
