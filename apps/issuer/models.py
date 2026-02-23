@@ -3183,13 +3183,11 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
 
         return False
 
-    def calculate_progress(self, badgeclasses):
-        return sum(
-            json_loads(ext.original_json)["StudyLoad"]
-            for badge in badgeclasses
-            for ext in badge.cached_extensions()
-            if ext.name == "extensions:StudyLoadExtension"
-        )
+    def badge_progress(self, all_badges, completed_badges):
+        total = len(set(all_badges))
+        completed = len(set(completed_badges))
+        pct = int((completed / total) * 100) if total else 0
+        return pct
 
     def get_lp_badgeinstance(self, recipient_identifier):
         return BadgeInstance.objects.filter(

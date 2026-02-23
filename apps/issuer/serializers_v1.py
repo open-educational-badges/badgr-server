@@ -1189,14 +1189,17 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             {badgeinstance.badgeclass for badgeinstance in user_badgeinstances}
         )
 
-        # calculate lp progress
-        max_progress = instance.calculate_progress(lp_badgeclasses)
-        user_progress = instance.calculate_progress(user_completed_badges)
+        required = instance.required_badges_count
+        completed = len(user_completed_badges)
+
+        progress_pct = int((min(completed, required) / required) * 100)
 
         learningPathBadgeInstance = list(
             filter(
-                lambda badge: badge.badgeclass.entity_id
-                == representation["participationBadge_id"],
+                lambda badge: (
+                    badge.badgeclass.entity_id
+                    == representation["participationBadge_id"]
+                ),
                 request.user.cached_badgeinstances().filter(revoked=False),
             )
         )
@@ -1205,20 +1208,18 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             representation["learningPathBadgeInstanceSlug"] = (
                 learningPathBadgeInstanceSlug
             )
-        # set lp completed at from newest badge issue date
-        # FIXME: maybe set from issued participation badge instead, would need to get
-        # user participation badgeclass aswell
-        completed_at = None
-        if user_progress >= max_progress:
-            completed_at = reduce(
-                lambda x, y: y.issued_on if x is None else max(x, y.issued_on),
-                user_badgeinstances,
-                None,
-            )
+
+        lp_instance = (
+            request.user.cached_badgeinstances()
+            .filter(badgeclass=instance.participationBadge, revoked=False)
+            .first()
+        )
+
+        completed_at = lp_instance.issued_on if lp_instance else None
 
         representation.update(
             {
-                "progress": user_progress,
+                "progress": progress_pct,
                 "completed_at": completed_at,
                 "completed_badges": BadgeClassSerializerV1(
                     user_completed_badges,
