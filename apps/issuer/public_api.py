@@ -663,6 +663,8 @@ class BadgeClassJson(JSONComponentView):
                 obi_version=obi_version
             )
 
+        json["courseUrl"] = self.current_object.course_url
+
         return json
 
     def get_context_data(self, **kwargs):
