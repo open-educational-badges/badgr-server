@@ -1,140 +1,202 @@
-{% extends "email/base.html" %}
-{% load static %}
-{% load mjml %}
-{% mjml %}
-{% block main %}
-    <mj-section>
+{% extends "email/base.html" %} {% load static %} {% load mjml %} {% mjml %} {%
+block main %}
+<mj-section>
     <mj-column>
-    <mj-image src="{% static '/images/Logo-Oeb.png' %}" alt="Logo" href="https://openbadges.education" padding-right="25px" width="150px" height="77px" align="right" />
-    <mj-text font-size="24px">
-    <span style="font-weight: bold;">Herzlichen Glückwunsch</span>
-    {% if name %}
-        <br />
-        <span>{{ name }},</span>
-    {% else %}
-        ,
-    {% endif %}
-    <br />
-    {% if issuer_name %}
-        du hast von {{ issuer_name }} einen
-    {% else %}
-        du hast einen
-    {% endif %}
-    <span style="font-weight: bold;">
-        {% if badge_category == "learningpath" %}
-            MICRO DEGREE
-        {% else %}
-            BADGE
-        {% endif %}
-    </span> erhalten!
-    </mj-text>
+        <mj-image
+            src="{% static '/images/Logo-Oeb.png' %}"
+            alt="Logo"
+            href="https://openbadges.education"
+            padding-right="25px"
+            width="150px"
+            height="77px"
+            align="right"
+        />
+        <mj-text font-size="24px">
+            <span style="font-weight: bold">Herzlichen Glückwunsch</span>
+            {% if name %}
+            <br />
+            <span>{{ name }},</span>
+            {% else %} , {% endif %}
+            <br />
+            {% if issuer_name %} du hast von {{ issuer_name }} einen {% else %}
+            du hast einen {% endif %}
+            <span style="font-weight: bold">
+                {% if badge_category == "learningpath" %} MICRO DEGREE {% else
+                %} BADGE {% endif %}
+            </span>
+            erhalten!
+        </mj-text>
     </mj-column>
-    </mj-section>
-    <mj-section padding="0px 41px">
+</mj-section>
+<mj-section padding="0px 41px">
     <mj-column background-color="#ffffff" padding="0px 10px">
-    <mj-image src="{{ image_url }}" alt="Badge Logo" href="{{ badge_instance_url }}" align="center" padding="32px 0px" width="175px" height="175px" />
+        <mj-image
+            src="{{ image_url }}"
+            alt="Badge Logo"
+            href="{{ badge_instance_url }}"
+            align="center"
+            padding="32px 0px"
+            width="175px"
+            height="175px"
+        />
     </mj-column>
-    </mj-section>
-    {% if badge_category != "learningpath" %}
-        <mj-section padding="0px 41px">
-        <mj-column background-color="#ffffff">
+</mj-section>
+{% if badge_category != "learningpath" %}
+<mj-section padding="0px 41px">
+    <mj-column background-color="#ffffff">
         <mj-text padding-top="0px">
-        Du hast erfolgreich an dem Lernangebot
-        <span style="font-weight: 500;">{{ badge_name }}</span> teilgenommen.
+            Du hast erfolgreich an dem Lernangebot
+            <span style="font-weight: 500">{{ badge_name }}</span> teilgenommen.
         </mj-text>
-        </mj-column>
-        </mj-section>
-    {% endif %}
-    {% if badge_competencies %}
-        <mj-section padding="0px 41px">
-        <mj-column background-color="#ffffff">
+    </mj-column>
+</mj-section>
+{% endif %} {% if badge_competencies %}
+<mj-section padding="0px 41px">
+    <mj-column background-color="#ffffff">
         <mj-text>
-        Dabei hast du folgende <span style="font-weight: 500;">Kompetenzen</span> gestärkt:
+            Dabei hast du folgende
+            <span style="font-weight: 500">Kompetenzen</span> gestärkt:
         </mj-text>
-        </mj-column>
-        </mj-section>
-        <mj-section padding="0px 41px">
-        <mj-column background-color="#ffffff" padding="10px 25px">
+    </mj-column>
+</mj-section>
+<mj-section padding="0px 41px">
+    <mj-column background-color="#ffffff" padding="10px 25px">
         {% for item in badge_competencies %}
-            <mj-table padding="0" cellspacing="0" cellpadding="10" border="1px solid #492e98" padding-bottom="10px" font-size="14px">
+        <mj-table
+            padding="0"
+            cellspacing="0"
+            cellpadding="10"
+            border="1px solid #492e98"
+            padding-bottom="10px"
+            font-size="14px"
+        >
             <tr style="background-color: #f5f6fa">
-                <td style="font-weight: 500;">
-                    {{ item.name }}
-                    {% if item.framework == "esco" %}
-                        <a href="{{ item.framework_identifier }}" style="text-decoration:none">[E]</a>
+                <td style="font-weight: 500">
+                    {{ item.name }} {% if item.framework == "esco" %}
+                    <a
+                        href="{{ item.framework_identifier }}"
+                        style="text-decoration: none"
+                        >[E]</a
+                    >
                     {% endif %}
                 </td>
-                <td align="right"
+                <td
+                    align="right"
                     width="96"
-                    style="padding-left: 0;
-                           color: #492e98;
-                           width: 96px">{{ item.studyLoad }}</td>
-                <td align="left" width="16" style="padding-left: 0;">
-                    <img src="{% static '/images/clock-icon.png' %}"
-                         alt="Clock"
-                         width="16"
-                         height="16"
-                         style="width: 16px;
-                                height: 16px;
-                                vertical-align: middle;
-                                margin-bottom: 2px" />
+                    style="padding-left: 0; color: #492e98; width: 96px"
+                >
+                    {{ item.studyLoad }}
+                </td>
+                <td align="left" width="16" style="padding-left: 0">
+                    <img
+                        src="{% static '/images/clock-icon.png' %}"
+                        alt="Clock"
+                        width="16"
+                        height="16"
+                        style="
+                            width: 16px;
+                            height: 16px;
+                            vertical-align: middle;
+                            margin-bottom: 2px;
+                        "
+                    />
                 </td>
             </tr>
-            </mj-table>
+        </mj-table>
         {% endfor %}
-        </mj-column>
-        </mj-section>
-    {% endif %}
-    <mj-section text-align="left" padding-bottom="0px">
+    </mj-column>
+</mj-section>
+{% endif %}
+<mj-section text-align="left" padding-bottom="0px">
     {% if issuer_image_url %}
-        <mj-column vertical-align="middle" width="107px">
-        <mj-image src="{{ issuer_image_url }}" alt="Logo" href="{{ badge_instance_url }}" width="80px" height="80px" padding-right="0px" padding-bottom="0px" align="left" border="1px solid #ffffff" />
-        </mj-column>
+    <mj-column vertical-align="middle" width="107px">
+        <mj-image
+            src="{{ issuer_image_url }}"
+            alt="Logo"
+            href="{{ badge_instance_url }}"
+            width="80px"
+            height="80px"
+            padding-right="0px"
+            padding-bottom="0px"
+            align="left"
+            border="1px solid #ffffff"
+        />
+    </mj-column>
     {% endif %}
     <mj-column vertical-align="middle">
-    <mj-text font-style="italic" padding-bottom="0px">Vergeben von:</mj-text>
-    <mj-text font-weight="500" padding-top="0px"><a href="{{ issuer_detail }}"
-   style="text-decoration: none;
-          color: inherit">{{ issuer_name }}</a></mj-text>
+        <mj-text font-style="italic" padding-bottom="0px"
+            >Vergeben von:</mj-text
+        >
+        <mj-text font-weight="500" padding-top="0px"
+            ><a
+                href="{{ issuer_detail }}"
+                style="text-decoration: none; color: inherit"
+                >{{ issuer_name }}</a
+            ></mj-text
+        >
     </mj-column>
-    </mj-section>
-    {% if badge_category == "learningpath" %}
-        <mj-section background-color="#f5f5f5">
-        <mj-column>
-        <mj-button align="left" href="{{ activate_url }}">{{ call_to_action_label }}</mj-button>
+</mj-section>
+{% if badge_category == "learningpath" %}
+<mj-section background-color="#f5f5f5">
+    <mj-column>
+        <mj-button align="left" href="{{ activate_url }}"
+            >{{ call_to_action_label }}</mj-button
+        >
         <mj-text font-style="italic">
-        Im Anhang dieser Mail findest du neben der <span style="font-weight: bold;">Micro-Degree-Datei</span> ein <span style="font-weight: bold;">PDF-Zertifikat</span>, das deinen Lernerfolg ebenfalls ausweist.
+            Im Anhang dieser Mail findest du neben der
+            <span style="font-weight: bold">Micro-Degree-Datei</span> ein
+            <span style="font-weight: bold">Badge-PDF</span>, das deinen
+            Lernerfolg ebenfalls ausweist.
         </mj-text>
-        </mj-column>
-        </mj-section>
-    {% else %}
-        <mj-section>
-        <mj-column>
+    </mj-column>
+</mj-section>
+{% else %}
+<mj-section>
+    <mj-column>
         <mj-text>
-        Im Anhang dieser Mail findest du deine <span style="font-weight: bold;">Badge-Datei</span> und das zugehörige <span style="font-weight: bold;">PDF-Zertifikat</span> zum Herunterladen.
+            Im Anhang dieser Mail findest du deine
+            <span style="font-weight: bold">Badge-Datei</span> und das
+            zugehörige <span style="font-weight: bold">Badge-PDF</span> zum
+            Herunterladen.
         </mj-text>
         {% if linked_in_share_url %}
-            <mj-button padding="0 26px" background-color="#ffffff" color="#492e98" border="1px solid #492e98" width="100%" href="{{ linked_in_share_url }}">
-            <img src="{% static '/images/icon-linkedin@2x.png' %}"
-                 alt=""
-                 style="height: 28px;
-                        vertical-align: middle" />
-            <span style="vertical-align: middle;">Badge auf LinkedIn teilen</span></mj-button>
-            {% endif %}
-            </mj-column>
-            </mj-section>
-            <mj-section padding="0px 41px 32px 41px">
-            <mj-column border-radius="10px" background-color="#ccd7ff">
-            <mj-text>Alle deine erhaltenen Badges kannst du auf
-            <a href="https://openbadges.education/recipient/badges?tab=badges"
-               target="_blank"
-               style="text-decoration:underline">Open Educational Badges</a>
-            in deinem Rucksack sammeln und für Bewerbungen zusammenstellen. Lege dafür einfach kostenlos einen Account an:</mj-text>
-            <mj-button width="100%" href="{{ activate_url }}">{{ call_to_action_label }}</mj-button>
-            </mj-column>
-            </mj-section>
+        <mj-button
+            padding="0 26px"
+            background-color="#ffffff"
+            color="#492e98"
+            border="1px solid #492e98"
+            width="100%"
+            href="{{ linked_in_share_url }}"
+        >
+            <img
+                src="{% static '/images/icon-linkedin@2x.png' %}"
+                alt=""
+                style="height: 28px; vertical-align: middle"
+            />
+            <span style="vertical-align: middle"
+                >Badge auf LinkedIn teilen</span
+            ></mj-button
+        >
         {% endif %}
-    {% endblock main %}
-    {% block button %}
-    {% endblock button %}
-{% endmjml %}
+    </mj-column>
+</mj-section>
+<mj-section padding="0px 41px 32px 41px">
+    <mj-column border-radius="10px" background-color="#ccd7ff">
+        <mj-text
+            >Alle deine erhaltenen Badges kannst du auf
+            <a
+                href="https://openbadges.education/recipient/badges?tab=badges"
+                target="_blank"
+                style="text-decoration: underline"
+                >Open Educational Badges</a
+            >
+            in deinem Rucksack sammeln und für Bewerbungen zusammenstellen. Lege
+            dafür einfach kostenlos einen Account an:</mj-text
+        >
+        <mj-button width="100%" href="{{ activate_url }}"
+            >{{ call_to_action_label }}</mj-button
+        >
+    </mj-column>
+</mj-section>
+{% endif %} {% endblock main %} {% block button %} {% endblock button %} {%
+endmjml %}
