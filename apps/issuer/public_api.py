@@ -761,6 +761,8 @@ class BadgeInstanceJson(JSONComponentView):
             expand_issuer=("badge.issuer" in expands),
         )
 
+        json["courseUrl"] = self.current_object.course_url
+
         return json
 
     def get_context_data(self, **kwargs):
