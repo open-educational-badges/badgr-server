@@ -62,7 +62,7 @@ class BadgePDFCreator:
         self.used_space = 0
 
     def add_badge_image(self, first_page_content, badgeImage):
-        image_width = 180
+        image_width = 160
         img = image_file_to_image(badgeImage, image_width=image_width)
         first_page_content.append(img)
         self.used_space += img.imageHeight if img is not None else 0
@@ -76,14 +76,13 @@ class BadgePDFCreator:
         activityEndDate=None,
         activityCity=None,
         activityOnline=False,
+        studyLoad=None,
     ):
-        document_width, _ = A4
-        first_page_content.append(Spacer(1, 58))
-        self.used_space += 58
+        document_width, document_height = A4
         recipient_style = ParagraphStyle(
             name="Recipient",
-            fontSize=18,
-            leading=21.6,
+            fontSize=16,
+            leading=19.2,  # 120%
             textColor="#492E98",
             fontName="Rubik-Bold",
             alignment=TA_CENTER,
@@ -91,11 +90,14 @@ class BadgePDFCreator:
 
         recipient_name = f"<strong>{name}</strong>"
         first_page_content.append(Paragraph(recipient_name, recipient_style))
-        first_page_content.append(Spacer(1, 25))
-        self.used_space += 46.6  # spacer and paragraph
+        first_page_content.append(Spacer(1, 8))
+        self.used_space += 8 + 19.2  # spacer and paragraph
 
         text_style = ParagraphStyle(
-            name="Text_Style", fontSize=18, alignment=TA_CENTER, leading=22.5
+            name="Text_Style",
+            fontSize=14,
+            alignment=TA_CENTER,
+            leading=18.2,  # 130%
         )
 
         if (
@@ -127,18 +129,24 @@ class BadgePDFCreator:
             text += " <strong>online</strong>"
 
         p = Paragraph(text, text_style)
-        _, h = p.wrap(document_width - 40, 3 * 22.5)
+        _, h = p.wrap(document_width, 3 * 22.5)
         first_page_content.append(p)
-        first_page_content.append(Spacer(1, 10))
         self.used_space += h + 10
+
+        studyload_text = self._format_studyload(studyload_minutes=studyLoad)
+        if studyload_text:
+            studyload_p = Paragraph(studyload_text, text_style)
+            _, studyload_h = studyload_p.wrap(document_width, 2 * text_style.leading)
+            first_page_content.append(studyload_p)
+            self.used_space += studyload_h + 10
 
         text = "den folgenden Badge erworben:"
         first_page_content.append(Paragraph(text, text_style))
-        first_page_content.append(Spacer(1, 25))
+        first_page_content.append(Spacer(1, 10))
         self.used_space += 43  # spacer and paragraph
 
     def add_title(self, first_page_content, badge_class_name):
-        document_width, _ = A4
+        document_width, document_height = A4
         line_height = 30
         title_style = ParagraphStyle(
             name="Title",
@@ -151,7 +159,7 @@ class BadgePDFCreator:
         first_page_content.append(Spacer(1, 10))
 
         title = badge_class_name
-        width = document_width - 40
+        width = document_width
         max_h = line_height * 2
         p = Paragraph(f"<strong>{title}</strong>", title_style)
         _, h = p.wrap(width, max_h)
@@ -179,7 +187,7 @@ class BadgePDFCreator:
             return text
 
     def add_dynamic_spacer(self, first_page_content, text):
-        _, document_height = A4
+        document_width, document_height = A4
         line_char_count = 79
         line_height = 16.5
         num_lines = math.ceil(len(text) / line_char_count)
@@ -189,6 +197,55 @@ class BadgePDFCreator:
         spacer_height = max(spacer_height, 0)
         first_page_content.append(Spacer(1, spacer_height))
         self.used_space += spacer_height
+
+    def _qr_imagereader_from_base64(self, qrCodeImage):
+        if not qrCodeImage:
+            return None
+        if qrCodeImage.startswith("data:image"):
+            qrCodeImage = qrCodeImage.split(",")[1]
+        raw = base64.b64decode(qrCodeImage)
+        return ImageReader(BytesIO(raw))
+
+    def _format_studyload(self, studyload_minutes):
+        """
+        Formats e.g.
+        600 -> 'innerhalb von <strong>10 Stunden</strong>'
+        630 -> 'innerhalb von <strong>10 Stunden und 30 Minuten</strong>'
+        30  -> 'innerhalb von <strong>30 Minuten</strong>'
+        """
+        if studyload_minutes is None:
+            return None
+
+        try:
+            studyload_minutes = int(studyload_minutes)
+        except (TypeError, ValueError):
+            return None
+
+        if studyload_minutes < 0:
+            return None
+
+        hours = studyload_minutes // 60
+        minutes = studyload_minutes % 60
+
+        parts = []
+
+        if hours > 0:
+            hour_unit = "Stunde" if hours == 1 else "Stunden"
+            parts.append(f"{hours} {hour_unit}")
+
+        if minutes > 0:
+            minute_unit = "Minute" if minutes == 1 else "Minuten"
+            parts.append(f"{minutes} {minute_unit}")
+
+        if not parts:
+            return None
+
+        if len(parts) == 2:
+            duration_text = f"{parts[0]} und {parts[1]}"
+        else:
+            duration_text = parts[0]
+
+        return f"innerhalb von <strong>{duration_text}</strong>"
 
     def add_description(self, first_page_content, description):
         description_style = ParagraphStyle(
@@ -205,77 +262,6 @@ class BadgePDFCreator:
         line_height = 16.5
         num_lines = math.ceil(len(description) / line_char_count)
         self.used_space += num_lines * line_height
-
-    def add_issued_by(self, first_page_content, issued_by, qrCodeImage=None):
-        issued_by_style = ParagraphStyle(
-            name="IssuedBy",
-            fontSize=10,
-            textColor="#323232",
-            fontName="Rubik-Medium",
-            alignment=TA_CENTER,
-            backColor="#F5F5F5",
-            leftIndent=-45,
-            rightIndent=-45,
-        )
-        # use document width to calculate the table and its size
-        document_width, _ = A4
-
-        qr_code_height = 0
-        if qrCodeImage:
-            if qrCodeImage.startswith("data:image"):
-                qrCodeImage = qrCodeImage.split(",")[1]  # Entfernt das Präfix
-
-            image = base64.b64decode(qrCodeImage)
-            qrCodeImage = BytesIO(image)
-            qrCodeImage = ImageReader(qrCodeImage)
-
-            rounded_img = RoundedImage(
-                img_path=qrCodeImage,
-                width=57,
-                height=57,
-                border_color="#492E98",
-                border_width=1,
-                padding=1,
-                radius=2 * mm,
-            )
-
-            img_table = Table([[rounded_img]], colWidths=[document_width])
-            img_table.hAlign = "CENTER"
-            img_table.setStyle(
-                TableStyle(
-                    [
-                        ("ALIGN", (0, 0), (0, 0), "CENTER"),
-                        ("VALIGN", (0, 0), (0, 0), "MIDDLE"),
-                        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F5F5F5")),
-                        (
-                            "LEFTPADDING",
-                            (0, 0),
-                            (-1, -1),
-                            -45,
-                        ),  # Negative padding to extend beyond the document margin
-                        ("RIGHTPADDING", (0, 0), (-1, -1), -45),
-                        ("TOPPADDING", (0, 0), (-1, -1), 20),
-                    ]
-                )
-            )
-            first_page_content.append(img_table)
-            qr_code_height = 57 + 20
-
-        # Add the simple html
-        content_html = """
-            <br/><span fontName="Rubik-Bold">ERSTELLT ÜBER <a href="https://openbadges.education"
-            color="#1400FF"
-            underline="true">OPENBADGES.EDUCATION</a></span>
-            <br/>
-            <span fontName="Rubik-Regular">Der digitale Badge kann über den QR-Code abgerufen werden</span>
-            <br/><br/>
-        """
-
-        # Add content as a Paragraph to first_page_content
-        first_page_content.append(Paragraph(content_html, issued_by_style))
-
-        paragraph_height = 60
-        self.used_space += qr_code_height + paragraph_height
 
     # draw header with image of institution and a hr
     def header(self, canvas, doc, content, instituteName):
@@ -313,8 +299,77 @@ class BadgePDFCreator:
             canvas.drawString(doc.leftMargin + 100, 778, instituteName)
             header_height += line_height
 
-        self.used_space += header_height
         canvas.restoreState()
+
+    def draw_first_page_footer(self, canvas, doc, qr_reader=None):
+        """
+        Draws the fixed footer block on page 1.
+        Footer is reserved by shrinking the first-page frame.
+        """
+        footer_height = 100
+        x = 0
+        y = doc.bottomMargin
+        w = canvas._pagesize[0]
+        h = footer_height
+
+        canvas.saveState()
+        canvas.setFillColor(colors.HexColor("#F5F5F5"))
+        canvas.setStrokeColor(colors.HexColor("#F5F5F5"))
+        canvas.rect(x, y, w, h, stroke=0, fill=1)
+
+        qr_size = 50
+        qr_top_padding = 8
+        qr_gap_to_text = 8
+
+        qr_x = x + (w - qr_size) / 2
+        qr_y = y + h - qr_top_padding - qr_size
+
+        canvas.setFillColor(colors.white)
+        canvas.setStrokeColor(colors.HexColor("#492E98"))
+        canvas.setLineWidth(1)
+        canvas.roundRect(
+            qr_x - 2, qr_y - 2, qr_size + 4, qr_size + 4, 4, stroke=1, fill=1
+        )
+
+        if qr_reader:
+            canvas.drawImage(
+                qr_reader,
+                qr_x,
+                qr_y,
+                width=qr_size,
+                height=qr_size,
+                mask="auto",
+                preserveAspectRatio=True,
+            )
+
+        text_y_top = qr_y - qr_gap_to_text
+        footer_style = ParagraphStyle(
+            name="FooterOnPage1",
+            fontSize=10,
+            leading=12,
+            textColor="#323232",
+            fontName="Rubik-Medium",
+            alignment=TA_CENTER,
+        )
+        content_html = (
+            '<span fontName="Rubik-Bold">ERSTELLT ÜBER '
+            '<a href="https://openbadges.education" color="#1400FF" underline="true">'
+            "OPENBADGES.EDUCATION</a></span><br/>"
+            '<span fontName="Rubik-Regular">Der digitale Badge kann über den QR-Code abgerufen werden.</span>'
+        )
+
+        p = Paragraph(content_html, footer_style)
+        text_w = w - 40
+        text_h = 32
+        p.wrapOn(canvas, text_w, text_h)
+
+        p.drawOn(canvas, x + (w - text_w) / 2, text_y_top - text_h)
+
+        canvas.restoreState()
+
+    def first_page_decor(self, canvas, doc, content, instituteName, qr_reader=None):
+        self.header(canvas, doc, content=content, instituteName=instituteName)
+        self.draw_first_page_footer(canvas, doc, qr_reader=qr_reader)
 
     def add_competencies(self, Story, competencies, name, badge_name):
         num_competencies = len(competencies)
@@ -717,6 +772,28 @@ class BadgePDFCreator:
 
         first_page_content = []
 
+        first_page_content.append(Spacer(1, 80))
+        self.used_space += 80
+
+        cert_style = ParagraphStyle(
+            name="Certificate",
+            fontSize=40,
+            leading=48,
+            textColor="#323232",
+            fontName="Rubik-Bold",
+            alignment=TA_CENTER,
+        )
+
+        cert = "ZERTIFIKAT"
+        certificate = f"<strong>{cert}</strong>"
+        first_page_content.append(Paragraph(certificate, cert_style))
+        first_page_content.append(Spacer(1, 22))
+        self.used_space += 22
+
+        extensions = badge_class.cached_extensions()
+        studyLoadExtension = extensions.get(name="extensions:StudyLoadExtension")
+        studyload = json_loads(studyLoadExtension.original_json)["StudyLoad"]
+
         self.add_recipient_name(
             first_page_content,
             name,
@@ -725,25 +802,19 @@ class BadgePDFCreator:
             activityEndDate=badge_instance.activity_end_date,
             activityCity=badge_instance.activity_city,
             activityOnline=badge_instance.activity_online,
+            studyLoad=studyload,
         )
         self.add_badge_image(first_page_content, badge_instance.image)
         self.add_title(first_page_content, badge_class.name)
         self.add_description(first_page_content, badge_class.description)
-        self.add_dynamic_spacer(first_page_content, (badge_class.description or ""))
-        self.add_issued_by(
-            first_page_content,
-            badge_class.issuer.name,
-            self.generate_qr_code(badge_instance, origin),
-        )
 
-        # doc template with margins according to design doc
         doc = BaseDocTemplate(
             buffer,
             pagesize=A4,
             leftMargin=40,
             rightMargin=40,
             topMargin=40,
-            bottomMargin=40,
+            bottomMargin=20,
         )
 
         styles = getSampleStyleSheet()
@@ -752,7 +823,6 @@ class BadgePDFCreator:
         Story = []
         Story.extend(first_page_content)
 
-        extensions = badge_class.cached_extensions()
         categoryExtension = extensions.get(name="extensions:CategoryExtension")
         category = json_loads(categoryExtension.original_json)["Category"]
 
@@ -785,24 +855,54 @@ class BadgePDFCreator:
                 category=category,
             )
 
-        frame = Frame(
-            doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="normal"
+        footer_height = 100
+
+        first_page_frame = Frame(
+            doc.leftMargin,
+            doc.bottomMargin + footer_height,
+            doc.width,
+            doc.height - footer_height,
+            id="first_page_frame",
         )
+
+        frame = Frame(
+            doc.leftMargin,
+            doc.bottomMargin,
+            doc.width,
+            doc.height,
+            id="frame",
+        )
+
+        qr_base64 = self.generate_qr_code(badge_instance, origin)
+        qr_reader = self._qr_imagereader_from_base64(qr_base64)
 
         try:
             imageContent = image_file_to_image(badge_instance.issuer.image)
         except Exception:
             imageContent = None
-        template = PageTemplate(
-            id="header",
-            frames=frame,
+
+        first_template = PageTemplate(
+            id="first_page",
+            frames=[first_page_frame],
+            onPage=partial(
+                self.first_page_decor,
+                content=imageContent,
+                instituteName=badge_instance.issuer.name,
+                qr_reader=qr_reader,
+            ),
+            autoNextPageTemplate="later_pages",
+        )
+
+        later_template = PageTemplate(
+            id="later_pages",
+            frames=[frame],
             onPage=partial(
                 self.header,
                 content=imageContent,
                 instituteName=badge_instance.issuer.name,
             ),
         )
-        doc.addPageTemplates([template])
+        doc.addPageTemplates([first_template, later_template])
         doc.build(Story, canvasmaker=partial(PageNumCanvas, self.competencies))
         pdfContent = buffer.getvalue()
         buffer.close()
@@ -994,22 +1094,23 @@ class PageNumCanvas(canvas.Canvas):
 
     # ----------------------------------------------------------------------
     def draw_page_number(self, page_count):
-        """
-        Add the page number
-        """
-        page = "%s / %s" % (self._pageNumber, page_count)
-        self.setStrokeColor("#492E98")
+        # Match screenshot format (no spaces)
+        page = "%s/%s" % (self._pageNumber, page_count)
         page_width = self._pagesize[0]
-        self.line(10, 17.5, page_width / 2 - 20, 17.5)
-        self.line(page_width / 2 + 20, 17.5, page_width - 10, 17.5)
+
         self.setFont("Rubik-Regular", 10)
-        self.drawCentredString(page_width / 2, 15, page)
+        self.setFillColor("#323232")
+
+        if self._pageNumber == 1:
+            # place baseline ~5px above footer bottom
+            self.drawRightString(page_width - 40, 25, page)
+        else:
+            self.drawRightString(page_width - 40, 15, page)
+
         if self._pageNumber == page_count:
-            self.setLineWidth(3)
-            self.line(10, 10, page_width - 10, 10)
             num_competencies = len(self.competencies)
             if num_competencies > 0:
-                esco = any(c["framework"] for c in self.competencies)
+                esco = any(c.get("framework") for c in self.competencies)
                 if esco:
                     self.draw_esco_info(page_width)
 
