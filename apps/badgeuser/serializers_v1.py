@@ -202,3 +202,18 @@ class BadgeUserIdentifierFieldV1(serializers.CharField):
             return BadgeUser.cached.get(pk=value).primary_email
         except BadgeUser.DoesNotExist:
             return None
+
+
+class BadgeUserFullNameFieldV1(serializers.CharField):
+    def __init__(self, *args, **kwargs):
+        if "source" not in kwargs:
+            kwargs["source"] = "created_by_id"
+        if "read_only" not in kwargs:
+            kwargs["read_only"] = True
+        super(BadgeUserFullNameFieldV1, self).__init__(*args, **kwargs)
+
+    def to_representation(self, value):
+        try:
+            return BadgeUser.cached.get(pk=value).get_full_name()
+        except BadgeUser.DoesNotExist:
+            return None
