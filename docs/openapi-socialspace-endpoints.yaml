@@ -1,0 +1,682 @@
+openapi: 3.0.3
+info:
+  title: Badgr Dashboard API - Sozialraum Endpoints
+  description: |
+    OpenAPI specification for the Sozialraum (Social Space) dashboard endpoints.
+
+    **Key Concept: City-based Data**
+    - All Sozialraum data is filtered and aggregated by `city` (e.g., "München", "Berlin")
+    - No ZIP code filtering - data is shown at city level only
+    - Cities are displayed as boxes/tiles in the UI
+
+    **Data Flow:**
+    1. Overview: City statistics + institutions table
+    2. City Detail: KPIs, badge distribution, top institutions for the city
+    3. Learner Detail: Demographics for the city
+    4. Competency Detail: Strengthened competencies for the city
+  version: 2.0.0
+  contact:
+    name: Badgr Development Team
+
+servers:
+  - url: https://api.badgr.io
+    description: Production server
+  - url: http://localhost:8000
+    description: Development server
+
+paths:
+  # ==========================================================================
+  # 1. INSTITUTIONS API (network-specific with optional city filter)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/socialspace/institutions:
+    get:
+      summary: Get Institutions List for Network
+      description: |
+        Returns institutions list for a specific network.
+        Optionally filter by city.
+
+        **Used in UI:**
+        - Sozialraum > Übersicht > Institutions Table
+        - KPI: Total Institutions, New Institutions
+      operationId: getNetworkInstitutions
+      tags:
+        - Institutions
+        - Sozialraum
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: Optional filter by city name (e.g., "München")
+          required: false
+          schema:
+            type: string
+            example: "München"
+        - name: type
+          in: query
+          description: Filter by institution type
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstitutionsResponse'
+
+  # ==========================================================================
+  # 2. CITY OVERVIEW (Sozialraum Übersicht)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/socialspace/cities:
+    get:
+      summary: Get Available Cities
+      description: |
+        Returns list of available cities for the socialspace dashboard.
+
+        **Used in UI:**
+        - Sozialraum > City selection boxes/tiles
+      operationId: getSocialspaceCities
+      tags:
+        - Sozialraum
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CitiesResponse'
+              example:
+                cities:
+                  - city: "München"
+                    badges: 5670
+                  - city: "Berlin"
+                    badges: 8340
+                  - city: "Hamburg"
+                    badges: 4120
+
+  # ==========================================================================
+  # 3. CITY DETAIL (Regionsdetails)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/socialspace/city-detail:
+    get:
+      summary: Get City Detail Metrics
+      description: |
+        Returns detailed metrics for a specific city.
+        Called when user clicks on a city box/tile.
+
+        **Used in UI:**
+        - Sozialraum > Regionsdetails > KPIs (learnerCount, totalBadges, institutions)
+        - Sozialraum > Regionsdetails > Badge-Verteilung (Pie Chart)
+        - Sozialraum > Regionsdetails > Top Institutionen (Podium)
+      operationId: getCityDetail
+      tags:
+        - Sozialraum
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: City name
+          required: true
+          schema:
+            type: string
+            example: "München"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityDetailResponse'
+              example:
+                city: "München"
+                learnerCount: 2456
+                totalBadges: 5670
+                institutions: 127
+                badgesByType:
+                  participation: 2340
+                  competency: 2780
+                  learningpath: 550
+                topInstitutions:
+                  - issuerId: "abc123XYZ"
+                    name: "MVHS Gasteig"
+                    badgeCount: 456
+                    image: "/assets/institutions/mvhs.png"
+                  - issuerId: "def456ABC"
+                    name: "Stadtbibliothek"
+                    badgeCount: 298
+                    image: null
+                  - issuerId: "ghi789DEF"
+                    name: "Jugendzentrum"
+                    badgeCount: 167
+                    image: null
+
+  # ==========================================================================
+  # 4. LEARNER DEMOGRAPHICS (Lernendendetails)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/socialspace/learners:
+    get:
+      summary: Get Learner Demographics for City
+      description: |
+        Returns learner demographics for a specific city.
+
+        **Used in UI:**
+        - Sozialraum > Regionsdetails > Lernendendetails > Gender Distribution Chart
+        - Sozialraum > Regionsdetails > Lernendendetails > Residence Distribution Chart
+      operationId: getCityLearners
+      tags:
+        - Sozialraum
+        - Learners
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: City name
+          required: true
+          schema:
+            type: string
+            example: "München"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityLearnersResponse'
+              example:
+                city: "München"
+                learnerCount: 2456
+                genderDistribution:
+                  - gender: "female"
+                    count: 1340
+                    percentage: 54.6
+                  - gender: "male"
+                    count: 1020
+                    percentage: 41.5
+                  - gender: "diverse"
+                    count: 96
+                    percentage: 3.9
+                residenceDistribution:
+                  - district: "München"
+                    learnerCount: 1200
+                    percentage: 48.9
+                  - district: "Augsburg"
+                    learnerCount: 450
+                    percentage: 18.3
+                  - district: "Nürnberg"
+                    learnerCount: 320
+                    percentage: 13.0
+                  - district: "Unbekannt"
+                    learnerCount: 486
+                    percentage: 19.8
+                    isOtherCategory: true
+
+  # ==========================================================================
+  # 5. STRENGTHENED COMPETENCIES (Kompetenzen)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/socialspace/competencies:
+    get:
+      summary: Get Strengthened Competencies for City
+      description: |
+        Returns strengthened individual competencies (Einzelkompetenzen) for a city.
+
+        **Used in UI:**
+        - Sozialraum > Regionsdetails > Kompetenzen > Strengthened Competencies Chart
+        - Each competency shows hours and links to ESCO
+      operationId: getCityCompetencies
+      tags:
+        - Sozialraum
+        - Competencies
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: City name
+          required: true
+          schema:
+            type: string
+            example: "München"
+        - name: limit
+          in: query
+          description: Maximum competencies to return
+          required: false
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityCompetenciesResponse'
+              example:
+                city: "München"
+                totalCompetencyHours: 19200
+                competencies:
+                  - name: "Digital Marketing"
+                    hours: 4560
+                    escoUri: "http://data.europa.eu/esco/skill/abc123"
+                    category: "Digitale Grundkompetenzen"
+                    badgeCount: 25
+                  - name: "Web Development"
+                    hours: 3870
+                    escoUri: "http://data.europa.eu/esco/skill/def456"
+                    category: "Digitale Grundkompetenzen"
+                    badgeCount: 18
+                  - name: "Project Management"
+                    hours: 3120
+                    escoUri: "http://data.europa.eu/esco/skill/ghi789"
+                    category: "Methodenkompetenz"
+                    badgeCount: 12
+
+# ============================================================================
+# SCHEMAS - Only fields actually used in UI
+# ============================================================================
+
+components:
+  schemas:
+    # ------------------------------------------------------------------------
+    # Institutions Response
+    # ------------------------------------------------------------------------
+    InstitutionsResponse:
+      type: object
+      required:
+        - institutions
+        - summary
+      properties:
+        institutions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Institution'
+        summary:
+          type: object
+          required:
+            - total
+            - newThisMonth
+          properties:
+            total:
+              type: integer
+              description: Total institutions count
+              example: 127
+            newThisMonth:
+              type: integer
+              description: New institutions added this month
+              example: 5
+            byType:
+              type: object
+              description: Count by institution type
+              additionalProperties:
+                type: integer
+
+    Institution:
+      type: object
+      description: |
+        Institution data. Only fields used in UI table:
+        - id, name, type, image, city, badgesIssued, activeUsers, joinedDate
+      required:
+        - id
+        - name
+        - type
+        - city
+        - badgesIssued
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "MVHS Gasteig"
+        type:
+          type: string
+          example: "Volkshochschule"
+        image:
+          type: string
+          nullable: true
+          description: URL to institution logo
+          example: "/assets/institutions/mvhs.png"
+        city:
+          type: string
+          example: "München"
+        badgesIssued:
+          type: integer
+          example: 156
+        activeUsers:
+          type: integer
+          example: 234
+        joinedDate:
+          type: string
+          format: date
+          example: "2023-06-15"
+
+    # ------------------------------------------------------------------------
+    # Cities Response
+    # ------------------------------------------------------------------------
+    CitiesResponse:
+      type: object
+      description: |
+        List of available cities for socialspace dashboard.
+      required:
+        - cities
+      properties:
+        cities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CityEntry'
+
+    CityEntry:
+      type: object
+      description: |
+        City entry for selection boxes/tiles.
+      required:
+        - city
+        - badges
+      properties:
+        city:
+          type: string
+          description: City name
+          example: "München"
+        badges:
+          type: integer
+          description: Number of badges issued in this city
+          example: 5670
+
+    # ------------------------------------------------------------------------
+    # City Detail Response
+    # ------------------------------------------------------------------------
+    CityDetailResponse:
+      type: object
+      description: |
+        Detailed metrics for a specific city.
+        Used in: Regionsdetails page
+      required:
+        - city
+        - learnerCount
+        - totalBadges
+        - institutions
+        - badgesByType
+        - topInstitutions
+      properties:
+        city:
+          type: string
+          example: "München"
+        learnerCount:
+          type: integer
+          description: KPI - Number of learners
+          example: 2456
+        totalBadges:
+          type: integer
+          description: KPI - Total badges issued
+          example: 5670
+        institutions:
+          type: integer
+          description: KPI - Number of institutions
+          example: 127
+        badgesByType:
+          type: object
+          description: For pie chart - Badge distribution
+          required:
+            - participation
+            - competency
+            - learningpath
+          properties:
+            participation:
+              type: integer
+              example: 2340
+            competency:
+              type: integer
+              example: 2780
+            learningpath:
+              type: integer
+              example: 550
+        topInstitutions:
+          type: array
+          description: For podium display - Top 3+ institutions
+          items:
+            $ref: '#/components/schemas/TopInstitution'
+
+    TopInstitution:
+      type: object
+      description: |
+        Institution for podium/list display.
+        Includes: issuerId, name, badgeCount, image
+      required:
+        - issuerId
+        - name
+        - badgeCount
+      properties:
+        issuerId:
+          type: string
+          description: Unique issuer entity ID
+          example: "abc123XYZ"
+        name:
+          type: string
+          example: "MVHS Gasteig"
+        badgeCount:
+          type: integer
+          example: 456
+        image:
+          type: string
+          nullable: true
+          description: Optional logo URL
+          example: "/assets/institutions/mvhs.png"
+
+    # ------------------------------------------------------------------------
+    # Learner Demographics Response
+    # ------------------------------------------------------------------------
+    CityLearnersResponse:
+      type: object
+      description: |
+        Learner demographics for a city.
+        Used in: Lernendendetails page
+      required:
+        - city
+        - learnerCount
+        - genderDistribution
+        - residenceDistribution
+      properties:
+        city:
+          type: string
+          example: "München"
+        learnerCount:
+          type: integer
+          description: KPI - Total learners
+          example: 2456
+        genderDistribution:
+          type: array
+          description: For gender bar chart
+          items:
+            $ref: '#/components/schemas/GenderEntry'
+        residenceDistribution:
+          type: array
+          description: For residence bar chart
+          items:
+            $ref: '#/components/schemas/ResidenceEntry'
+
+    GenderEntry:
+      type: object
+      description: |
+        Gender distribution entry.
+        Only: gender, count, percentage
+      required:
+        - gender
+        - count
+        - percentage
+      properties:
+        gender:
+          type: string
+          description: Gender identifier (male, female, diverse)
+          enum: [male, female, diverse]
+          example: "female"
+        count:
+          type: integer
+          example: 1340
+        percentage:
+          type: number
+          format: float
+          example: 54.6
+
+    ResidenceEntry:
+      type: object
+      description: |
+        Learner residence distribution entry.
+        Shows where learners LIVE (by their personal PLZ), not where they got badges.
+      required:
+        - district
+        - learnerCount
+        - percentage
+      properties:
+        district:
+          type: string
+          description: City name where learners live, or "Unbekannt" for unknown/missing PLZ
+          example: "München"
+        learnerCount:
+          type: integer
+          example: 1200
+        percentage:
+          type: number
+          format: float
+          example: 48.9
+        isOtherCategory:
+          type: boolean
+          description: True if this is the "Unbekannt" category (learners with no/invalid PLZ)
+          default: false
+          example: false
+
+    # ------------------------------------------------------------------------
+    # Competencies Response
+    # ------------------------------------------------------------------------
+    CityCompetenciesResponse:
+      type: object
+      description: |
+        Strengthened competencies for a city.
+        Used in: Kompetenzen page
+      required:
+        - city
+        - totalCompetencyHours
+        - competencies
+      properties:
+        city:
+          type: string
+          example: "München"
+        totalCompetencyHours:
+          type: integer
+          description: KPI - Total competency hours
+          example: 19200
+        competencies:
+          type: array
+          description: For competencies bar chart
+          items:
+            $ref: '#/components/schemas/CompetencyEntry'
+
+    CompetencyEntry:
+      type: object
+      description: |
+        Strengthened competency entry.
+        Competencies are extracted from badges issued by institutions in the city.
+      required:
+        - name
+        - hours
+      properties:
+        name:
+          type: string
+          description: Display name of the competency
+          example: "Digital Marketing"
+        hours:
+          type: integer
+          description: Total competency hours from all badges in this city
+          example: 4560
+        escoUri:
+          type: string
+          format: uri
+          description: ESCO framework URI for linking
+          example: "http://data.europa.eu/esco/skill/abc123"
+        category:
+          type: string
+          description: Competency category/area
+          example: "Digitale Grundkompetenzen"
+        badgeCount:
+          type: integer
+          description: Number of badges that award this competency
+          example: 25
+
+    # ------------------------------------------------------------------------
+    # Error Schema
+    # ------------------------------------------------------------------------
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "NOT_FOUND"
+        message:
+          type: string
+          example: "City not found"
+
+  # --------------------------------------------------------------------------
+  # Security
+  # --------------------------------------------------------------------------
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Sozialraum
+    description: City-based social space dashboard data
+  - name: Institutions
+    description: Institution data and statistics
+  - name: Learners
+    description: Learner demographics data
+  - name: Competencies
+    description: Competency data with ESCO links

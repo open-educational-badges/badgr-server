@@ -37,6 +37,31 @@ from issuer.api import (
     QRCodeList,
 )
 from issuer.api_v1 import FindBadgeClassDetail, IssuerStaffList
+from dashboard.network_api import (
+    NetworkDashboardKPIsView,
+    NetworkDashboardCompetencyAreasView,
+    NetworkDashboardTopBadgesView,
+    NetworkDashboardRecentActivityView,
+    NetworkDashboardStrengthenedCompetenciesView,
+    NetworkDashboardCompetencyDetailView,
+    NetworkDashboardCompetencyAreaDetailView,
+    NetworkDashboardBadgeAwardsTimelineView,
+    NetworkDashboardBadgeTypeDistributionView,
+    NetworkDashboardDeliveryMethodDistributionView,
+    NetworkDashboardRecentBadgeAwardsView,
+    NetworkDashboardBadgeLocationsView,
+    NetworkDashboardLearnersOverviewView,
+    NetworkDashboardLearnersResidenceView,
+    NetworkDashboardLearnersResidenceDetailView,
+    NetworkDashboardLearnersGenderView,
+    NetworkDashboardLearnersGenderDetailView,
+    NetworkDashboardCompetencyAreasSkillsView,
+    NetworkDashboardSocialspaceInstitutionsView,
+    NetworkDashboardSocialspaceCitiesView,
+    NetworkDashboardSocialspaceCityDetailView,
+    NetworkDashboardSocialspaceLearnersView,
+    NetworkDashboardSocialspaceCompetenciesView,
+)
 
 urlpatterns = [
     # url(r'^$', RedirectView.as_view(url='/v1/issuer/issuers', permanent=False)),
@@ -221,5 +246,124 @@ urlpatterns = [
         r"^networks/(?P<networkSlug>[^/]+)/invite/(?P<slug>[^/]+)/confirm$",
         NetworkInvitationConfirm.as_view(),
         name="v1_api_network_invite_confirmation",
+    ),
+    # Network Dashboard endpoints
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/kpis$",
+        NetworkDashboardKPIsView.as_view(),
+        name="v1_api_network_dashboard_kpis",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/competency-areas$",
+        NetworkDashboardCompetencyAreasView.as_view(),
+        name="v1_api_network_dashboard_competency_areas",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/top-badges$",
+        NetworkDashboardTopBadgesView.as_view(),
+        name="v1_api_network_dashboard_top_badges",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/recent-activity$",
+        NetworkDashboardRecentActivityView.as_view(),
+        name="v1_api_network_dashboard_recent_activity",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/strengthened-competencies$",
+        NetworkDashboardStrengthenedCompetenciesView.as_view(),
+        name="v1_api_network_dashboard_strengthened_competencies",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/strengthened-competencies/(?P<competencyId>[^/]+)$",
+        NetworkDashboardCompetencyDetailView.as_view(),
+        name="v1_api_network_dashboard_competency_detail",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/competency-area-detail$",
+        NetworkDashboardCompetencyAreaDetailView.as_view(),
+        name="v1_api_network_dashboard_competency_area_detail",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/badge-awards-timeline$",
+        NetworkDashboardBadgeAwardsTimelineView.as_view(),
+        name="v1_api_network_dashboard_badge_awards_timeline",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/badge-type-distribution$",
+        NetworkDashboardBadgeTypeDistributionView.as_view(),
+        name="v1_api_network_dashboard_badge_type_distribution",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/delivery-method-distribution$",
+        NetworkDashboardDeliveryMethodDistributionView.as_view(),
+        name="v1_api_network_dashboard_delivery_method_distribution",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/recent-badge-awards$",
+        NetworkDashboardRecentBadgeAwardsView.as_view(),
+        name="v1_api_network_dashboard_recent_badge_awards",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/badge-locations$",
+        NetworkDashboardBadgeLocationsView.as_view(),
+        name="v1_api_network_dashboard_badge_locations",
+    ),
+    # Network Dashboard - Learners endpoints
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/learners$",
+        NetworkDashboardLearnersOverviewView.as_view(),
+        name="v1_api_network_dashboard_learners",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/learners/residence$",
+        NetworkDashboardLearnersResidenceView.as_view(),
+        name="v1_api_network_dashboard_learners_residence",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/learners/residence/(?P<city>[^/]+)$",
+        NetworkDashboardLearnersResidenceDetailView.as_view(),
+        name="v1_api_network_dashboard_learners_residence_detail",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/learners/gender$",
+        NetworkDashboardLearnersGenderView.as_view(),
+        name="v1_api_network_dashboard_learners_gender",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/learners/gender/(?P<gender>[^/]+)$",
+        NetworkDashboardLearnersGenderDetailView.as_view(),
+        name="v1_api_network_dashboard_learners_gender_detail",
+    ),
+    # Network Dashboard - Competency Areas Skills Tree endpoint
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/competency-areas/skills$",
+        NetworkDashboardCompetencyAreasSkillsView.as_view(),
+        name="v1_api_network_dashboard_competency_areas_skills",
+    ),
+    # Network Dashboard - Sozialraum/Socialspace endpoints
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/socialspace/institutions$",
+        NetworkDashboardSocialspaceInstitutionsView.as_view(),
+        name="v1_api_network_dashboard_socialspace_institutions",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/socialspace/cities$",
+        NetworkDashboardSocialspaceCitiesView.as_view(),
+        name="v1_api_network_dashboard_socialspace_cities",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/socialspace/city-detail$",
+        NetworkDashboardSocialspaceCityDetailView.as_view(),
+        name="v1_api_network_dashboard_socialspace_city_detail",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/socialspace/learners$",
+        NetworkDashboardSocialspaceLearnersView.as_view(),
+        name="v1_api_network_dashboard_socialspace_learners",
+    ),
+    re_path(
+        r"^networks/(?P<networkSlug>[^/]+)/dashboard/socialspace/competencies$",
+        NetworkDashboardSocialspaceCompetenciesView.as_view(),
+        name="v1_api_network_dashboard_socialspace_competencies",
     ),
 ]

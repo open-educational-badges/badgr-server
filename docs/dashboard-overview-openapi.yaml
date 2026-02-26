@@ -1,0 +1,3400 @@
+openapi: 3.0.3
+info:
+  title: Network Dashboard API
+  description: |
+    OpenAPI specification for the Network Dashboard endpoints.
+
+    This specification covers the endpoint groups required for the Network Dashboard Overview:
+
+    **Core Dashboard Endpoints:**
+    1. **KPIs Endpoint** - Aggregated key performance indicators for a network
+    2. **Competency Areas Endpoint** - Top competency area distribution for bubble chart
+    3. **Top Badges Endpoint** - Most awarded badges within the network
+    4. **Recent Activity Endpoint** - Latest badge award activities
+
+    **Additional Dashboard Endpoints:**
+    5. **Strengthened Competencies** - Individual competencies with invested hours (Am meisten gestärkte Einzelkompetenzen)
+    6. **Badge Awards Timeline** - Time series of badge awards for line chart (Vergebene Badges im Jahr)
+    7. **Badge Type Distribution** - Distribution by badge type for pie chart (Badge-Verteilung nach Typ)
+
+    **Badge Analysis Endpoints:**
+    8. **Delivery Method Distribution** - Distribution of badges by delivery method (Online vs Präsenz)
+    9. **Badge Density** - Badges per 1000 inhabitants metric with trend data
+    10. **Recent Badge Awards** - Badges awarded in the last month with competency details
+
+    **Competency Detail Endpoint (NEW):**
+    11. **Competency Detail** - Detailed information for a specific competency including badge count, learner count, institution count, and institutions list
+
+    **Base URL Pattern:** All endpoints follow the pattern `/v1/issuer/networks/{networkSlug}/dashboard/*`
+
+    **Authentication:** All endpoints require Bearer JWT token authentication.
+
+    **KPI Data Format:**
+    KPIs are returned with minimal data from the backend. The frontend handles all display text
+    via translation mapping using the KPI `id` field.
+
+    **Frontend Responsibilities:**
+    - Colors for competency areas (bubble chart visualization)
+    - Icons and colors for badge rankings
+    - Translation of KPI IDs to display text
+    - Chart colors for badge type distribution
+
+  version: 1.3.0
+  contact:
+    name: Badgr Dashboard Team
+    email: dashboard@badgr.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.badgr.io
+    description: Production server
+  - url: https://staging-api.badgr.io
+    description: Staging server
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: Network Dashboard
+    description: Network-specific dashboard overview endpoints
+  - name: KPIs
+    description: Key Performance Indicator endpoints
+  - name: Competencies
+    description: Competency area analytics and distribution
+  - name: Badges
+    description: Badge statistics and top badges
+  - name: Time Series
+    description: Time-based data for charts and trend analysis
+  - name: Badge Analysis
+    description: Badge analysis endpoints including delivery methods, density metrics, and recent awards
+
+paths:
+  /v1/issuer/networks/{networkSlug}/dashboard/kpis:
+    get:
+      summary: Get Network Dashboard KPIs
+      description: |
+        Returns aggregated key performance indicators for a specific network.
+
+        **KPIs Returned:**
+        Each KPI has a unique `id` that maps to frontend translations for description and unit.
+
+        | ID | Description | Unit |
+        |---|---|---|
+        | `institutions_count` | Institutionen im Netzwerk | - |
+        | `badges_created` | verschiedene Badges erstellt | Badges |
+        | `badges_awarded` | Badges insgesamt vergeben | Badges |
+        | `participation_badges` | TEILNAHME-Badges | Badges |
+        | `competency_badges` | KOMPETENZ-Badges | Badges |
+        | `competency_hours` | Stunden Kompetenzen gestärkt | Stunden |
+        | `learners_count` | Lernende Personen mit Badges | Personen |
+        | `badges_per_month` | Badges durchschnittlich pro Monat | Badges |
+        | `learners_with_paths` | Lernende mit Netzwerkpfaden | Personen |
+
+        **Response Format:**
+        KPIs are returned with minimal data - frontend handles all display text via translation mapping.
+
+        **Trend Data:**
+        Each KPI may include trend information:
+        - `trend`: Direction indicator (up/down/stable)
+        - `trendValue`: Numeric change value (percentage or absolute)
+        - `trendPeriod`: Time period for the trend calculation
+
+      operationId: getNetworkDashboardKPIs
+      tags:
+        - Network Dashboard
+        - KPIs
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: deliveryMethod
+          in: query
+          description: |
+            Filter KPIs by badge delivery method.
+            When specified, returns KPIs only for badges with the given delivery method.
+            - `online` - Only include badges delivered online
+            - `in-person` - Only include badges delivered in-person (Präsenz)
+            - If not specified, includes all badges regardless of delivery method
+
+            **Important - Consistency with delivery-method-distribution:**
+            The `badges_awarded` value returned here MUST be consistent with the
+            `delivery-method-distribution` endpoint. For example:
+            - If `delivery-method-distribution` returns `online.value = 252`,
+              then `kpis?deliveryMethod=online` must return `badges_awarded = 252`
+            - If `delivery-method-distribution` returns `inPerson.value = 3215`,
+              then `kpis?deliveryMethod=in-person` must return `badges_awarded = 3215`
+            - The sum of both should equal the unfiltered `badges_awarded` value
+
+            **Filtering Logic:**
+            Filter badge assertions (not badge classes) where the associated
+            badge class has `deliveryMethod` matching the filter value.
+          required: false
+          schema:
+            type: string
+            enum:
+              - online
+              - in-person
+      responses:
+        '200':
+          description: Successful response with network KPI data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkKPIsResponse'
+              examples:
+                networkKpis:
+                  summary: KPIs for a specific network
+                  value:
+                    kpis:
+                      - id: "institutions_count"
+                        value: 362
+                        trend: "stable"
+                        trendValue: 0
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "badges_created"
+                        value: 350
+                        trend: "up"
+                        trendValue: 12
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "badges_awarded"
+                        value: 3467
+                        trend: "up"
+                        trendValue: 12
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: true
+                      - id: "participation_badges"
+                        value: 30
+                        trend: "stable"
+                        trendValue: 0
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "competency_badges"
+                        value: 38
+                        trend: "up"
+                        trendValue: 5
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "competency_hours"
+                        value: 19876
+                        trend: "up"
+                        trendValue: 15
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "learners_count"
+                        value: 2175
+                        trend: "up"
+                        trendValue: 54
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "badges_per_month"
+                        value: 54
+                        trend: "up"
+                        trendValue: 15
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "learners_with_paths"
+                        value: 24
+                        trend: "up"
+                        trendValue: 10
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                onlineKpis:
+                  summary: KPIs filtered by deliveryMethod=online
+                  description: |
+                    Response when `?deliveryMethod=online` is specified.
+                    Only includes badges where the badge class has `deliveryMethod=online`.
+                    **Important:** `badges_awarded` must count only assertions for online badges.
+                  value:
+                    kpis:
+                      - id: "badges_awarded"
+                        value: 252
+                        trend: "up"
+                        trendValue: 8
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: true
+                      - id: "participation_badges"
+                        value: 12
+                        trend: "stable"
+                        trendValue: 0
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "competency_badges"
+                        value: 18
+                        trend: "up"
+                        trendValue: 3
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "competency_hours"
+                        value: 92
+                        trend: "up"
+                        trendValue: 10
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "learners_count"
+                        value: 180
+                        trend: "up"
+                        trendValue: 25
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                inPersonKpis:
+                  summary: KPIs filtered by deliveryMethod=in-person
+                  description: |
+                    Response when `?deliveryMethod=in-person` is specified.
+                    Only includes badges where the badge class has `deliveryMethod=in-person` (Präsenz).
+                    **Important:** `badges_awarded` must count only assertions for in-person badges.
+                  value:
+                    kpis:
+                      - id: "badges_awarded"
+                        value: 3215
+                        trend: "up"
+                        trendValue: 15
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: true
+                      - id: "participation_badges"
+                        value: 18
+                        trend: "up"
+                        trendValue: 2
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "competency_badges"
+                        value: 20
+                        trend: "up"
+                        trendValue: 4
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "competency_hours"
+                        value: 19784
+                        trend: "up"
+                        trendValue: 18
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+                      - id: "learners_count"
+                        value: 1995
+                        trend: "up"
+                        trendValue: 48
+                        trendPeriod: "lastMonth"
+                        hasMonthlyDetails: false
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/issuer/networks/{networkSlug}/dashboard/competency-areas:
+    get:
+      summary: Get Network Top Competency Areas
+      description: |
+        Returns the top competency areas for a specific network.
+        Data is optimized for bubble chart visualization.
+
+        **Data Structure:**
+        Returns a list of competency areas ranked by badge count/percentage.
+
+        **Frontend Responsibilities:**
+        - Assign colors for bubble chart visualization based on competency area ID
+        - Assign icons based on competency area type
+
+        **Delivery Method Filter:**
+        Use `deliveryMethod` parameter to filter competency areas by badge delivery method:
+        - `online` - Only include badges delivered online
+        - `in-person` - Only include badges delivered in-person (Präsenz)
+        - If not specified, includes all badges regardless of delivery method
+
+      operationId: getNetworkCompetencyAreas
+      tags:
+        - Network Dashboard
+        - Competencies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: limit
+          in: query
+          description: Maximum number of competency areas to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 6
+        - name: deliveryMethod
+          in: query
+          description: Filter competency areas by badge delivery method
+          required: false
+          schema:
+            type: string
+            enum:
+              - online
+              - in-person
+      responses:
+        '200':
+          description: Successful response with competency areas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkCompetencyAreasResponse'
+              examples:
+                competencyAreas:
+                  summary: Top 6 competency areas for bubble chart
+                  value:
+                    metadata:
+                      totalAreas: 6
+                      lastUpdated: "2024-11-06"
+                    data:
+                      - id: "it_digital"
+                        name: "IT & Digital"
+                        value: 28.5
+                        weight: 285
+                      - id: "social_competencies"
+                        name: "Soziale Kompetenzen"
+                        value: 22.1
+                        weight: 221
+                      - id: "languages"
+                        name: "Sprachen"
+                        value: 18.3
+                        weight: 183
+                      - id: "crafts"
+                        name: "Handwerk"
+                        value: 12.7
+                        weight: 127
+                      - id: "management"
+                        name: "Management"
+                        value: 10.8
+                        weight: 108
+                      - id: "other"
+                        name: "Andere"
+                        value: 7.6
+                        weight: 76
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/issuer/networks/{networkSlug}/dashboard/top-badges:
+    get:
+      summary: Get Network Top Badges
+      description: |
+        Returns the top most awarded badges within a specific network.
+
+        **Badge Information Includes:**
+        - Badge title and identifier
+        - Award count
+        - Badge image URL
+
+        **Frontend Responsibilities:**
+        - Assign rank icons (trophy, medal, award) based on rank position
+        - Assign colors based on rank position
+
+        **Ranking Criteria:**
+        Badges are ranked by total number of awards.
+
+      operationId: getNetworkTopBadges
+      tags:
+        - Network Dashboard
+        - Badges
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: limit
+          in: query
+          description: Number of top badges to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 3
+      responses:
+        '200':
+          description: Successful response with top badges
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkTopBadgesResponse'
+              examples:
+                topBadges:
+                  summary: Top 3 badges in the network
+                  value:
+                    metadata:
+                      totalBadges: 3467
+                      lastUpdated: "2024-11-06"
+                    badges:
+                      - rank: 1
+                        badgeId: "digital_marketing_expert"
+                        badgeTitle: "Digital Marketing Expert"
+                        image: "https://api.badgr.io/media/badges/digital_marketing_expert.png"
+                        count: 87
+                      - rank: 2
+                        badgeId: "web_development_fundamentals"
+                        badgeTitle: "Web Development Fundamentals"
+                        image: "https://api.badgr.io/media/badges/web_development.png"
+                        count: 64
+                      - rank: 3
+                        badgeId: "project_management_professional"
+                        badgeTitle: "Project Management Professional"
+                        image: "https://api.badgr.io/media/badges/project_management.png"
+                        count: 52
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/issuer/networks/{networkSlug}/dashboard/recent-activity:
+    get:
+      summary: Get Network Recent Activity
+      description: |
+        Returns the most recent badge award activities within a specific network.
+
+        **Activity Information Includes:**
+        - Award date
+        - Badge information (ID, title, image)
+        - Issuer information (ID, name) for linking to institution page
+        - Number of recipients
+
+        **Ordering:**
+        Activities are ordered by date, most recent first.
+
+        **Linking:**
+        - Badge: Use `badgeId` to link to `/public/badges/{badgeId}`
+        - Issuer: Use `issuerId` to link to `/issuer/issuers/{issuerId}`
+
+      operationId: getNetworkRecentActivity
+      tags:
+        - Network Dashboard
+        - Badges
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: limit
+          in: query
+          description: Number of recent activities to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 4
+      responses:
+        '200':
+          description: Successful response with recent activities
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkRecentActivityResponse'
+              examples:
+                recentActivity:
+                  summary: Last 4 badge award activities
+                  value:
+                    metadata:
+                      totalActivities: 4
+                      lastUpdated: "2024-11-06"
+                    activities:
+                      - date: "2024-11-06"
+                        badgeId: "digital_marketing_expert"
+                        badgeTitle: "Digital Marketing Expert"
+                        badgeImage: "https://api.badgr.io/media/badges/digital_marketing_expert.png"
+                        issuerId: "vhs-muenchen"
+                        issuerName: "Volkshochschule München"
+                        recipientCount: 12
+                      - date: "2024-11-05"
+                        badgeId: "web_development_fundamentals"
+                        badgeTitle: "Web Development Fundamentals"
+                        badgeImage: "https://api.badgr.io/media/badges/web_development.png"
+                        issuerId: "bildungszentrum-berlin"
+                        issuerName: "Bildungszentrum Berlin"
+                        recipientCount: 8
+                      - date: "2024-11-04"
+                        badgeId: "project_management_professional"
+                        badgeTitle: "Project Management Professional"
+                        badgeImage: "https://api.badgr.io/media/badges/project_management.png"
+                        issuerId: "ihk-hamburg"
+                        issuerName: "IHK Hamburg"
+                        recipientCount: 5
+                      - date: "2024-11-03"
+                        badgeId: "agile_methodology"
+                        badgeTitle: "Agile Methodology Certificate"
+                        badgeImage: "https://api.badgr.io/media/badges/agile_methodology.png"
+                        issuerId: "vhs-muenchen"
+                        issuerName: "Volkshochschule München"
+                        recipientCount: 15
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Strengthened Competencies Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/strengthened-competencies:
+    get:
+      summary: Get Most Strengthened Individual Competencies
+      description: |
+        Returns the individual competencies (Einzelkompetenzen) that have been
+        strengthened the most within a network, ordered by competency hours.
+
+        **Use Case:** Display "Am meisten gestärkte Einzelkompetenzen" section
+
+        **Data Includes:**
+        - Competency ID (unique identifier)
+        - Competency title (localized via titleKey)
+        - Total competency hours invested
+        - ESCO URI for standardized European competency framework reference
+
+        **Ordering:**
+        By default ordered by hours descending (most hours first).
+
+        **Delivery Method Filter:**
+        Use `deliveryMethod` parameter to filter competencies by badge delivery method:
+        - `online` - Only include competencies from badges delivered online
+        - `in-person` - Only include competencies from badges delivered in-person (Präsenz)
+        - If not specified, includes all competencies regardless of delivery method
+
+      operationId: getNetworkStrengthenedCompetencies
+      tags:
+        - Network Dashboard
+        - Competencies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: limit
+          in: query
+          description: Maximum number of competencies to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 8
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          required: false
+          schema:
+            type: string
+            enum:
+              - hours
+              - count
+              - title
+            default: hours
+        - name: sortOrder
+          in: query
+          description: Sort direction
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+        - name: deliveryMethod
+          in: query
+          description: Filter competencies by badge delivery method
+          required: false
+          schema:
+            type: string
+            enum:
+              - online
+              - in-person
+      responses:
+        '200':
+          description: Successful response with strengthened competencies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkStrengthenedCompetenciesResponse'
+              examples:
+                strengthenedCompetencies:
+                  summary: Top 8 most strengthened individual competencies
+                  value:
+                    metadata:
+                      totalCompetencies: 42
+                      totalHours: 15840
+                      lastUpdated: "2024-11-28"
+                    competencies:
+                      - competencyId: "comp_digital_marketing"
+                        title: "Digital Marketing"
+                        titleKey: "competency.digitalMarketing"
+                        hours: 2450
+                        escoUri: "http://data.europa.eu/esco/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+                      - competencyId: "comp_web_development"
+                        title: "Web Development"
+                        titleKey: "competency.webDevelopment"
+                        hours: 1920
+                        escoUri: "http://data.europa.eu/esco/skill/d5b3c4e2-f8a1-4d9c-b7e2-a1b2c3d4e5f6"
+                      - competencyId: "comp_project_management"
+                        title: "Project Management"
+                        titleKey: "competency.projectManagement"
+                        hours: 1560
+                        escoUri: "http://data.europa.eu/esco/skill/c3b2a1e4-d5f6-4e7c-8a9b-1c2d3e4f5a6b"
+                      - competencyId: "comp_data_analytics"
+                        title: "Data Analytics"
+                        titleKey: "competency.dataAnalytics"
+                        hours: 1350
+                        escoUri: "http://data.europa.eu/esco/skill/b2a3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d"
+                      - competencyId: "comp_communication"
+                        title: "Communication Skills"
+                        titleKey: "competency.communication"
+                        hours: 1140
+                        escoUri: "http://data.europa.eu/esco/skill/e4f5a6b7-c8d9-4e0f-1a2b-3c4d5e6f7a8b"
+                      - competencyId: "comp_leadership"
+                        title: "Leadership"
+                        titleKey: "competency.leadership"
+                        hours: 930
+                        escoUri: "http://data.europa.eu/esco/skill/f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c"
+                      - competencyId: "comp_problem_solving"
+                        title: "Problem Solving"
+                        titleKey: "competency.problemSolving"
+                        hours: 840
+                        escoUri: "http://data.europa.eu/esco/skill/a8b9c0d1-e2f3-4a4b-5c6d-7e8f9a0b1c2d"
+                      - competencyId: "comp_teamwork"
+                        title: "Teamwork"
+                        titleKey: "competency.teamwork"
+                        hours: 720
+                        escoUri: "http://data.europa.eu/esco/skill/c0d1e2f3-a4b5-4c6d-7e8f-9a0b1c2d3e4f"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Competency Detail Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/strengthened-competencies/{competencyId}:
+    get:
+      summary: Get Competency Detail Information
+      description: |
+        Returns detailed information about a specific competency within a network,
+        including statistics about badges, learners, and institutions.
+
+        **Use Case:** Display detailed competency information when clicking on a
+        competency in the "Am meisten gestärkte Einzelkompetenzen" section.
+
+        **Data Includes:**
+        - Competency basic data (ID, title, hours, ESCO URI)
+        - Badge count: Number of badges covering this competency
+        - User count: Number of learners who strengthened this competency
+        - Institution count: Number of institutions offering badges with this competency
+        - Institutions list: Detailed list of institutions with their badge/user statistics
+
+        **Institutions Ordering:**
+        By default ordered by badge count descending (institutions with most badges first).
+
+      operationId: getNetworkCompetencyDetail
+      tags:
+        - Network Dashboard
+        - Competencies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: competencyId
+          in: path
+          description: Unique identifier of the competency (e.g., ESCO URI hash or internal ID)
+          required: true
+          schema:
+            type: string
+          example: "comp_digital_marketing"
+        - name: institutionLimit
+          in: query
+          description: Maximum number of institutions to return in the list
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - name: deliveryMethod
+          in: query
+          description: Filter by badge delivery method
+          required: false
+          schema:
+            type: string
+            enum:
+              - online
+              - in-person
+      responses:
+        '200':
+          description: Successful response with competency details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkCompetencyDetailResponse'
+              examples:
+                competencyDetail:
+                  summary: Detailed competency information with institutions
+                  value:
+                    competencyId: "comp_dialoge_schreiben"
+                    title: "Dialoge schreiben"
+                    titleKey: "competency.dialogeSchreiben"
+                    hours: 12
+                    escoUri: "http://data.europa.eu/esco/skill/d1a2b3c4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                    badgeCount: 3
+                    userCount: 6
+                    institutionCount: 2
+                    institutions:
+                      - institutionId: "inst_001"
+                        name: "Volkshochschule Berlin"
+                        slug: "vhs-berlin"
+                        badgeCount: 2
+                        userCount: 4
+                        lastActivity: "2024-11-15T10:30:00Z"
+                      - institutionId: "inst_002"
+                        name: "Bildungszentrum Hamburg"
+                        slug: "bz-hamburg"
+                        badgeCount: 1
+                        userCount: 2
+                        lastActivity: "2024-11-10T14:20:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Competency Area Detail Endpoint (POST)
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/competency-area-detail:
+    post:
+      summary: Get Competency Area Detail Information
+      description: |
+        Returns aggregated statistics for a competency area (Kompetenzbereich) based on
+        the provided ESCO URIs of individual competencies belonging to that area.
+
+        **Use Case:** Display detailed competency area information when clicking on a
+        bubble in the "Top Kompetenz-Bereiche" skill visualization.
+
+        **Why POST instead of GET:**
+        Since the database only stores individual competencies (not competency areas/categories),
+        the frontend must send the list of ESCO URIs that belong to the clicked competency area.
+        The backend then aggregates statistics for all those competencies.
+
+        **Request Flow:**
+        1. User clicks on a competency area bubble (e.g., "Kommunikation, Zusammenarbeit und Kreativität")
+        2. Frontend extracts all ESCO URIs of skills belonging to that area from the skill tree
+        3. Frontend sends POST request with area name and ESCO URIs
+        4. Backend looks up competencies by ESCO URI and aggregates statistics
+        5. Backend returns aggregated data including total hours, badges, learners, institutions
+
+        **Data Aggregation:**
+        - Total hours: Sum of all competency hours within the area
+        - Badge count: Count of distinct badges covering any competency in the area
+        - User count: Count of distinct learners who strengthened any competency in the area
+        - Institution count: Count of distinct institutions offering badges in this area
+        - Top competencies: List of individual competencies with highest hours in this area
+
+      operationId: getNetworkCompetencyAreaDetail
+      tags:
+        - Network Dashboard
+        - Competencies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompetencyAreaDetailRequest'
+            examples:
+              kommunikation:
+                summary: Kommunikation, Zusammenarbeit und Kreativität
+                value:
+                  areaName: "Kommunikation, Zusammenarbeit und Kreativität"
+                  areaConceptUri: "/esco/skill/communication-collaboration"
+                  competencyUris:
+                    - "http://data.europa.eu/esco/skill/dialoge-schreiben"
+                    - "http://data.europa.eu/esco/skill/schwimmunterricht-erteilen"
+                    - "http://data.europa.eu/esco/skill/storylines-schreiben"
+                    - "http://data.europa.eu/esco/skill/neue-konzepte-erstellen"
+                  topCompetenciesLimit: 10
+                  institutionLimit: 10
+              handhabung:
+                summary: Handhabung/Transport und Bewegung
+                value:
+                  areaName: "Handhabung/Transport und Bewegung"
+                  areaConceptUri: "/esco/skill/03e0b95b-67d1-457a-b3f7-06c407cf6bec"
+                  competencyUris:
+                    - "http://data.europa.eu/esco/skill/holz-bearbeiten"
+                    - "http://data.europa.eu/esco/skill/uhrwerk-anbringen"
+                    - "http://data.europa.eu/esco/skill/raederwerk-einbauen"
+                  topCompetenciesLimit: 10
+                  institutionLimit: 10
+      responses:
+        '200':
+          description: Successful response with aggregated competency area statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompetencyAreaDetailResponse'
+              examples:
+                kommunikationDetail:
+                  summary: Competency area detail with aggregated statistics
+                  value:
+                    areaName: "Kommunikation, Zusammenarbeit und Kreativität"
+                    areaConceptUri: "/esco/skill/communication-collaboration"
+                    totalHours: 1920
+                    totalCompetencies: 8
+                    matchedCompetencies: 6
+                    badgeCount: 15
+                    userCount: 42
+                    institutionCount: 5
+                    topCompetencies:
+                      - competencyId: "comp_dialoge_schreiben"
+                        title: "Dialoge schreiben"
+                        escoUri: "http://data.europa.eu/esco/skill/dialoge-schreiben"
+                        hours: 720
+                        badgeCount: 5
+                        userCount: 18
+                      - competencyId: "comp_storylines"
+                        title: "Storylines schreiben"
+                        escoUri: "http://data.europa.eu/esco/skill/storylines-schreiben"
+                        hours: 240
+                        badgeCount: 3
+                        userCount: 10
+                      - competencyId: "comp_grundlagen_rhetorik"
+                        title: "Grundlagen der Rhetorik vermitteln"
+                        escoUri: "http://data.europa.eu/esco/skill/grundlagen-rhetorik"
+                        hours: 240
+                        badgeCount: 2
+                        userCount: 8
+                    institutions:
+                      - institutionId: "inst_001"
+                        name: "Volkshochschule Berlin"
+                        slug: "vhs-berlin"
+                        badgeCount: 6
+                        userCount: 18
+                        logoUrl: "/media/uploads/vhs-berlin/logo.png"
+                      - institutionId: "inst_002"
+                        name: "Bildungszentrum Hamburg"
+                        slug: "bz-hamburg"
+                        badgeCount: 4
+                        userCount: 12
+                        logoUrl: "/media/uploads/bz-hamburg/logo.png"
+        '400':
+          description: Bad request - invalid or empty competency URIs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "bad_request"
+                message: "competencyUris array must contain at least one valid ESCO URI"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Badge Awards Timeline Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/badge-awards-timeline:
+    get:
+      summary: Get Badge Awards Timeline
+      description: |
+        Returns badge awards grouped by date for timeline/chart visualization.
+        Shows "Vergebene Badges im Jahr" with configurable time grouping.
+
+        **Use Case:** Display badge awards line chart in Network Dashboard
+
+        **Data Includes:**
+        - Date of award(s)
+        - Total number of badges awarded
+        - Badge type breakdown (participation, competency, learningpath)
+
+        **Time Grouping:**
+        Data can be grouped by day, week, or month for different chart resolutions.
+
+      operationId: getNetworkBadgeAwardsTimeline
+      tags:
+        - Network Dashboard
+        - Badges
+        - Time Series
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: year
+          in: query
+          description: Filter by specific year
+          required: false
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2100
+            example: 2024
+        - name: startDate
+          in: query
+          description: Start date for the timeline (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: endDate
+          in: query
+          description: End date for the timeline (ISO 8601)
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: groupBy
+          in: query
+          description: Time grouping granularity
+          required: false
+          schema:
+            type: string
+            enum:
+              - day
+              - week
+              - month
+            default: month
+        - name: badgeType
+          in: query
+          description: Filter by badge type
+          required: false
+          schema:
+            type: string
+            enum:
+              - all
+              - participation
+              - competency
+              - learningpath
+            default: all
+      responses:
+        '200':
+          description: Successful response with badge awards timeline
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkBadgeAwardsTimelineResponse'
+              examples:
+                monthlyTimeline:
+                  summary: Monthly badge awards for 2024
+                  value:
+                    metadata:
+                      totalAwards: 1247
+                      year: 2024
+                      groupBy: "month"
+                      lastUpdated: "2024-11-28T10:30:00Z"
+                    timeline:
+                      - date: "2024-01-01"
+                        count: 87
+                        byType:
+                          participation: 35
+                          competency: 42
+                          learningpath: 10
+                      - date: "2024-02-01"
+                        count: 93
+                        byType:
+                          participation: 38
+                          competency: 45
+                          learningpath: 10
+                      - date: "2024-03-01"
+                        count: 112
+                        byType:
+                          participation: 46
+                          competency: 54
+                          learningpath: 12
+                      - date: "2024-04-01"
+                        count: 98
+                        byType:
+                          participation: 40
+                          competency: 47
+                          learningpath: 11
+                      - date: "2024-05-01"
+                        count: 105
+                        byType:
+                          participation: 43
+                          competency: 50
+                          learningpath: 12
+                      - date: "2024-06-01"
+                        count: 89
+                        byType:
+                          participation: 36
+                          competency: 43
+                          learningpath: 10
+                      - date: "2024-07-01"
+                        count: 76
+                        byType:
+                          participation: 31
+                          competency: 37
+                          learningpath: 8
+                      - date: "2024-08-01"
+                        count: 82
+                        byType:
+                          participation: 33
+                          competency: 40
+                          learningpath: 9
+                      - date: "2024-09-01"
+                        count: 118
+                        byType:
+                          participation: 48
+                          competency: 57
+                          learningpath: 13
+                      - date: "2024-10-01"
+                        count: 134
+                        byType:
+                          participation: 54
+                          competency: 65
+                          learningpath: 15
+                      - date: "2024-11-01"
+                        count: 127
+                        byType:
+                          participation: 51
+                          competency: 61
+                          learningpath: 15
+                      - date: "2024-12-01"
+                        count: 126
+                        byType:
+                          participation: 51
+                          competency: 60
+                          learningpath: 15
+        '400':
+          description: Invalid date format or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Badge Type Distribution Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/badge-type-distribution:
+    get:
+      summary: Get Badge Distribution by Type
+      description: |
+        Returns the distribution of badges by type for pie/donut chart visualization.
+        Shows "Badge-Verteilung nach Typ" with counts and percentages.
+
+        **Use Case:** Display badge type distribution donut chart in Network Dashboard
+
+        **Badge Types:**
+        - `participation` - Teilnahmezertifikate
+        - `competency` - Kompetenzbadges
+        - `learningpath` - Micro Degrees / Lernpfade
+
+        **Data Includes:**
+        - Badge type identifier
+        - Count of badges
+        - Percentage of total
+        - Total badge count in metadata
+
+      operationId: getNetworkBadgeTypeDistribution
+      tags:
+        - Network Dashboard
+        - Badges
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: year
+          in: query
+          description: Optional year filter for distribution
+          required: false
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2100
+            example: 2024
+      responses:
+        '200':
+          description: Successful response with badge type distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkBadgeTypeDistributionResponse'
+              examples:
+                distribution:
+                  summary: Badge distribution by type
+                  value:
+                    metadata:
+                      totalBadges: 1247
+                      year: null
+                      lastUpdated: "2024-11-28T10:30:00Z"
+                    distribution:
+                      - type: "participation"
+                        typeKey: "Badge.categories.participation"
+                        count: 523
+                        percentage: 41.9
+                      - type: "competency"
+                        typeKey: "Badge.categories.competency"
+                        count: 489
+                        percentage: 39.2
+                      - type: "learningpath"
+                        typeKey: "Badge.categories.learningpath"
+                        count: 235
+                        percentage: 18.9
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Delivery Method Distribution Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/delivery-method-distribution:
+    get:
+      summary: Get Badge Distribution by Delivery Method
+      description: |
+        Returns the distribution of badges by delivery method (Durchführungsart).
+        Shows how badges are split between online and in-person (Präsenz) delivery.
+
+        **Use Case:** Display "Durchführungsart Badges" donut chart in Badge Analysis
+
+        **Delivery Methods:**
+        - `online` - Online/Remote delivery
+        - `in-person` - In-person/Präsenz delivery
+
+        **Data Includes:**
+        - Total badge count (badge assertions, not badge classes)
+        - Count and percentage for each delivery method
+
+        **Important - Consistency with KPIs endpoint:**
+        The values returned here MUST be consistent with the `/kpis` endpoint
+        when filtered by `deliveryMethod`:
+        - `online.value` here must equal `badges_awarded` from `/kpis?deliveryMethod=online`
+        - `inPerson.value` here must equal `badges_awarded` from `/kpis?deliveryMethod=in-person`
+        - `total` here must equal `badges_awarded` from `/kpis` (unfiltered)
+
+        **Counting Logic:**
+        Count badge assertions (awarded badges to users), grouped by the
+        `deliveryMethod` field of the associated badge class.
+        - Badges with `deliveryMethod=online` → counted in `online.value`
+        - Badges with `deliveryMethod=in-person` → counted in `inPerson.value`
+        - Badges with no `deliveryMethod` set → should be handled consistently
+          (either excluded from both or assigned to a default)
+
+        **Frontend Responsibilities:**
+        - Assign colors for donut chart visualization
+
+      operationId: getNetworkDeliveryMethodDistribution
+      tags:
+        - Network Dashboard
+        - Badges
+        - Badge Analysis
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: year
+          in: query
+          description: Optional year filter for distribution
+          required: false
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2100
+            example: 2024
+      responses:
+        '200':
+          description: Successful response with delivery method distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkDeliveryMethodDistributionResponse'
+              examples:
+                distribution:
+                  summary: Badge distribution by delivery method
+                  value:
+                    metadata:
+                      totalBadges: 1247
+                      year: null
+                      lastUpdated: "2024-11-28T10:30:00Z"
+                    total: 1247
+                    online:
+                      value: 748
+                      percentage: 60.0
+                    inPerson:
+                      value: 499
+                      percentage: 40.0
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Badge Density Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/badge-density:
+    get:
+      summary: Get Badge Density Metric
+      description: |
+        Returns the badge density metric - number of badges per 1000 inhabitants
+        within the network's coverage area.
+
+        **Use Case:** Display "Badge-Dichte" (Vergebene Badges pro 1000 Einwohner) KPI in Badge Analysis
+
+        **Data Includes:**
+        - Current density value (badges per 1000 inhabitants)
+        - Trend direction (up, down, stable)
+        - Trend value (percentage change)
+        - Trend period (comparison timeframe)
+
+        **Calculation:**
+        Badge density = (Total badges awarded / Population in network area) * 1000
+
+      operationId: getNetworkBadgeDensity
+      tags:
+        - Network Dashboard
+        - KPIs
+        - Badge Analysis
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+      responses:
+        '200':
+          description: Successful response with badge density metric
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkBadgeDensityResponse'
+              examples:
+                density:
+                  summary: Badge density metric with trend
+                  value:
+                    metadata:
+                      lastUpdated: "2024-11-28T10:30:00Z"
+                      populationBase: 520000
+                      totalBadges: 1248
+                    value: 2.4
+                    trend: "up"
+                    trendValue: 8
+                    trendPeriod: "lastYear"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Recent Badge Awards (Last Month) Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/recent-badge-awards:
+    get:
+      summary: Get Recent Badge Awards (Last Month)
+      description: |
+        Returns badges awarded in the last month within the network,
+        grouped by badge with competency details.
+
+        **Use Case:** Display "Vergebene Badges im letzten Monat" table in Badge Analysis
+
+        **Data Includes:**
+        - Award date
+        - Badge name and identifier
+        - Award count (how many times awarded)
+        - Associated competencies with ESCO URIs
+
+        **Ordering:**
+        By default ordered by date descending (most recent first).
+
+      operationId: getNetworkRecentBadgeAwards
+      tags:
+        - Network Dashboard
+        - Badges
+        - Badge Analysis
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: limit
+          in: query
+          description: Maximum number of badge awards to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: days
+          in: query
+          description: Number of days to look back (default 30 for last month)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 30
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          required: false
+          schema:
+            type: string
+            enum:
+              - date
+              - count
+              - badgeName
+            default: date
+        - name: sortOrder
+          in: query
+          description: Sort direction
+          required: false
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+      responses:
+        '200':
+          description: Successful response with recent badge awards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkRecentBadgeAwardsResponse'
+              examples:
+                recentAwards:
+                  summary: Badges awarded in the last month
+                  value:
+                    metadata:
+                      totalAwards: 127
+                      periodStart: "2024-10-28"
+                      periodEnd: "2024-11-28"
+                      lastUpdated: "2024-11-28T10:30:00Z"
+                    awards:
+                      - date: "2024-11-25"
+                        badgeId: "digital_marketing_expert"
+                        badgeName: "Digital Marketing Expert"
+                        badgeImage: "https://api.badgr.io/media/badges/digital_marketing_expert.png"
+                        badgeType: "competency"
+                        count: 12
+                        competencies:
+                          - name: "Digital Marketing"
+                            escoUri: "http://data.europa.eu/esco/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+                          - name: "Social Media Management"
+                            escoUri: "http://data.europa.eu/esco/skill/b5c4d3e2-f1a0-4e9d-c8b7-a2b3c4d5e6f7"
+                      - date: "2024-11-22"
+                        badgeId: "web_development_fundamentals"
+                        badgeName: "Web Development Fundamentals"
+                        badgeImage: "https://api.badgr.io/media/badges/web_development.png"
+                        badgeType: "competency"
+                        count: 8
+                        competencies:
+                          - name: "HTML/CSS"
+                            escoUri: "http://data.europa.eu/esco/skill/c6d5e4f3-a2b1-4c0d-9e8f-b3c4d5e6f7a8"
+                          - name: "JavaScript"
+                            escoUri: "http://data.europa.eu/esco/skill/d7e6f5a4-b3c2-4d1e-0f9a-c4d5e6f7a8b9"
+                          - name: "Responsive Design"
+                            escoUri: "http://data.europa.eu/esco/skill/e8f7a6b5-c4d3-4e2f-1a0b-d5e6f7a8b9c0"
+                      - date: "2024-11-20"
+                        badgeId: "project_management_basics"
+                        badgeName: "Project Management Basics"
+                        badgeImage: "https://api.badgr.io/media/badges/project_management.png"
+                        badgeType: "participation"
+                        count: 15
+                        competencies: []
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  # ==========================================
+  # NEW: Badge Locations Endpoint (Geographic Distribution)
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/badge-locations:
+    get:
+      summary: Get Badge Geographic Distribution
+      description: |
+        Returns the geographic distribution of badges by city.
+
+        **Use Case:** Display badge location distribution on maps or in tables,
+        particularly useful for analyzing in-person badge delivery patterns.
+
+        **Data Includes:**
+        - City name (aggregated across all ZIP codes for that city)
+        - Badge count per location
+        - Percentage of total badges
+
+        **Filtering:**
+        Use `deliveryMethod` parameter to filter locations by delivery method:
+        - `in-person` - Most relevant for geographic analysis
+        - `online` - Usually less meaningful for geographic distribution
+        - If not specified, includes all badges regardless of delivery method
+
+        **Note:** Data is aggregated by city name, not ZIP code. A city with multiple
+        ZIP codes (e.g., München with 80331, 80333, etc.) will have all badges combined.
+
+      operationId: getNetworkBadgeLocations
+      tags:
+        - Network Dashboard
+        - Badge Analysis
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: deliveryMethod
+          in: query
+          description: Filter badge locations by delivery method
+          required: false
+          schema:
+            type: string
+            enum:
+              - online
+              - in-person
+        - name: limit
+          in: query
+          description: Maximum number of locations to return (sorted by badgeCount descending)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Successful response with badge location distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkBadgeLocationsResponse'
+              examples:
+                inPersonLocations:
+                  summary: Badge locations for in-person delivery
+                  value:
+                    metadata:
+                      totalLocations: 15
+                      totalBadges: 499
+                      deliveryMethod: "in-person"
+                      lastUpdated: "2024-11-28T10:30:00Z"
+                    locations:
+                      - city: "München"
+                        badgeCount: 125
+                        badgePercentage: 25.1
+                      - city: "Berlin"
+                        badgeCount: 98
+                        badgePercentage: 19.6
+                      - city: "Hamburg"
+                        badgeCount: 76
+                        badgePercentage: 15.2
+                      - city: "Frankfurt"
+                        badgeCount: 64
+                        badgePercentage: 12.8
+                      - city: "Köln"
+                        badgeCount: 52
+                        badgePercentage: 10.4
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ==========================================
+  # NEW: Competency Areas Skills Tree Endpoint
+  # ==========================================
+  /v1/issuer/networks/{networkSlug}/dashboard/competency-areas/skills:
+    get:
+      summary: Get Skills Tree for Network
+      description: |
+        Returns a hierarchical skills tree from badge assertions within the network.
+        Uses ESCO framework for skill classification with tree structure breadcrumbs.
+
+        **Use Case:** Display skills visualization with hierarchical categories in the Dashboard
+
+        **Data Includes:**
+        - ESCO skill URI and concept information
+        - Hierarchical tree structure with breadcrumbs (broader categories)
+        - StudyLoad (competency hours) per skill
+        - Preferred labels in requested language
+
+        **Filtering:**
+        - `region` - Filter by Landkreis (district) based on learner PLZ
+        - `city` - Filter by Ort (city name) based on learner PLZ
+        - `gender` - Filter by learner gender (male, female, diverse, noAnswer)
+        - `deliveryMethod` - Filter by badge delivery method (online or in-person)
+        - All filters can be combined
+
+        **Tree Structure:**
+        Each skill includes:
+        - `concept_uri`: ESCO skill URI path
+        - `pref_label`: Preferred skill name in requested language
+        - `broader`: Array of parent categories (breadcrumbs) from root to skill
+        - `studyLoad`: Total competency minutes from badges
+
+      operationId: getNetworkCompetencyAreasSkills
+      tags:
+        - Network Dashboard
+        - Competencies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NetworkSlugParam'
+        - name: lang
+          in: query
+          description: Language for skill labels (de or en)
+          required: false
+          schema:
+            type: string
+            enum:
+              - de
+              - en
+            default: de
+        - name: region
+          in: query
+          description: |
+            Filter by Landkreis (district) name.
+            Skills will be calculated only from badges of learners residing in this region.
+            Region is determined by the learner's PLZ (postal code).
+          required: false
+          schema:
+            type: string
+            example: "München"
+        - name: city
+          in: query
+          description: |
+            Filter by Ort (city name) or 'other' for users outside the network's region.
+            - Regular city name (e.g., "München"): Skills from learners residing in this city
+            - "other": Skills from learners NOT in the network's Landkreis (andere Wohnorte)
+            City is matched against the learner's PLZ (postal code) using the PLZ-to-Ort CSV mapping.
+          required: false
+          schema:
+            type: string
+            example: "München"
+        - name: gender
+          in: query
+          description: |
+            Filter by learner gender.
+            Skills will be calculated only from badges of learners with this gender.
+          required: false
+          schema:
+            type: string
+            enum:
+              - male
+              - female
+              - diverse
+              - noAnswer
+        - name: deliveryMethod
+          in: query
+          description: |
+            Filter skills by badge delivery method.
+            Skills will be calculated only from badges with the specified delivery method.
+            - `online` - Only include skills from online badges
+            - `in-person` - Only include skills from in-person (Präsenz) badges
+            - If not specified, includes skills from all badges regardless of delivery method
+
+            **Use Case:** Show skills specific to Online or Präsenz delivery in Badge-Analyse detail view.
+          required: false
+          schema:
+            type: string
+            enum:
+              - online
+              - in-person
+      responses:
+        '200':
+          description: Successful response with skills tree
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkSkillsTreeResponse'
+              examples:
+                skillsTree:
+                  summary: Skills tree with ESCO hierarchy (unfiltered)
+                  value:
+                    metadata:
+                      totalSkills: 12
+                      totalStudyLoad: 4560
+                      filters:
+                        region: null
+                        city: null
+                        gender: null
+                        deliveryMethod: null
+                      lastUpdated: "2024-12-11T10:30:00Z"
+                    skills:
+                      - concept_uri: "/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+                        pref_label: "Digital Marketing"
+                        studyLoad: 1200
+                        broader:
+                          - uri: "/concept/marketing"
+                            pref_label: "Marketing und Werbung"
+                          - uri: "/concept/business"
+                            pref_label: "Wirtschaft und Verwaltung"
+                      - concept_uri: "/skill/d5b3c4e2-f8a1-4d9c-b7e2-a1b2c3d4e5f6"
+                        pref_label: "Web Development"
+                        studyLoad: 960
+                        broader:
+                          - uri: "/concept/programming"
+                            pref_label: "Programmierung"
+                          - uri: "/concept/it"
+                            pref_label: "Informationstechnologie"
+                      - concept_uri: "/skill/c3b2a1e4-d5f6-4e7c-8a9b-1c2d3e4f5a6b"
+                        pref_label: "Project Management"
+                        studyLoad: 840
+                        broader:
+                          - uri: "/concept/management"
+                            pref_label: "Management"
+                          - uri: "/concept/business"
+                            pref_label: "Wirtschaft und Verwaltung"
+                filteredSkillsTree:
+                  summary: Skills tree filtered by region
+                  value:
+                    metadata:
+                      totalSkills: 8
+                      totalStudyLoad: 2340
+                      filters:
+                        region: "München"
+                        city: null
+                        gender: null
+                        deliveryMethod: null
+                      lastUpdated: "2024-12-11T10:30:00Z"
+                filteredSkillsTreeByCity:
+                  summary: Skills tree filtered by city
+                  value:
+                    metadata:
+                      totalSkills: 5
+                      totalStudyLoad: 1840
+                      filters:
+                        region: null
+                        city: "München"
+                        gender: null
+                        deliveryMethod: null
+                      lastUpdated: "2024-12-11T10:30:00Z"
+                    skills:
+                      - concept_uri: "/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+                        pref_label: "Digital Marketing"
+                        studyLoad: 720
+                        broader:
+                          - uri: "/concept/marketing"
+                            pref_label: "Marketing und Werbung"
+                filteredSkillsTreeByOther:
+                  summary: Skills tree filtered by 'other' (users outside network region)
+                  value:
+                    metadata:
+                      totalSkills: 3
+                      totalStudyLoad: 980
+                      filters:
+                        region: null
+                        city: "other"
+                        gender: null
+                        deliveryMethod: null
+                      lastUpdated: "2024-12-11T10:30:00Z"
+                    skills:
+                      - concept_uri: "/skill/e7f8a9b0-c1d2-4e3f-a5b6-c7d8e9f0a1b2"
+                        pref_label: "Projektmanagement"
+                        studyLoad: 480
+                        broader:
+                          - uri: "/concept/management"
+                            pref_label: "Management und Führung"
+                filteredSkillsTreeByOnline:
+                  summary: Skills tree filtered by deliveryMethod=online
+                  description: |
+                    Response when `?deliveryMethod=online` is specified.
+                    Only includes skills from badges with online delivery.
+                  value:
+                    metadata:
+                      totalSkills: 6
+                      totalStudyLoad: 1840
+                      filters:
+                        region: null
+                        city: null
+                        gender: null
+                        deliveryMethod: "online"
+                      lastUpdated: "2024-12-11T10:30:00Z"
+                    skills:
+                      - concept_uri: "/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+                        pref_label: "Digital Marketing"
+                        studyLoad: 720
+                        broader:
+                          - uri: "/concept/marketing"
+                            pref_label: "Marketing und Werbung"
+                          - uri: "/concept/business"
+                            pref_label: "Wirtschaft und Verwaltung"
+                      - concept_uri: "/skill/d5b3c4e2-f8a1-4d9c-b7e2-a1b2c3d4e5f6"
+                        pref_label: "Web Development"
+                        studyLoad: 640
+                        broader:
+                          - uri: "/concept/programming"
+                            pref_label: "Programmierung"
+                          - uri: "/concept/it"
+                            pref_label: "Informationstechnologie"
+                filteredSkillsTreeByInPerson:
+                  summary: Skills tree filtered by deliveryMethod=in-person
+                  description: |
+                    Response when `?deliveryMethod=in-person` is specified.
+                    Only includes skills from badges with in-person (Präsenz) delivery.
+                  value:
+                    metadata:
+                      totalSkills: 9
+                      totalStudyLoad: 2720
+                      filters:
+                        region: null
+                        city: null
+                        gender: null
+                        deliveryMethod: "in-person"
+                      lastUpdated: "2024-12-11T10:30:00Z"
+                    skills:
+                      - concept_uri: "/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+                        pref_label: "Digital Marketing"
+                        studyLoad: 480
+                        broader:
+                          - uri: "/concept/marketing"
+                            pref_label: "Marketing und Werbung"
+                          - uri: "/concept/business"
+                            pref_label: "Wirtschaft und Verwaltung"
+                      - concept_uri: "/skill/c3b2a1e4-d5f6-4e7c-8a9b-1c2d3e4f5a6b"
+                        pref_label: "Project Management"
+                        studyLoad: 840
+                        broader:
+                          - uri: "/concept/management"
+                            pref_label: "Management"
+                          - uri: "/concept/business"
+                            pref_label: "Wirtschaft und Verwaltung"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT authentication token obtained from the login endpoint.
+
+        **Header Format:**
+        ```
+        Authorization: Bearer <your-jwt-token>
+        ```
+
+  parameters:
+    NetworkSlugParam:
+      name: networkSlug
+      in: path
+      description: |
+        Unique identifier (slug) for the network.
+      required: true
+      schema:
+        type: string
+        example: "bavarian-education-network"
+
+  schemas:
+    NetworkKPIsResponse:
+      type: object
+      required:
+        - kpis
+      properties:
+        kpis:
+          type: array
+          description: Array of KPI data items
+          items:
+            $ref: '#/components/schemas/NetworkKPIData'
+
+    NetworkKPIData:
+      type: object
+      description: |
+        Minimal KPI data from backend. Frontend maps id to display text via translations.
+      required:
+        - id
+        - value
+      properties:
+        id:
+          type: string
+          description: |
+            Unique KPI identifier used for frontend translation mapping.
+
+            Frontend uses this ID to look up:
+            - Description text: `Network.Dashboard.kpi.{id}`
+            - Unit text: `Network.Dashboard.unit.{unitType}`
+          enum:
+            - institutions_count
+            - badges_created
+            - badges_awarded
+            - participation_badges
+            - competency_badges
+            - competency_hours
+            - learners_count
+            - badges_per_month
+            - learners_with_paths
+          example: "institutions_count"
+        value:
+          type: number
+          description: The numeric value of the KPI
+          example: 362
+        trend:
+          type: string
+          enum: [up, down, stable]
+          description: Trend direction indicator
+          example: "up"
+        trendValue:
+          type: number
+          description: |
+            Numeric value of the trend change.
+            - For percentage trends: value like 12 means +12%
+            - For absolute trends: value like 54 means +54 units
+          example: 12
+        trendPeriod:
+          type: string
+          description: Period for trend calculation
+          enum: [lastMonth, lastWeek, lastYear]
+          example: "lastMonth"
+        hasMonthlyDetails:
+          type: boolean
+          description: Whether monthly details are available for drill-down
+          default: false
+
+    NetworkCompetencyAreasResponse:
+      type: object
+      required:
+        - data
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalAreas:
+              type: integer
+              description: Total number of competency areas returned
+              example: 6
+            lastUpdated:
+              type: string
+              format: date
+              description: Date when data was last updated
+              example: "2024-11-06"
+        data:
+          type: array
+          description: Array of competency area data for bubble chart
+          items:
+            $ref: '#/components/schemas/NetworkCompetencyAreaData'
+
+    NetworkCompetencyAreaData:
+      type: object
+      description: |
+        Competency area data. Frontend assigns colors and icons based on area ID.
+      required:
+        - id
+        - name
+        - value
+        - weight
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the competency area
+          example: "it_digital"
+        name:
+          type: string
+          description: Display name of the competency area
+          example: "IT & Digital"
+        value:
+          type: number
+          format: float
+          description: Percentage value for bubble size visualization
+          example: 28.5
+        weight:
+          type: integer
+          description: Absolute count for bubble weight calculation
+          example: 285
+
+    NetworkTopBadgesResponse:
+      type: object
+      required:
+        - badges
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalBadges:
+              type: integer
+              description: Total number of badges in the network
+              example: 3467
+            lastUpdated:
+              type: string
+              format: date
+              description: Date when data was last updated
+              example: "2024-11-06"
+        badges:
+          type: array
+          description: Array of top badge data
+          items:
+            $ref: '#/components/schemas/NetworkTopBadgeData'
+
+    NetworkTopBadgeData:
+      type: object
+      description: |
+        Top badge data. Frontend assigns icons and colors based on rank position.
+      required:
+        - rank
+        - badgeId
+        - badgeTitle
+        - image
+        - count
+      properties:
+        rank:
+          type: integer
+          description: Ranking position (1, 2, 3, etc.)
+          minimum: 1
+          example: 1
+        badgeId:
+          type: string
+          description: Unique identifier for the badge
+          example: "digital_marketing_expert"
+        badgeTitle:
+          type: string
+          description: Human-readable badge title
+          example: "Digital Marketing Expert"
+        image:
+          type: string
+          format: uri
+          description: URL to the badge image
+          example: "https://api.badgr.io/media/badges/digital_marketing_expert.png"
+        count:
+          type: integer
+          description: Number of times this badge was awarded
+          minimum: 0
+          example: 87
+
+    NetworkRecentActivityResponse:
+      type: object
+      required:
+        - activities
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalActivities:
+              type: integer
+              description: Total number of activities returned
+              example: 4
+            lastUpdated:
+              type: string
+              format: date
+              description: Date when data was last updated
+              example: "2024-11-06"
+        activities:
+          type: array
+          description: Array of recent badge award activities
+          items:
+            $ref: '#/components/schemas/NetworkRecentActivityData'
+
+    NetworkRecentActivityData:
+      type: object
+      description: |
+        Recent badge award activity data.
+        Contains badge and issuer information for linking to detail pages.
+      required:
+        - date
+        - badgeId
+        - badgeTitle
+        - badgeImage
+        - issuerId
+        - issuerName
+        - recipientCount
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date when the badge was awarded
+          example: "2024-11-06"
+        badgeId:
+          type: string
+          description: |
+            Unique identifier (slug) for the badge.
+            Use for linking to badge detail page: `/public/badges/{badgeId}`
+          example: "digital_marketing_expert"
+        badgeTitle:
+          type: string
+          description: Human-readable badge title
+          example: "Digital Marketing Expert"
+        badgeImage:
+          type: string
+          format: uri
+          description: URL to the badge image
+          example: "https://api.badgr.io/media/badges/digital_marketing_expert.png"
+        issuerId:
+          type: string
+          description: |
+            Unique identifier (slug) for the issuer/institution.
+            Use for linking to issuer page: `/issuer/issuers/{issuerId}`
+          example: "vhs-muenchen"
+        issuerName:
+          type: string
+          description: Display name of the institution/issuer who awarded the badge
+          example: "Volkshochschule München"
+        recipientCount:
+          type: integer
+          description: Number of recipients who received this badge in this award event
+          minimum: 1
+          example: 12
+
+    # ==========================================
+    # NEW: Strengthened Competencies Schemas
+    # ==========================================
+    NetworkStrengthenedCompetenciesResponse:
+      type: object
+      required:
+        - competencies
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalCompetencies:
+              type: integer
+              description: Total number of unique competencies in the network
+              example: 42
+            totalHours:
+              type: integer
+              description: Total competency hours across all competencies
+              example: 15840
+            lastUpdated:
+              type: string
+              format: date
+              description: Date when data was last updated
+              example: "2024-11-28"
+        competencies:
+          type: array
+          description: Array of strengthened competencies
+          items:
+            $ref: '#/components/schemas/NetworkStrengthenedCompetencyData'
+
+    NetworkStrengthenedCompetencyData:
+      type: object
+      description: |
+        Individual competency data with hours invested.
+      required:
+        - competencyId
+        - title
+        - hours
+      properties:
+        competencyId:
+          type: string
+          description: Unique identifier for the competency
+          example: "comp_digital_marketing"
+        title:
+          type: string
+          description: Display title (fallback if titleKey not translated)
+          example: "Digital Marketing"
+        titleKey:
+          type: string
+          description: i18n translation key for the competency title
+          example: "competency.digitalMarketing"
+        hours:
+          type: integer
+          description: Total competency hours invested
+          minimum: 0
+          example: 2450
+        escoUri:
+          type: string
+          format: uri
+          description: ESCO framework URI for standardized competency reference
+          example: "http://data.europa.eu/esco/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+
+    # ==========================================
+    # NEW: Competency Detail Schemas
+    # ==========================================
+    NetworkCompetencyDetailResponse:
+      type: object
+      description: |
+        Detailed competency information including statistics and institutions list.
+        Used for the competency detail view when clicking on a specific competency.
+      required:
+        - competencyId
+        - title
+        - hours
+        - badgeCount
+        - userCount
+        - institutionCount
+        - institutions
+      properties:
+        competencyId:
+          type: string
+          description: Unique identifier for the competency
+          example: "comp_dialoge_schreiben"
+        title:
+          type: string
+          description: Display title (fallback if titleKey not translated)
+          example: "Dialoge schreiben"
+        titleKey:
+          type: string
+          description: i18n translation key for the competency title
+          example: "competency.dialogeSchreiben"
+        hours:
+          type: integer
+          description: Total competency hours invested across all institutions
+          minimum: 0
+          example: 12
+        escoUri:
+          type: string
+          format: uri
+          description: ESCO framework URI for standardized competency reference
+          example: "http://data.europa.eu/esco/skill/d1a2b3c4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+        badgeCount:
+          type: integer
+          description: Total number of badges that cover this competency
+          minimum: 0
+          example: 3
+        userCount:
+          type: integer
+          description: Total number of learners who have strengthened this competency
+          minimum: 0
+          example: 6
+        institutionCount:
+          type: integer
+          description: Number of institutions offering badges with this competency
+          minimum: 0
+          example: 2
+        institutions:
+          type: array
+          description: List of institutions offering badges with this competency
+          items:
+            $ref: '#/components/schemas/CompetencyInstitution'
+
+    CompetencyInstitution:
+      type: object
+      description: |
+        Institution data for a specific competency, showing how many badges
+        and learners are associated with this competency at this institution.
+      required:
+        - institutionId
+        - name
+        - badgeCount
+        - userCount
+      properties:
+        institutionId:
+          type: string
+          description: Unique identifier for the institution
+          example: "inst_001"
+        name:
+          type: string
+          description: Display name of the institution
+          example: "Volkshochschule Berlin"
+        slug:
+          type: string
+          description: URL-friendly identifier for the institution
+          example: "vhs-berlin"
+        badgeCount:
+          type: integer
+          description: Number of badges at this institution covering the competency
+          minimum: 0
+          example: 2
+        userCount:
+          type: integer
+          description: Number of learners at this institution who strengthened this competency
+          minimum: 0
+          example: 4
+        competencyHours:
+          type: integer
+          description: Total competency hours invested at this institution
+          minimum: 0
+          example: 8
+        lastActivity:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent badge award for this competency at this institution
+          example: "2024-11-15T10:30:00Z"
+        logoUrl:
+          type: string
+          format: uri
+          description: URL to the institution's logo image
+          example: "https://api.badgr.io/institutions/vhs-berlin/logo.png"
+
+    # ==========================================
+    # NEW: Competency Area Detail Schemas
+    # ==========================================
+    CompetencyAreaDetailRequest:
+      type: object
+      description: |
+        Request body for fetching aggregated competency area statistics.
+        Since the database only stores individual competencies, the frontend sends
+        the ESCO URIs of all competencies belonging to the clicked competency area.
+      required:
+        - areaName
+        - competencyUris
+      properties:
+        areaName:
+          type: string
+          description: Display name of the competency area (Kompetenzbereich)
+          example: "Kommunikation, Zusammenarbeit und Kreativität"
+        areaConceptUri:
+          type: string
+          description: ESCO concept URI of the competency area (if available)
+          example: "/esco/skill/03e0b95b-67d1-457a-b3f7-06c407cf6bec"
+        competencyUris:
+          type: array
+          description: |
+            List of ESCO URIs for all individual competencies belonging to this area.
+            The backend will look up these URIs and aggregate their statistics.
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          example:
+            - "http://data.europa.eu/esco/skill/dialoge-schreiben"
+            - "http://data.europa.eu/esco/skill/schwimmunterricht-erteilen"
+            - "http://data.europa.eu/esco/skill/storylines-schreiben"
+        topCompetenciesLimit:
+          type: integer
+          description: Maximum number of top competencies to return (ordered by hours)
+          minimum: 1
+          maximum: 50
+          default: 10
+        institutionLimit:
+          type: integer
+          description: Maximum number of institutions to return (ordered by badge count)
+          minimum: 1
+          maximum: 50
+          default: 10
+
+    CompetencyAreaDetailResponse:
+      type: object
+      description: |
+        Aggregated statistics for a competency area based on the provided ESCO URIs.
+        Contains totals across all matched competencies plus detailed breakdowns.
+      required:
+        - areaName
+        - totalHours
+        - totalCompetencies
+        - matchedCompetencies
+        - badgeCount
+        - userCount
+        - institutionCount
+        - topCompetencies
+        - institutions
+      properties:
+        areaName:
+          type: string
+          description: Display name of the competency area
+          example: "Kommunikation, Zusammenarbeit und Kreativität"
+        areaConceptUri:
+          type: string
+          description: ESCO concept URI of the competency area (echoed from request)
+          example: "/esco/skill/03e0b95b-67d1-457a-b3f7-06c407cf6bec"
+        totalHours:
+          type: integer
+          description: Total competency hours invested across all competencies in this area
+          minimum: 0
+          example: 1920
+        totalCompetencies:
+          type: integer
+          description: Total number of competency URIs provided in the request
+          minimum: 0
+          example: 8
+        matchedCompetencies:
+          type: integer
+          description: Number of competencies that were found in the database
+          minimum: 0
+          example: 6
+        badgeCount:
+          type: integer
+          description: Total distinct badges covering any competency in this area
+          minimum: 0
+          example: 15
+        userCount:
+          type: integer
+          description: Total distinct learners who strengthened any competency in this area
+          minimum: 0
+          example: 42
+        institutionCount:
+          type: integer
+          description: Total distinct institutions offering badges in this area
+          minimum: 0
+          example: 5
+        topCompetencies:
+          type: array
+          description: |
+            Top individual competencies within this area, ordered by hours descending.
+            Limited by topCompetenciesLimit parameter.
+          items:
+            $ref: '#/components/schemas/CompetencyAreaCompetency'
+        institutions:
+          type: array
+          description: |
+            Institutions offering badges in this competency area, ordered by badge count descending.
+            Limited by institutionLimit parameter.
+          items:
+            $ref: '#/components/schemas/CompetencyInstitution'
+
+    CompetencyAreaCompetency:
+      type: object
+      description: Individual competency data within a competency area
+      required:
+        - competencyId
+        - title
+        - hours
+        - badgeCount
+        - userCount
+      properties:
+        competencyId:
+          type: string
+          description: Unique identifier for the competency
+          example: "comp_dialoge_schreiben"
+        title:
+          type: string
+          description: Display title of the competency
+          example: "Dialoge schreiben"
+        titleKey:
+          type: string
+          description: i18n translation key for the competency title
+          example: "competency.dialogeSchreiben"
+        escoUri:
+          type: string
+          format: uri
+          description: ESCO framework URI for the competency
+          example: "http://data.europa.eu/esco/skill/dialoge-schreiben"
+        hours:
+          type: integer
+          description: Total competency hours invested in this competency
+          minimum: 0
+          example: 720
+        badgeCount:
+          type: integer
+          description: Number of badges covering this competency
+          minimum: 0
+          example: 5
+        userCount:
+          type: integer
+          description: Number of learners who strengthened this competency
+          minimum: 0
+          example: 18
+
+    # ==========================================
+    # NEW: Badge Awards Timeline Schemas
+    # ==========================================
+    NetworkBadgeAwardsTimelineResponse:
+      type: object
+      required:
+        - timeline
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalAwards:
+              type: integer
+              description: Total badge awards in the period
+              example: 1247
+            year:
+              type: integer
+              nullable: true
+              description: Year filter applied (null if not filtered)
+              example: 2024
+            groupBy:
+              type: string
+              description: Time grouping used
+              enum:
+                - day
+                - week
+                - month
+              example: "month"
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-11-28T10:30:00Z"
+        timeline:
+          type: array
+          description: Array of time-grouped badge award entries
+          items:
+            $ref: '#/components/schemas/NetworkBadgeAwardTimelineEntry'
+
+    NetworkBadgeAwardTimelineEntry:
+      type: object
+      description: |
+        Badge awards for a specific time period with type breakdown.
+      required:
+        - date
+        - count
+      properties:
+        date:
+          type: string
+          format: date
+          description: Start date of the period (ISO 8601)
+          example: "2024-01-01"
+        count:
+          type: integer
+          description: Total badge count for this period
+          minimum: 0
+          example: 87
+        byType:
+          type: object
+          description: Breakdown by badge type
+          properties:
+            participation:
+              type: integer
+              description: Participation badges (Teilnahmezertifikate)
+              minimum: 0
+              example: 35
+            competency:
+              type: integer
+              description: Competency badges (Kompetenzbadges)
+              minimum: 0
+              example: 42
+            learningpath:
+              type: integer
+              description: Learning path badges (Micro Degrees)
+              minimum: 0
+              example: 10
+
+    # ==========================================
+    # NEW: Badge Type Distribution Schemas
+    # ==========================================
+    NetworkBadgeTypeDistributionResponse:
+      type: object
+      required:
+        - distribution
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalBadges:
+              type: integer
+              description: Total number of badges
+              example: 1247
+            year:
+              type: integer
+              nullable: true
+              description: Year filter applied (null if not filtered)
+              example: null
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-11-28T10:30:00Z"
+        distribution:
+          type: array
+          description: Badge distribution by type
+          items:
+            $ref: '#/components/schemas/NetworkBadgeTypeDistributionEntry'
+
+    NetworkBadgeTypeDistributionEntry:
+      type: object
+      description: |
+        Distribution entry for a badge type with count and percentage.
+      required:
+        - type
+        - count
+        - percentage
+      properties:
+        type:
+          type: string
+          description: Badge type identifier
+          enum:
+            - participation
+            - competency
+            - learningpath
+          example: "participation"
+        typeKey:
+          type: string
+          description: i18n translation key for badge type label
+          example: "Badge.categories.participation"
+        count:
+          type: integer
+          description: Number of badges of this type
+          minimum: 0
+          example: 523
+        percentage:
+          type: number
+          format: float
+          description: Percentage of total badges (0-100)
+          minimum: 0
+          maximum: 100
+          example: 41.9
+
+    # ==========================================
+    # NEW: Delivery Method Distribution Schemas
+    # ==========================================
+    NetworkDeliveryMethodDistributionResponse:
+      type: object
+      required:
+        - total
+        - online
+        - inPerson
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalBadges:
+              type: integer
+              description: Total number of badges
+              example: 1247
+            year:
+              type: integer
+              nullable: true
+              description: Year filter applied (null if not filtered)
+              example: null
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-11-28T10:30:00Z"
+        total:
+          type: integer
+          description: Total number of badges across all delivery methods
+          minimum: 0
+          example: 1247
+        online:
+          $ref: '#/components/schemas/DeliveryMethodValue'
+        inPerson:
+          $ref: '#/components/schemas/DeliveryMethodValue'
+
+    DeliveryMethodValue:
+      type: object
+      description: |
+        Value and percentage for a specific delivery method.
+      required:
+        - value
+        - percentage
+      properties:
+        value:
+          type: integer
+          description: Number of badges with this delivery method
+          minimum: 0
+          example: 748
+        percentage:
+          type: number
+          format: float
+          description: Percentage of total badges (0-100)
+          minimum: 0
+          maximum: 100
+          example: 60.0
+
+    # ==========================================
+    # NEW: Badge Density Schemas
+    # ==========================================
+    NetworkBadgeDensityResponse:
+      type: object
+      required:
+        - value
+      properties:
+        metadata:
+          type: object
+          properties:
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-11-28T10:30:00Z"
+            populationBase:
+              type: integer
+              description: Population count used for density calculation
+              example: 520000
+            totalBadges:
+              type: integer
+              description: Total badges used for density calculation
+              example: 1248
+        value:
+          type: number
+          format: float
+          description: Badge density value (badges per 1000 inhabitants)
+          minimum: 0
+          example: 2.4
+        trend:
+          type: string
+          enum: [up, down, stable]
+          description: Trend direction compared to previous period
+          example: "up"
+        trendValue:
+          type: number
+          description: |
+            Numeric value of the trend change (percentage).
+            Positive values indicate increase, negative indicate decrease.
+          example: 8
+        trendPeriod:
+          type: string
+          description: Period for trend comparison
+          enum: [lastMonth, lastQuarter, lastYear]
+          example: "lastYear"
+
+    # ==========================================
+    # NEW: Recent Badge Awards Schemas
+    # ==========================================
+    NetworkRecentBadgeAwardsResponse:
+      type: object
+      required:
+        - awards
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalAwards:
+              type: integer
+              description: Total number of badge awards in the period
+              example: 127
+            periodStart:
+              type: string
+              format: date
+              description: Start date of the period (ISO 8601)
+              example: "2024-10-28"
+            periodEnd:
+              type: string
+              format: date
+              description: End date of the period (ISO 8601)
+              example: "2024-11-28"
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-11-28T10:30:00Z"
+        awards:
+          type: array
+          description: Array of recent badge awards
+          items:
+            $ref: '#/components/schemas/NetworkRecentBadgeAwardEntry'
+
+    NetworkRecentBadgeAwardEntry:
+      type: object
+      description: |
+        A badge award entry with competency details.
+      required:
+        - date
+        - badgeId
+        - badgeName
+        - count
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date when the badge was awarded (ISO 8601)
+          example: "2024-11-25"
+        badgeId:
+          type: string
+          description: Unique identifier (slug) for the badge
+          example: "digital_marketing_expert"
+        badgeName:
+          type: string
+          description: Human-readable badge title
+          example: "Digital Marketing Expert"
+        badgeImage:
+          type: string
+          format: uri
+          description: URL to the badge image
+          example: "https://api.badgr.io/media/badges/digital_marketing_expert.png"
+        badgeType:
+          type: string
+          description: Type of badge
+          enum:
+            - participation
+            - competency
+            - learningpath
+          example: "competency"
+        count:
+          type: integer
+          description: Number of times this badge was awarded on this date
+          minimum: 1
+          example: 12
+        competencies:
+          type: array
+          description: List of competencies covered by this badge with ESCO URIs
+          items:
+            $ref: '#/components/schemas/BadgeCompetencyWithEsco'
+
+    BadgeCompetencyWithEsco:
+      type: object
+      description: |
+        A competency associated with a badge, including ESCO framework reference.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Human-readable name of the competency
+          example: "Digital Marketing"
+        escoUri:
+          type: string
+          format: uri
+          description: |
+            ESCO (European Skills, Competences, Qualifications and Occupations)
+            framework URI for standardized competency reference.
+          example: "http://data.europa.eu/esco/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+
+    # ==========================================
+    # LERNENDE (LEARNERS) SCHEMAS
+    # ==========================================
+
+    # Learners Overview Response
+    NetworkLearnersOverviewResponse:
+      type: object
+      required:
+        - kpis
+        - residenceDistribution
+        - genderDistribution
+      properties:
+        metadata:
+          type: object
+          properties:
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-12-10T10:30:00Z"
+        kpis:
+          type: object
+          required:
+            - totalLearners
+            - totalCompetencyHours
+          properties:
+            totalLearners:
+              type: integer
+              description: Total number of learners in the network
+              minimum: 0
+              example: 3542
+            totalCompetencyHours:
+              type: integer
+              description: Total competency hours across all learners
+              minimum: 0
+              example: 12846
+        residenceDistribution:
+          type: array
+          description: Learner distribution by residence (Wohnort)
+          items:
+            $ref: '#/components/schemas/LearnerResidenceStatistic'
+        genderDistribution:
+          type: array
+          description: Learner distribution by gender
+          items:
+            $ref: '#/components/schemas/LearnerGenderStatistic'
+
+    # Learners Residence Response
+    NetworkLearnersResidenceResponse:
+      type: object
+      required:
+        - statistics
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalLearners:
+              type: integer
+              description: Total number of learners across all cities
+              example: 3542
+            totalCities:
+              type: integer
+              description: Total number of distinct cities (before grouping into other)
+              example: 47
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-12-10T10:30:00Z"
+        statistics:
+          type: array
+          description: Learner distribution by residence
+          items:
+            $ref: '#/components/schemas/LearnerResidenceStatistic'
+
+    # Learner Residence Statistic Entry
+    LearnerResidenceStatistic:
+      type: object
+      required:
+        - city
+        - learnerCount
+        - percentage
+      properties:
+        city:
+          type: string
+          description: |
+            City name or "other" for the aggregated category.
+            Use city="other" to identify the aggregation category.
+            Note: Data is aggregated by city, so a city with multiple ZIP codes
+            will have all learners combined in a single entry.
+          example: "München"
+        learnerCount:
+          type: integer
+          description: Number of learners from this city (aggregated across all ZIP codes)
+          minimum: 0
+          example: 2507
+        percentage:
+          type: number
+          format: float
+          description: Percentage of total learners (0-100)
+          minimum: 0
+          maximum: 100
+          example: 70.8
+
+    # Learners Residence Detail Response
+    NetworkLearnersResidenceDetailResponse:
+      type: object
+      required:
+        - metadata
+        - topCompetencyAreas
+        - topStrengthenedCompetencies
+      properties:
+        metadata:
+          type: object
+          required:
+            - city
+            - totalLearners
+          properties:
+            city:
+              type: string
+              description: City name or "other" for aggregated category
+              example: "München"
+            zipCodes:
+              type: array
+              items:
+                type: string
+              description: |
+                List of ZIP codes associated with this city.
+                A city can have multiple ZIP codes (e.g., München has 80331, 80333, etc.).
+                For the "other" category, this may be empty or contain miscellaneous ZIP codes.
+              example: ["80331", "80333", "80335"]
+            totalLearners:
+              type: integer
+              description: Total learners from this city (aggregated across all ZIP codes)
+              minimum: 0
+              example: 2507
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-12-10T10:30:00Z"
+        topCompetencyAreas:
+          type: array
+          description: |
+            Top competency areas for learners from this region.
+            Used for bubble chart visualization.
+          items:
+            $ref: '#/components/schemas/NetworkCompetencyAreaData'
+        topStrengthenedCompetencies:
+          type: array
+          description: |
+            Most strengthened individual competencies for learners from this region.
+            Ordered by count descending.
+          items:
+            $ref: '#/components/schemas/ResidenceStrengthenedCompetency'
+
+    # Residence Strengthened Competency Entry
+    ResidenceStrengthenedCompetency:
+      type: object
+      required:
+        - competencyId
+        - title
+        - count
+        - hours
+      properties:
+        competencyId:
+          type: string
+          description: Unique identifier for the competency
+          example: "comp_programming"
+        competencyKey:
+          type: string
+          description: i18n translation key for the competency
+          example: "competency.programming"
+        title:
+          type: string
+          description: Human-readable competency title
+          example: "Programmierung"
+        areaKey:
+          type: string
+          description: The competency area this competency belongs to
+          example: "IT & Digital"
+        count:
+          type: integer
+          description: Number of learners who strengthened this competency
+          minimum: 0
+          example: 89
+        hours:
+          type: integer
+          description: Total hours invested in this competency
+          minimum: 0
+          example: 890
+        badges:
+          type: integer
+          description: Number of badges awarded for this competency
+          minimum: 0
+          example: 34
+        trend:
+          type: string
+          enum: [up, down, stable]
+          description: Trend direction compared to previous period
+          example: "up"
+        trendValue:
+          type: integer
+          description: Numeric value of the trend change (percentage)
+          example: 12
+        escoUri:
+          type: string
+          format: uri
+          description: ESCO framework URI for standardized competency reference
+          example: "http://data.europa.eu/esco/skill/d45c7b4e-5c1d-4b67-a2e6-9c2b5f3d8e7f"
+
+    # Learners Gender Response
+    NetworkLearnersGenderResponse:
+      type: object
+      required:
+        - distribution
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalLearners:
+              type: integer
+              description: Total number of learners
+              example: 3542
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-12-10T10:30:00Z"
+        distribution:
+          type: array
+          description: Learner distribution by gender
+          items:
+            $ref: '#/components/schemas/LearnerGenderStatistic'
+
+    # Learner Gender Statistic Entry
+    LearnerGenderStatistic:
+      type: object
+      required:
+        - gender
+        - count
+        - percentage
+      properties:
+        gender:
+          type: string
+          description: Gender category identifier. Use i18n in the UI for labels.
+          enum:
+            - male
+            - female
+            - diverse
+            - noAnswer
+          example: "male"
+        count:
+          type: integer
+          description: Number of learners of this gender
+          minimum: 0
+          example: 1847
+        percentage:
+          type: number
+          format: float
+          description: Percentage of total learners (0-100)
+          minimum: 0
+          maximum: 100
+          example: 52.2
+
+    # Learners Gender Detail Response
+    NetworkLearnersGenderDetailResponse:
+      type: object
+      required:
+        - metadata
+        - topCompetencyAreas
+        - topStrengthenedCompetencies
+        - topBadges
+      properties:
+        metadata:
+          type: object
+          required:
+            - gender
+            - totalLearners
+            - totalBadges
+          properties:
+            gender:
+              type: string
+              description: Gender category identifier. Use i18n in the UI for labels.
+              enum:
+                - male
+                - female
+                - diverse
+                - noAnswer
+              example: "male"
+            totalLearners:
+              type: integer
+              description: Total learners of this gender
+              minimum: 0
+              example: 1847
+            totalBadges:
+              type: integer
+              description: Total badges awarded to this gender
+              minimum: 0
+              example: 527
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-12-10T10:30:00Z"
+        topCompetencyAreas:
+          type: array
+          description: |
+            Top competency areas for this gender.
+            Used for bubble chart visualization.
+          items:
+            $ref: '#/components/schemas/NetworkCompetencyAreaData'
+        topStrengthenedCompetencies:
+          type: array
+          description: |
+            Most strengthened individual competencies for this gender.
+            Ordered by count descending.
+          items:
+            $ref: '#/components/schemas/GenderIndividualCompetency'
+        topBadges:
+          type: array
+          description: |
+            Top badges awarded to learners of this gender.
+            Ordered by count descending.
+          items:
+            $ref: '#/components/schemas/GenderTopBadge'
+
+    # Gender Individual Competency Entry
+    GenderIndividualCompetency:
+      type: object
+      required:
+        - competencyId
+        - name
+        - count
+        - hours
+      properties:
+        competencyId:
+          type: string
+          description: Unique identifier for the competency
+          example: "comp_web_development"
+        name:
+          type: string
+          description: Human-readable competency name
+          example: "Web Development"
+        count:
+          type: integer
+          description: Number of learners who strengthened this competency
+          minimum: 0
+          example: 52
+        hours:
+          type: integer
+          description: Total hours invested in this competency
+          minimum: 0
+          example: 208
+        escoUri:
+          type: string
+          format: uri
+          description: ESCO framework URI for standardized competency reference
+          example: "http://data.europa.eu/esco/skill/2468ace0-1357-bdf9-8642-0eca8642dbf0"
+
+    # Gender Top Badge Entry
+    GenderTopBadge:
+      type: object
+      required:
+        - badgeId
+        - name
+        - count
+      properties:
+        badgeId:
+          type: string
+          description: Unique identifier for the badge
+          example: "full_stack_developer"
+        name:
+          type: string
+          description: Human-readable badge name
+          example: "Full Stack Developer"
+        count:
+          type: integer
+          description: Number of times this badge was awarded
+          minimum: 0
+          example: 45
+        hours:
+          type: integer
+          description: Total hours for this badge
+          minimum: 0
+          example: 180
+        image:
+          type: string
+          format: uri
+          description: URL to the badge image
+          example: "https://api.badgr.io/media/badges/full_stack_developer.png"
+
+    # ==========================================
+    # Badge Locations Schemas (Geographic Distribution)
+    # ==========================================
+    NetworkBadgeLocationsResponse:
+      type: object
+      required:
+        - locations
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalLocations:
+              type: integer
+              description: Total number of distinct locations
+              example: 15
+            totalBadges:
+              type: integer
+              description: Total number of badges across all locations
+              example: 499
+            deliveryMethod:
+              type: string
+              description: The delivery method filter applied (if any)
+              enum:
+                - online
+                - in-person
+              example: "in-person"
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-11-28T10:30:00Z"
+        locations:
+          type: array
+          description: Badge distribution by geographic location
+          items:
+            $ref: '#/components/schemas/BadgeLocation'
+
+    BadgeLocation:
+      type: object
+      description: |
+        Badge distribution for a geographic location (city).
+        Data is aggregated by city name, so a city with multiple ZIP codes
+        will have all badges combined in a single entry.
+      required:
+        - city
+        - badgeCount
+        - badgePercentage
+      properties:
+        city:
+          type: string
+          description: |
+            City name. Data is aggregated by city, so a city with multiple ZIP codes
+            (e.g., München with 80331, 80333, etc.) will have all badges combined.
+          example: "München"
+        badgeCount:
+          type: integer
+          description: Number of badges in this location (aggregated across all ZIP codes)
+          minimum: 0
+          example: 125
+        badgePercentage:
+          type: number
+          format: float
+          description: Percentage of total badges in the result set
+          minimum: 0
+          maximum: 100
+          example: 25.1
+
+    # ==========================================
+    # Skills Tree Schemas
+    # ==========================================
+    NetworkSkillsTreeResponse:
+      type: object
+      required:
+        - skills
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalSkills:
+              type: integer
+              description: Total number of unique skills in the result
+              example: 12
+            totalStudyLoad:
+              type: integer
+              description: Total study load (minutes) across all skills
+              example: 4560
+            filters:
+              type: object
+              description: Applied filters
+              properties:
+                region:
+                  type: string
+                  nullable: true
+                  description: Region (Landkreis) filter applied (null if not filtered)
+                  example: null
+                city:
+                  type: string
+                  nullable: true
+                  description: City (Ort) filter applied (null if not filtered)
+                  example: null
+                gender:
+                  type: string
+                  nullable: true
+                  description: Gender filter applied (null if not filtered)
+                  example: null
+                deliveryMethod:
+                  type: string
+                  nullable: true
+                  description: Delivery method filter applied (null if not filtered)
+                  enum:
+                    - online
+                    - in-person
+                  example: null
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when data was last updated
+              example: "2024-12-11T10:30:00Z"
+        skills:
+          type: array
+          description: Array of skills with ESCO hierarchy
+          items:
+            $ref: '#/components/schemas/SkillTreeEntry'
+
+    SkillTreeEntry:
+      type: object
+      description: |
+        A skill entry with ESCO framework information and hierarchy.
+        The broader array contains parent categories forming the skill's breadcrumb trail.
+      required:
+        - concept_uri
+        - pref_label
+        - studyLoad
+      properties:
+        concept_uri:
+          type: string
+          description: ESCO skill URI path (relative to ESCO base URL)
+          example: "/skill/a4a0d0e9-b18c-4e16-9f0c-c0e3c3d8e8b1"
+        pref_label:
+          type: string
+          description: Preferred skill label in the requested language
+          example: "Digital Marketing"
+        studyLoad:
+          type: integer
+          description: Total study load in minutes for this skill across all badges
+          minimum: 0
+          example: 1200
+        broader:
+          type: array
+          description: |
+            Hierarchical parent categories (breadcrumbs) from root to this skill.
+            Ordered from most specific parent to root category.
+          items:
+            $ref: '#/components/schemas/SkillBroaderCategory'
+
+    SkillBroaderCategory:
+      type: object
+      description: A broader category in the skill hierarchy
+      required:
+        - uri
+        - pref_label
+      properties:
+        uri:
+          type: string
+          description: ESCO concept URI path
+          example: "/concept/marketing"
+        pref_label:
+          type: string
+          description: Preferred label for this category in the requested language
+          example: "Marketing und Werbung"
+
+    # ==========================================
+    # Error Response Schema
+    # ==========================================
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: "BAD_REQUEST"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid date format. Use ISO 8601 (YYYY-MM-DD)"
+
+  responses:
+    UnauthorizedError:
+      description: Authentication failed or token expired
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Unauthorized"
+              message:
+                type: string
+                example: "Invalid or expired authentication token"
+
+    ForbiddenError:
+      description: Not authorized to access this network
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Forbidden"
+              message:
+                type: string
+                example: "You do not have permission to access this network"
+
+    NotFoundError:
+      description: Network not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Not Found"
+              message:
+                type: string
+                example: "Network with slug 'unknown-network' not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Internal Server Error"
+              message:
+                type: string
+                example: "An unexpected error occurred while processing your request"
+              requestId:
+                type: string
+                description: Unique request identifier for debugging
+                example: "req_abc123xyz"

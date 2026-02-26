@@ -148,6 +148,7 @@ dependencies = [
     { name = "django-prometheus" },
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
+    { name = "gender-guesser" },
     { name = "geopy" },
     { name = "idna" },
     { name = "importlib-resources" },
@@ -174,6 +175,7 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "python-json-logger" },
     { name = "python-resize-image" },
+    { name = "python3-openid" },
     { name = "pytz" },
     { name = "qrcode" },
     { name = "ratelimit" },
@@ -237,7 +239,8 @@ requires-dist = [
     { name = "django-object-actions", specifier = ">=3.2.0" },
     { name = "django-prometheus", specifier = "==2.3.1" },
     { name = "djangorestframework", specifier = ">=3.14.0" },
-    { name = "drf-spectacular", specifier = ">=0.29.0" },
+    { name = "drf-spectacular", specifier = "==0.29.0" },
+    { name = "gender-guesser", specifier = "==0.4.0" },
     { name = "geopy", specifier = "==2.4.1" },
     { name = "idna", specifier = "==2.8" },
     { name = "importlib-resources", specifier = "==5.10.0" },
@@ -264,6 +267,7 @@ requires-dist = [
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "python-json-logger", specifier = "==0.1.2" },
     { name = "python-resize-image", specifier = "==1.1.19" },
+    { name = "python3-openid", specifier = "==3.2.0" },
     { name = "pytz", specifier = ">=2021.1" },
     { name = "qrcode", specifier = ">=7.4.2" },
     { name = "ratelimit", specifier = ">=2.2.1" },
@@ -941,6 +945,15 @@ wheels = [
 ]
 
 [[package]]
+name = "gender-guesser"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/dc/69939b7af56b7adf3aa2736771b7c3e7191f7cd36fbc80b0727570c275fa/gender-guesser-0.4.0.tar.gz", hash = "sha256:1591c14592805ca7da06a46d5f7202511f7cb87547049a68dfccbeedb879f31b", size = 337238, upload-time = "2016-12-05T11:41:44.554Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/fb/3f2aac40cd2421e164cab1668e0ca10685fcf896bd6b3671088f8aab356e/gender_guesser-0.4.0-py2.py3-none-any.whl", hash = "sha256:7cb01ce5d8d43b94573498bc02c959b622872abd399622ca67d1b73ba6e7e222", size = 379297, upload-time = "2016-12-05T11:41:47.759Z" },
+]
+
+[[package]]
 name = "geographiclib"
 version = "2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1506,6 +1519,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/72/b1/d2645f28b89ccb8de4cf21de7b3f18410df03f6f7482243ff14a73d8eed5/python-resize-image-1.1.19.tar.gz", hash = "sha256:2aea25e9811fd44d4cb8fef82059ace114f6cc72bbef059f69b0b7f79f55e03e", size = 6939, upload-time = "2019-06-03T09:26:37.523Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/89/008481c95551992e1a77503eba490b75fd17c0a98e33dd4dc39e0b99e5e8/python_resize_image-1.1.19-py2.py3-none-any.whl", hash = "sha256:72e5b266efac4d417cd594438a1b9e337cabdc817464c0a652cf309e4384444f", size = 8400, upload-time = "2019-06-03T09:26:34.799Z" },
+]
+
+[[package]]
+name = "python3-openid"
+version = "3.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "defusedxml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5f/4a/29feb8da6c44f77007dcd29518fea73a3d5653ee02a587ae1f17f1f5ddb5/python3-openid-3.2.0.tar.gz", hash = "sha256:33fbf6928f401e0b790151ed2b5290b02545e8775f982485205a066f874aaeaf", size = 305600, upload-time = "2020-06-29T12:15:49.026Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/a5/c6ba13860bdf5525f1ab01e01cc667578d6f1efc8a1dba355700fb04c29b/python3_openid-3.2.0-py3-none-any.whl", hash = "sha256:6626f771e0417486701e0b4daff762e7212e820ca5b29fcc0d05f6f8736dfa6b", size = 133681, upload-time = "2020-06-29T12:15:47.502Z" },
 ]
 
 [[package]]

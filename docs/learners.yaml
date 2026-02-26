@@ -1,0 +1,863 @@
+openapi: 3.0.3
+info:
+  title: Badgr Dashboard API - Learners Endpoints
+  description: |
+    OpenAPI specification for the Lernende (Learners) dashboard endpoints.
+
+    **Key Concept: Learner Data with Trends**
+    - All learner data includes optional trend information for KPIs
+    - Residence distribution is aggregated by city (not ZIP code)
+    - Gender distribution supports male, female, diverse, noAnswer
+
+    **Data Flow:**
+    1. Overview: KPIs with trends + residence + gender distribution
+    2. Residence Detail: Competency areas and individual competencies for a city
+    3. Gender Detail: Competency areas, individual competencies, and top badges for a gender
+  version: 2.0.0
+  contact:
+    name: Badgr Development Team
+
+servers:
+  - url: https://api.badgr.io
+    description: Production server
+  - url: http://localhost:8000
+    description: Development server
+
+paths:
+  # ==========================================================================
+  # 1. LEARNERS OVERVIEW (Main Endpoint)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/learners:
+    get:
+      summary: Get Learners Overview Data
+      description: |
+        Returns comprehensive learner statistics for the Lernende tab in the network dashboard.
+        This is the main endpoint for the Lernende overview page.
+
+        **Use Case:** Display "Lernende" tab with all KPIs and distribution data
+
+        **Data Includes:**
+        - Total learner count with trend (Lernende insgesamt)
+        - Total competency hours with trend (Kompetenzstunden insgesamt)
+        - Learner residence distribution (Wohnort der Lernenden)
+        - Gender distribution (Verteilung Geschlecht)
+
+        **KPI Trend Data:**
+        Each KPI includes optional trend information:
+        - `trend`: Direction indicator (up/down/stable)
+        - `trendValue`: Numeric change value (percentage)
+        - `trendPeriod`: Time period for the trend (e.g., "diesen Monat")
+
+        **Note:** This endpoint aggregates data that could also be fetched from individual endpoints
+        (`/learners/residence`, `/learners/gender`) but provides all data in a single call for
+        optimal performance on the overview page.
+
+      operationId: getNetworkLearnersOverview
+      tags:
+        - Learners
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          description: Network identifier (slug)
+          schema:
+            type: string
+            example: "0GJ6D38bQE6KDtxDDlKQUg"
+      responses:
+        '200':
+          description: Successful response with learners overview data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnersOverviewResponse'
+              example:
+                metadata:
+                  lastUpdated: "2024-12-10T10:30:00Z"
+                kpis:
+                  totalLearners:
+                    value: 3542
+                    trend: "up"
+                    trendValue: 12.5
+                    trendPeriod: "diesen Monat"
+                  totalCompetencyHours:
+                    value: 12846
+                    trend: "up"
+                    trendValue: 8.2
+                    trendPeriod: "diesen Monat"
+                residenceDistribution:
+                  - city: "München"
+                    learnerCount: 2507
+                    percentage: 70.8
+                  - city: "Augsburg"
+                    learnerCount: 361
+                    percentage: 10.2
+                  - city: "Ingolstadt"
+                    learnerCount: 238
+                    percentage: 6.7
+                  - city: "other"
+                    learnerCount: 436
+                    percentage: 12.3
+                genderDistribution:
+                  - gender: "male"
+                    count: 1847
+                    percentage: 52.2
+                  - gender: "female"
+                    count: 1595
+                    percentage: 45.0
+                  - gender: "diverse"
+                    count: 100
+                    percentage: 2.8
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # ==========================================================================
+  # 2. RESIDENCE DISTRIBUTION
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/learners/residence:
+    get:
+      summary: Get Learners Residence Distribution
+      description: |
+        Returns the distribution of learners by their residence (Wohnort der Lernenden).
+        Shows where learners live, grouped by city.
+
+        **Use Case:** Display "Wohnort der Lernenden" horizontal bar chart in Lernende tab
+
+        **Data Includes:**
+        - City name (aggregated across all ZIP codes for that city)
+        - Learner count per city
+        - Percentage of total learners
+        - Top N cities + "other" category
+
+        **Note:** Data is aggregated by city name, not ZIP code. A city with multiple
+        ZIP codes (e.g., München with 80331, 80333, etc.) will have all learners combined.
+
+      operationId: getNetworkLearnersResidence
+      tags:
+        - Learners
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of individual cities to return before grouping into "other"
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 5
+        - name: includeOther
+          in: query
+          description: Whether to include the "other" aggregation category
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Successful response with learner residence distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnersResidenceResponse'
+              example:
+                metadata:
+                  totalLearners: 3542
+                  totalCities: 47
+                  lastUpdated: "2024-12-10T10:30:00Z"
+                statistics:
+                  - city: "München"
+                    learnerCount: 2507
+                    percentage: 70.8
+                  - city: "Augsburg"
+                    learnerCount: 361
+                    percentage: 10.2
+                  - city: "other"
+                    learnerCount: 674
+                    percentage: 19.0
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # ==========================================================================
+  # 3. RESIDENCE DETAIL (Drill-down)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/learners/residence/{city}:
+    get:
+      summary: Get Learner Residence Detail
+      description: |
+        Returns detailed competency analysis for learners from a specific city.
+        This is the drill-down view when clicking on a residence bar.
+
+        **Use Case:** Display "Regionsdetail" sub-view showing:
+        - KPIs for the specific region
+        - Top competency areas (Kompetenzbereiche) as bubble chart
+        - Most strengthened individual competencies (Gestärkte Einzelkompetenzen)
+
+      operationId: getNetworkLearnersResidenceDetail
+      tags:
+        - Learners
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: city
+          in: path
+          description: City name (e.g., "München") or "other" for aggregated other cities
+          required: true
+          schema:
+            type: string
+            example: "München"
+        - name: competencyLimit
+          in: query
+          description: Maximum number of strengthened competencies to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 8
+      responses:
+        '200':
+          description: Successful response with residence detail data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnersResidenceDetailResponse'
+              example:
+                metadata:
+                  city: "München"
+                  zipCodes: ["80331", "80333", "80335"]
+                  totalLearners: 2507
+                  lastUpdated: "2024-12-10T10:30:00Z"
+                topCompetencyAreas:
+                  - id: "it_digital"
+                    name: "IT & Digital"
+                    value: 28.5
+                    weight: 714
+                  - id: "social_competencies"
+                    name: "Soziale Kompetenzen"
+                    value: 22.1
+                    weight: 554
+                topStrengthenedCompetencies:
+                  - competencyId: "comp_programming"
+                    title: "Programmierung"
+                    count: 89
+                    hours: 890
+                    badges: 34
+                    trend: "up"
+                    trendValue: 12
+                    escoUri: "http://data.europa.eu/esco/skill/d45c7b4e"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # ==========================================================================
+  # 4. GENDER DISTRIBUTION
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/learners/gender:
+    get:
+      summary: Get Learners Gender Distribution
+      description: |
+        Returns the distribution of learners by gender.
+
+        **Use Case:** Display "Verteilung Geschlecht" horizontal bar chart in Lernende tab
+
+        **Note:** Gender labels should be localized in the UI using i18n.
+
+      operationId: getNetworkLearnersGender
+      tags:
+        - Learners
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response with learner gender distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnersGenderResponse'
+              example:
+                metadata:
+                  totalLearners: 3542
+                  lastUpdated: "2024-12-10T10:30:00Z"
+                distribution:
+                  - gender: "male"
+                    count: 1847
+                    percentage: 52.2
+                  - gender: "female"
+                    count: 1595
+                    percentage: 45.0
+                  - gender: "diverse"
+                    count: 100
+                    percentage: 2.8
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # ==========================================================================
+  # 5. GENDER DETAIL (Drill-down)
+  # ==========================================================================
+
+  /v1/issuer/networks/{networkSlug}/dashboard/learners/gender/{gender}:
+    get:
+      summary: Get Learner Gender Detail
+      description: |
+        Returns detailed competency analysis for learners of a specific gender.
+        This is the drill-down view when clicking on a gender bar.
+
+        **Use Case:** Display "Geschlechtverteilungsdetails" sub-view showing:
+        - Total badges for this gender
+        - Top competency areas (Kompetenzbereiche)
+        - Most strengthened individual competencies
+        - Top badges awarded to this gender
+
+      operationId: getNetworkLearnersGenderDetail
+      tags:
+        - Learners
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: networkSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: gender
+          in: path
+          description: Gender category
+          required: true
+          schema:
+            type: string
+            enum: [male, female, diverse, noAnswer]
+            example: "male"
+        - name: competencyLimit
+          in: query
+          description: Maximum number of individual competencies to return
+          required: false
+          schema:
+            type: integer
+            default: 5
+        - name: badgeLimit
+          in: query
+          description: Maximum number of top badges to return
+          required: false
+          schema:
+            type: integer
+            default: 4
+      responses:
+        '200':
+          description: Successful response with gender detail data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnersGenderDetailResponse'
+              example:
+                metadata:
+                  gender: "male"
+                  totalLearners: 1847
+                  totalBadges: 527
+                  lastUpdated: "2024-12-10T10:30:00Z"
+                topCompetencyAreas:
+                  - id: "it_digital"
+                    name: "IT & Digital"
+                    value: 32.5
+                    weight: 171
+                topStrengthenedCompetencies:
+                  - competencyId: "comp_web_development"
+                    name: "Web Development"
+                    count: 52
+                    hours: 208
+                    escoUri: "http://data.europa.eu/esco/skill/2468ace0"
+                topBadges:
+                  - badgeId: "full_stack_developer"
+                    name: "Full Stack Developer"
+                    count: 45
+                    hours: 180
+                    image: "https://api.badgr.io/media/badges/full_stack_developer.png"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+# ============================================================================
+# SCHEMAS
+# ============================================================================
+
+components:
+  schemas:
+    # ------------------------------------------------------------------------
+    # KPI Data with Trend
+    # ------------------------------------------------------------------------
+    LearnerKPIData:
+      type: object
+      description: |
+        KPI data with optional trend information.
+        Matches the structure used in the dashboard overview KPIs.
+      required:
+        - value
+      properties:
+        value:
+          type: integer
+          description: The numeric value of the KPI
+          minimum: 0
+          example: 3542
+        trend:
+          type: string
+          enum: [up, down, stable]
+          description: |
+            Trend direction indicator:
+            - up: Value increased compared to previous period
+            - down: Value decreased compared to previous period
+            - stable: Value remained approximately the same
+          example: "up"
+        trendValue:
+          type: number
+          description: |
+            Numeric change value, typically a percentage.
+            Positive values indicate increase, negative indicate decrease.
+          example: 12.5
+        trendPeriod:
+          type: string
+          description: |
+            Time period for the trend calculation.
+            Examples: "diesen Monat", "letzten Monat", "this month"
+          example: "diesen Monat"
+
+    # ------------------------------------------------------------------------
+    # Learners Overview Response
+    # ------------------------------------------------------------------------
+    LearnersOverviewResponse:
+      type: object
+      description: |
+        Aggregated learners overview for the Lernende tab.
+        KPIs now include trend data.
+      required:
+        - kpis
+        - residenceDistribution
+        - genderDistribution
+      properties:
+        metadata:
+          type: object
+          properties:
+            lastUpdated:
+              type: string
+              format: date-time
+              example: "2024-12-10T10:30:00Z"
+        kpis:
+          type: object
+          required:
+            - totalLearners
+            - totalCompetencyHours
+          properties:
+            totalLearners:
+              $ref: '#/components/schemas/LearnerKPIData'
+            totalCompetencyHours:
+              $ref: '#/components/schemas/LearnerKPIData'
+        residenceDistribution:
+          type: array
+          description: Learner distribution by residence (Wohnort)
+          items:
+            $ref: '#/components/schemas/ResidenceStatistic'
+        genderDistribution:
+          type: array
+          description: Learner distribution by gender
+          items:
+            $ref: '#/components/schemas/GenderStatistic'
+
+    # ------------------------------------------------------------------------
+    # Residence Statistics
+    # ------------------------------------------------------------------------
+    LearnersResidenceResponse:
+      type: object
+      required:
+        - statistics
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalLearners:
+              type: integer
+              example: 3542
+            totalCities:
+              type: integer
+              example: 47
+            lastUpdated:
+              type: string
+              format: date-time
+        statistics:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResidenceStatistic'
+
+    ResidenceStatistic:
+      type: object
+      description: |
+        Learner residence statistic entry.
+        Use city="other" to identify the aggregation category.
+      required:
+        - city
+        - learnerCount
+        - percentage
+      properties:
+        city:
+          type: string
+          description: City name or "other" for aggregated remaining cities
+          example: "München"
+        learnerCount:
+          type: integer
+          description: Number of learners from this city
+          minimum: 0
+          example: 2507
+        percentage:
+          type: number
+          format: float
+          description: Percentage of total learners (0-100)
+          example: 70.8
+
+    # ------------------------------------------------------------------------
+    # Residence Detail Response
+    # ------------------------------------------------------------------------
+    LearnersResidenceDetailResponse:
+      type: object
+      required:
+        - metadata
+        - topCompetencyAreas
+        - topStrengthenedCompetencies
+      properties:
+        metadata:
+          type: object
+          required:
+            - city
+            - totalLearners
+          properties:
+            city:
+              type: string
+              example: "München"
+            zipCodes:
+              type: array
+              items:
+                type: string
+              example: ["80331", "80333"]
+            totalLearners:
+              type: integer
+              example: 2507
+            lastUpdated:
+              type: string
+              format: date-time
+        topCompetencyAreas:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompetencyArea'
+        topStrengthenedCompetencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/StrengthenedCompetency'
+
+    # ------------------------------------------------------------------------
+    # Gender Statistics
+    # ------------------------------------------------------------------------
+    LearnersGenderResponse:
+      type: object
+      required:
+        - distribution
+      properties:
+        metadata:
+          type: object
+          properties:
+            totalLearners:
+              type: integer
+              example: 3542
+            lastUpdated:
+              type: string
+              format: date-time
+        distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/GenderStatistic'
+
+    GenderStatistic:
+      type: object
+      description: Learner gender statistic entry
+      required:
+        - gender
+        - count
+        - percentage
+      properties:
+        gender:
+          type: string
+          description: Gender category identifier
+          enum: [male, female, diverse, noAnswer]
+          example: "male"
+        count:
+          type: integer
+          description: Number of learners of this gender
+          minimum: 0
+          example: 1847
+        percentage:
+          type: number
+          format: float
+          description: Percentage of total learners (0-100)
+          example: 52.2
+
+    # ------------------------------------------------------------------------
+    # Gender Detail Response
+    # ------------------------------------------------------------------------
+    LearnersGenderDetailResponse:
+      type: object
+      required:
+        - metadata
+        - topCompetencyAreas
+        - topStrengthenedCompetencies
+        - topBadges
+      properties:
+        metadata:
+          type: object
+          required:
+            - gender
+            - totalLearners
+            - totalBadges
+          properties:
+            gender:
+              type: string
+              enum: [male, female, diverse, noAnswer]
+              example: "male"
+            totalLearners:
+              type: integer
+              example: 1847
+            totalBadges:
+              type: integer
+              example: 527
+            lastUpdated:
+              type: string
+              format: date-time
+        topCompetencyAreas:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompetencyArea'
+        topStrengthenedCompetencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndividualCompetency'
+        topBadges:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopBadge'
+
+    # ------------------------------------------------------------------------
+    # Shared Schemas
+    # ------------------------------------------------------------------------
+    CompetencyArea:
+      type: object
+      description: Competency area for bubble chart visualization
+      required:
+        - id
+        - name
+        - value
+        - weight
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the competency area
+          example: "it_digital"
+        name:
+          type: string
+          description: Display name of the competency area
+          example: "IT & Digital"
+        value:
+          type: number
+          description: Percentage for visualization
+          example: 28.5
+        weight:
+          type: integer
+          description: Absolute count
+          example: 714
+        escoUri:
+          type: string
+          format: uri
+          description: Optional ESCO URI for the competency area
+          example: "http://data.europa.eu/esco/skill/abc123"
+
+    StrengthenedCompetency:
+      type: object
+      description: Strengthened competency entry for residence detail
+      required:
+        - competencyId
+        - title
+        - count
+        - hours
+      properties:
+        competencyId:
+          type: string
+          example: "comp_programming"
+        competencyKey:
+          type: string
+          description: Optional i18n key
+          example: "competency.programming"
+        title:
+          type: string
+          example: "Programmierung"
+        areaKey:
+          type: string
+          description: Parent competency area
+          example: "IT & Digital"
+        count:
+          type: integer
+          description: Number of learners who strengthened this competency
+          example: 89
+        hours:
+          type: integer
+          description: Total hours invested in this competency
+          example: 890
+        badges:
+          type: integer
+          description: Number of badges awarded for this competency
+          example: 34
+        trend:
+          type: string
+          enum: [up, down, stable]
+          example: "up"
+        trendValue:
+          type: number
+          example: 12
+        escoUri:
+          type: string
+          format: uri
+          example: "http://data.europa.eu/esco/skill/d45c7b4e"
+
+    IndividualCompetency:
+      type: object
+      description: Individual competency entry for gender detail
+      required:
+        - competencyId
+        - name
+        - count
+        - hours
+      properties:
+        competencyId:
+          type: string
+          example: "comp_web_development"
+        name:
+          type: string
+          example: "Web Development"
+        count:
+          type: integer
+          description: Number of learners who strengthened this competency
+          example: 52
+        hours:
+          type: integer
+          description: Total hours invested
+          example: 208
+        escoUri:
+          type: string
+          format: uri
+          example: "http://data.europa.eu/esco/skill/2468ace0"
+
+    TopBadge:
+      type: object
+      description: Top badge entry for gender detail
+      required:
+        - badgeId
+        - name
+        - count
+      properties:
+        badgeId:
+          type: string
+          example: "full_stack_developer"
+        name:
+          type: string
+          example: "Full Stack Developer"
+        count:
+          type: integer
+          description: Number of times this badge was awarded
+          example: 45
+        hours:
+          type: integer
+          description: Total competency hours from this badge
+          example: 180
+        image:
+          type: string
+          format: uri
+          description: Badge image URL
+          example: "https://api.badgr.io/media/badges/full_stack_developer.png"
+
+    # ------------------------------------------------------------------------
+    # Error Schema
+    # ------------------------------------------------------------------------
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "NOT_FOUND"
+        message:
+          type: string
+          example: "Network not found"
+
+  # --------------------------------------------------------------------------
+  # Security
+  # --------------------------------------------------------------------------
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "UNAUTHORIZED"
+            message: "Authentication required"
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NOT_FOUND"
+            message: "Network not found"
+
+tags:
+  - name: Learners
+    description: |
+      Learner statistics and demographics for network dashboard.
+
+      **Endpoints:**
+      - Overview: Main aggregated data with KPIs and distributions
+      - Residence: Distribution by city with drill-down
+      - Gender: Distribution by gender with drill-down
