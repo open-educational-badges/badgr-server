@@ -790,8 +790,17 @@ class BadgePDFCreator:
         self.used_space += 22
 
         extensions = badge_class.cached_extensions()
-        studyLoadExtension = extensions.get(name="extensions:StudyLoadExtension")
-        studyload = json_loads(studyLoadExtension.original_json)["StudyLoad"]
+
+        studyload_minutes = None
+        studyLoadExtension = extensions.filter(
+            name="extensions:StudyLoadExtension"
+        ).first()
+        if studyLoadExtension and studyLoadExtension.original_json:
+            try:
+                payload = json_loads(studyLoadExtension.original_json)
+                studyload_minutes = payload.get("StudyLoad")
+            except Exception:
+                studyload_minutes = None
 
         self.add_recipient_name(
             first_page_content,
@@ -801,7 +810,7 @@ class BadgePDFCreator:
             activityEndDate=badge_instance.activity_end_date,
             activityCity=badge_instance.activity_city,
             activityOnline=badge_instance.activity_online,
-            studyLoad=studyload,
+            studyLoad=studyload_minutes,
         )
         self.add_badge_image(first_page_content, badge_instance.image)
         self.add_title(first_page_content, badge_class.name)
