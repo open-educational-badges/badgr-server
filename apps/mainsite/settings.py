@@ -380,8 +380,8 @@ CAIROSVG_VERSION_SUFFIX = "2"
 
 SITE_ID = 2
 
-USE_I18N = True
-USE_L10N = True
+USE_I18N = False
+USE_L10N = False
 USE_TZ = True
 
 
