@@ -13,6 +13,11 @@ class JSONLDRenderer(renderers.JSONRenderer):
     format = "ld+json"
 
 
+class GeoJSONRenderer(renderers.JSONRenderer):
+    media_type = "application/geo+json"
+    format = "geojson"
+
+
 class CSVDictRenderer(renderers.BaseRenderer):
     media_type = "text/csv"
     format = "csv"
