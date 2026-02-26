@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = "==3.10.*"
 dependencies = [
     "backports-csv==1.0.4",
-    "badgecheck==1.1.8",
+    "badgecheck==1.2.0",
     "base58>=2.1.1",
     "bleach==3.3.0",
     "boto==2.49.0",
