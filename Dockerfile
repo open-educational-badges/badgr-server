@@ -10,8 +10,7 @@ RUN apt-get install -y default-libmysqlclient-dev \
                        xmlsec1 \
                        libxmlsec1-dev \
                        pkg-config \
-                       curl \
-                       gettext
+                       curl
 
 RUN mkdir /badgr_server
 WORKDIR /badgr_server
@@ -30,8 +29,7 @@ RUN apt-get install -y default-libmysqlclient-dev \
                        libxml2 \
                        curl \
                        default-mysql-client \
-                       xz-utils \
-                       gettext
+                       xz-utils
 
 RUN groupadd -g 999 python && \
     useradd -r -u 999 -g python python
