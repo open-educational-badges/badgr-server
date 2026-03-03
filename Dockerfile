@@ -29,7 +29,9 @@ RUN apt-get install -y default-libmysqlclient-dev \
                        libxml2 \
                        curl \
                        default-mysql-client \
-                       xz-utils
+                       xz-utils \
+                       gdal-bin \
+                       libgdal-dev
 
 RUN groupadd -g 999 python && \
     useradd -r -u 999 -g python python

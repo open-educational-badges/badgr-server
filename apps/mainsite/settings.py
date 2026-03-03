@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.oauth2",
     "corsheaders",
     "rest_framework",
+    "rest_framework_gis",
     "rest_framework.authtoken",
     "django_celery_results",
     "dbbackup",  # django-dbbackup
@@ -331,6 +332,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_RENDERER_CLASSES": (
         "mainsite.renderers.JSONLDRenderer",
+        "mainsite.renderers.GeoJSONRenderer",
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
