@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.10.*"
 
 [manifest]
@@ -147,6 +147,7 @@ dependencies = [
     { name = "django-object-actions" },
     { name = "django-prometheus" },
     { name = "djangorestframework" },
+    { name = "djangorestframework-gis" },
     { name = "drf-spectacular" },
     { name = "geopy" },
     { name = "idna" },
@@ -237,6 +238,7 @@ requires-dist = [
     { name = "django-object-actions", specifier = ">=3.2.0" },
     { name = "django-prometheus", specifier = "==2.3.1" },
     { name = "djangorestframework", specifier = ">=3.14.0" },
+    { name = "djangorestframework-gis", specifier = ">=1.2.0" },
     { name = "drf-spectacular", specifier = ">=0.29.0" },
     { name = "geopy", specifier = "==2.4.1" },
     { name = "idna", specifier = "==2.8" },
@@ -854,6 +856,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8a/95/5376fe618646fde6899b3cdc85fd959716bb67542e273a76a80d9f326f27/djangorestframework-3.16.1.tar.gz", hash = "sha256:166809528b1aced0a17dc66c24492af18049f2c9420dbd0be29422029cfc3ff7", size = 1089735, upload-time = "2025-08-06T17:50:53.251Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b0/ce/bf8b9d3f415be4ac5588545b5fcdbbb841977db1c1d923f7568eeabe1689/djangorestframework-3.16.1-py3-none-any.whl", hash = "sha256:33a59f47fb9c85ede792cbf88bde71893bcda0667bc573f784649521f1102cec", size = 1080442, upload-time = "2025-08-06T17:50:50.667Z" },
+]
+
+[[package]]
+name = "djangorestframework-gis"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "django-filter" },
+    { name = "djangorestframework" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/fb/36b4f5d9d0fccdb17ae620c580d4b340a7b3643830e49b8cc5d8fc1eb1ee/djangorestframework_gis-1.2.0.tar.gz", hash = "sha256:702ba9ad44173b7cc70e48c6c84da48c28f6f82612cc901a77fdb54c5c57c971", size = 50983, upload-time = "2025-06-02T19:22:41.411Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/86/b7e85e372ecc97dc1344785f82dc0c51c2b2c8b1d2b8660d3d8752fd1b3c/djangorestframework_gis-1.2.0-py2.py3-none-any.whl", hash = "sha256:3924651b2f6dcb5a64b30df9692577af548a04725b0c2c36cbc385f7c50fc80a", size = 22254, upload-time = "2025-06-02T19:22:39.214Z" },
 ]
 
 [[package]]

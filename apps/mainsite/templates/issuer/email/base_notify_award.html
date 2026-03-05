@@ -103,7 +103,7 @@
         <mj-column>
         <mj-button align="left" href="{{ activate_url }}">{{ call_to_action_label }}</mj-button>
         <mj-text font-style="italic">
-        Im Anhang dieser Mail findest du neben der <span style="font-weight: bold;">Micro-Degree-Datei</span> ein <span style="font-weight: bold;">PDF-Zertifikat</span>, das deinen Lernerfolg ebenfalls ausweist.
+        Im Anhang dieser Mail findest du neben der <span style="font-weight: bold;">Micro-Degree-Datei</span> ein <span style="font-weight: bold;">Badge-PDF</span>, das deinen Lernerfolg ebenfalls ausweist.
         </mj-text>
         </mj-column>
         </mj-section>
@@ -111,22 +111,30 @@
         <mj-section>
         <mj-column>
         <mj-text>
-        Im Anhang dieser Mail findest du deine <span style="font-weight: bold;">Badge-Datei</span> und das zugehörige <span style="font-weight: bold;">PDF-Zertifikat</span> zum Herunterladen.
+        Im Anhang dieser Mail findest du deine <span style="font-weight: bold;">Badge-Datei</span> und das zugehörige <span style="font-weight: bold;">Badge-PDF</span> zum Herunterladen.
         </mj-text>
-        </mj-column>
-        </mj-section>
-        <mj-section padding="0px 41px 32px 41px">
-        <mj-column border-radius="10px" background-color="#ccd7ff">
-        <mj-text>Alle deine erhaltenen Badges kannst du auf
-        <a href="https://openbadges.education/recipient/badges?tab=badges"
-           target="_blank"
-           style="text-decoration:underline">Open Educational Badges</a>
-        in deinem Rucksack sammeln und mit anderen teilen. Lege dafür einfach kostenlos einen Account an:</mj-text>
-        <mj-button width="100%" href="{{ activate_url }}">{{ call_to_action_label }}</mj-button>
-        </mj-column>
-        </mj-section>
-    {% endif %}
-{% endblock main %}
-{% block button %}
-{% endblock button %}
+        {% if linked_in_share_url %}
+            <mj-button padding="0 26px" background-color="#ffffff" color="#492e98" border="1px solid #492e98" width="100%" href="{{ linked_in_share_url }}">
+            <img src="{% static '/images/icon-linkedin@2x.png' %}"
+                 alt=""
+                 style="height: 28px;
+                        vertical-align: middle" />
+            <span style="vertical-align: middle;">Badge auf LinkedIn teilen</span></mj-button>
+            {% endif %}
+            </mj-column>
+            </mj-section>
+            <mj-section padding="0px 41px 32px 41px">
+            <mj-column border-radius="10px" background-color="#ccd7ff">
+            <mj-text>Alle deine erhaltenen Badges kannst du auf
+            <a href="https://openbadges.education/recipient/badges?tab=badges"
+               target="_blank"
+               style="text-decoration:underline">Open Educational Badges</a>
+            in deinem Rucksack sammeln und für Bewerbungen zusammenstellen. Lege dafür einfach kostenlos einen Account an:</mj-text>
+            <mj-button width="100%" href="{{ activate_url }}">{{ call_to_action_label }}</mj-button>
+            </mj-column>
+            </mj-section>
+        {% endif %}
+    {% endblock main %}
+    {% block button %}
+    {% endblock button %}
 {% endmjml %}
