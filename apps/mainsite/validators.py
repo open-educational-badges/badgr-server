@@ -27,7 +27,7 @@ class ValidImageValidator(object):
                 if not verify_svg(image):
                     raise ValidationError("Invalid image.")
             else:
-                if not img.format in self.formats:
+                if img.format not in self.formats:
                     raise ValidationError("Invalid image.")
 
 
