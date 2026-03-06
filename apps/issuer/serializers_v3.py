@@ -55,6 +55,7 @@ class IssuerGeoJSONSerializer(GeoFeatureModelSerializer):
 class QuotaSerializer(serializers.Serializer):
 
     name = serializers.CharField()
+    key = serializers.CharField()
     price = serializers.FloatField()
     default = serializers.CharField()
     badge_create = serializers.FloatField()

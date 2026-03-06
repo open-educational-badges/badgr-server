@@ -443,21 +443,9 @@ class QuotaRepresentationMixin(serializers.Serializer):
             upgradeQuota = quota.upgrade
 
             representation["quotas"] = {
-                "level": quota.name,
-                "nextLevel": {
-                    "level": upgradeQuota.name,
-                    "price": upgradeQuota.price,
-                    "quotas": {
-                        "BADGE_CREATE": upgradeQuota.badge_create,
-                        "BADGE_AWARD": upgradeQuota.badge_award,
-                        "LEARNINGPATH_CREATE": upgradeQuota.learningpath_create,
-                        "ACCOUNTS_ADMIN": upgradeQuota.accounts_admin,
-                        "ACCOUNTS_MEMBER": upgradeQuota.accounts_member,
-                        "AISKILLS_REQUESTS": upgradeQuota.aiskills_requests,
-                        "PDFEDITOR": upgradeQuota.pdfeditor,
-                        "NETWORK_MEMBERSHIPS": upgradeQuota.network_memberships,
-                    }
-                } if upgradeQuota else None,
+                "name": quota.name,
+                "key": quota.key,
+                "nextLevel": upgradeQuota.key if upgradeQuota else None,
                 "periodStart": instance.quota_period_start,
                 "paymentPeriod": "month", # TODO
                 "nextPayment": instance.get_next_quota_payment(),
