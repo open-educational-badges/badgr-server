@@ -32,8 +32,11 @@ class RequestIframeSerializer(BaseRequestIframeSerializer):
     email = serializers.CharField()
 
 
-class RequestIframeBadgeProcessSerializer(BaseRequestIframeSerializer):
+class RequestIframeIssuerSerializer(BaseRequestIframeSerializer):
     issuer = serializers.CharField(required=False, default=None)
+
+
+class RequestIframeBadgeProcessSerializer(RequestIframeIssuerSerializer):
     badge = serializers.CharField(required=False, default=None)
 
 
