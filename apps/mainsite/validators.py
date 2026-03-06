@@ -121,20 +121,3 @@ class ComplexityPasswordValidator:
 
     def get_help_text(self):
         return "Your password must contain at least one uppercase letter, one number, and one special character."
-
-
-class SimpleChoicesValidator(object):
-    """
-    Verify a value is within a set of choices
-    """
-
-    def __init__(self, choices):
-        self.choices = choices
-
-    def __call__(self, value):
-        if value not in self.choices:
-            raise ValidationError(
-                "'{}' is not supported. Only {} is available".format(
-                    value, self.choices
-                )
-            )
