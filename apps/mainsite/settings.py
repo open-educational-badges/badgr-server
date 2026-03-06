@@ -576,36 +576,6 @@ MJML_BACKEND_MODE = "cmd"
 MJML_EXEC_CMD = ["mjml", "--config.fonts", "{}"]
 # MJML_CHECK_CMD_ON_STARTUP = False
 
-# Dict containing quota configuration, in Form of ENTITY: { LEVEL: { QUOTA_NAME: int|bool }}
-# changing LEVEL names in post will require custom migrations to update entity levels, QUOTA_NAME keys are fixed
-# NETWORK LEVEL names can only be a subset of ISSUER LEVEL names
-# Empty dict disables quotas completely
-# ex.:
-# QUOTAS = {
-#     "ISSUER": {
-#         "FREE": {
-#             "BADGE_CREATE": 5,
-#             "BADGE_AWARD": 100,
-#             "LEARNINGPATH_CREATE": 1,
-#             "ACCOUNTS_ADMIN": 1,
-#             "ACCOUNTS_MEMBER": 3,
-#             "AISKILLS_REQUESTS": 10,
-#             "PDFEDITOR": False,
-#         },
-#         "PRO": {
-#             "BADGE_CREATE": 50,
-#             "BADGE_AWARD": 5000,
-#             "LEARNINGPATH_CREATE": 10,
-#             "ACCOUNTS_ADMIN": 5,
-#             "ACCOUNTS_MEMBER": 10,
-#             "AISKILLS_REQUESTS": 100,
-#             "PDFEDITOR": True,
-#         },
-#     },
-#     "NETWORK": {
-#         "FREE": { same keys as ISSUER }
-#     }
-# }
-
-QUOTAS = {}
+# datetime.strptime('2026-04-01 00:00:00', '%Y-%m-%d %H:%M:%S')
+QUOTAS_ENABLED_DATE=None
 QUOTAS_RECIPIENT_EMAIL = "sales@openbadges.education"
