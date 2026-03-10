@@ -709,7 +709,7 @@ class BadgeClassDetail(BaseEntityDetailView):
 
 @shared_task(bind=True)
 def process_batch_assertions(
-    self, assertions, user_id, badgeclass_id, issuerSlug, create_notification=False
+    self, assertions, user_id, badgeclass_id, issuerSlug, serializer_class, create_notification=False
 ):
     try:
         User = get_user_model()
@@ -726,7 +726,7 @@ def process_batch_assertions(
             request_entity_id = assertion.get("request_entity_id")
             assertion["create_notification"] = create_notification
 
-            serializer = BadgeInstanceSerializerV1(
+            serializer = serializer_class(
                 data=assertion,
                 context={
                     "badgeclass": badgeclass,
@@ -740,7 +740,7 @@ def process_batch_assertions(
                     instance = serializer.save(created_by=user)
                     successful.append(
                         {
-                            "badge_instance": BadgeInstanceSerializerV1(instance).data,
+                            "badge_instance": serializer_class(instance).data,
                             "request_entity_id": request_entity_id,
                         }
                     )
@@ -849,6 +849,7 @@ class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
             user_id=request.user.id,
             badgeclass_id=badgeclass.id,
             issuerSlug=issuerSlug,
+            serializer_class=self.v1_serializer_class,
             create_notification=create_notification,
         )
 

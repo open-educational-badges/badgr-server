@@ -25,6 +25,7 @@ import uuid
 
 AUTH_USER_MODEL = getattr(settings, "AUTH_USER_MODEL", "auth.User")
 
+
 # https://docs.djangoproject.com/en/5.0/releases/5.0/#migrating-existing-uuidfield-on-mariadb-10-7
 class Char32UUIDField(models.UUIDField):
     def db_type(self, connection):
@@ -33,8 +34,13 @@ class Char32UUIDField(models.UUIDField):
     def get_db_prep_value(self, value, connection, prepared=False):
         value = super().get_db_prep_value(value, connection, prepared)
         if value is not None:
-            value = value.hex
+            if isinstance(value, uuid.UUID):
+                value = value.hex
+            else:
+                # Django 5+ returns a string like '550e8400-e29b-41d4-a716-446655440000'
+                value = value.replace("-", "")
         return value
+
 
 class EmailBlacklist(models.Model):
     email = models.EmailField(unique=True)
@@ -449,6 +455,7 @@ class LegacyTokenProxy(Token):
     def obscured_token(self):
         if self.key:
             return "{}***".format(self.key[:4])
+
 
 class AltchaChallenge(models.Model):
     id = Char32UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

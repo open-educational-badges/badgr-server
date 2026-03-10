@@ -402,6 +402,10 @@ class IssuerSerializerV1(BaseIssuerSerializerV1):
         representation["recipientCount"] = 0
         representation["pathwayCount"] = 0
 
+        representation["badgeInstanceCount"] = len(
+            instance.badgeinstance_set.all().filter(revoked=False)
+        )
+
         representation["ownerAcceptedTos"] = any(
             user.agreed_terms_version == TermsVersion.cached.latest_version()
             for user in instance.owners
