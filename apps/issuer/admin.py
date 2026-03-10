@@ -263,6 +263,7 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
                 "quota_aiskills_requests",
                 "quota_pdfeditor",
                 "quota_network_memberships",
+                "quota_network_create",
             )
         })
     )

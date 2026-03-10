@@ -317,6 +317,7 @@ class Issuer(
     quota_aiskills_requests = models.PositiveIntegerField(blank=True, null=True, verbose_name="AI Tool Requests")
     quota_pdfeditor = models.BooleanField(blank=True, null=True, verbose_name="PDF Editor")
     quota_network_memberships = models.PositiveIntegerField(blank=True, null=True, verbose_name="Network Memberships")
+    quota_network_create = models.BooleanField(blank=True, null=True, verbose_name="Create Networks")
 
     def get_quota_object(self):
         quota = self.quota
@@ -387,6 +388,9 @@ class Issuer(
 
         if quota_name == "NETWORK_MEMBERSHIPS":
             value = len(self.partner_issuers.all()) + len(self.invites.filter(status="Pending").all())
+
+        if quota_name == "NETWORK_CREATE":
+            value = max_quota
 
         return value
 
@@ -3410,6 +3414,7 @@ class QuotaDefaults(models.TextChoices):
 class Quota(cachemodel.CacheModel):
 
     name = models.CharField(max_length=254, blank=False, null=False)
+    key = models.CharField(max_length=254, blank=False, null=False, unique=True)
     price = models.FloatField(blank=True, null=True)
     upgrade = models.OneToOneField("Quota", on_delete=models.SET_NULL, blank=True, null=True)
     default = models.CharField(

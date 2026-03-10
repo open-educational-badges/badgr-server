@@ -458,6 +458,7 @@ class QuotaRepresentationMixin(serializers.Serializer):
                     "AISKILLS_REQUESTS": quota_dict('AISKILLS_REQUESTS'),
                     "PDFEDITOR": quota_dict('PDFEDITOR'),
                     "NETWORK_MEMBERSHIPS": quota_dict('NETWORK_MEMBERSHIPS'),
+                    "NETWORK_CREATE": quota_dict('NETWORK_CREATE'),
                 }
             }
 
