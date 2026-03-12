@@ -1,19 +1,17 @@
 {
-  "@context": {
-    "obi": "https://w3id.org/openbadges#",
-    "extensions": "https://w3id.org/openbadges/extensions#",
-    "category": "extensions:category",
-    "source": "extensions:source",
-    "framework": "extensions:framework",
-    "framework_identifier": "extensions:framework_identifier",
-    "studyLoad": "extensions:studyLoad",
-    "name": "extensions:name",
-    "description": "extensions:description"
-  },
-  "obi:validation": [
-    {
-      "obi:validatesType": "extensions:CompetencyExtension",
-      "obi:validationSchema": "https://api.openbadges.education/static/extensions/CompetencyExtension/schema.json"
-    }
-  ]
+    "@context": {
+        "obi": "https://w3id.org/openbadges#",
+        "extensions": "https://w3id.org/openbadges/extensions#",
+        "category": "extensions:category",
+        "source": "extensions:source",
+        "framework": "extensions:framework",
+        "framework_identifier": "extensions:framework_identifier",
+        "studyLoad": "extensions:studyLoad"
+    },
+    "obi:validation": [
+        {
+            "obi:validatesType": "extensions:CompetencyExtension",
+            "obi:validationSchema": "https://api.openbadges.education/static/extensions/CompetencyExtension/schema.json"
+        }
+    ]
 }
