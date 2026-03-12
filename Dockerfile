@@ -31,7 +31,8 @@ RUN apt-get install -y default-libmysqlclient-dev \
                        default-mysql-client \
                        xz-utils \
                        gdal-bin \
-                       libgdal-dev
+                       libgdal-dev \
+                       gettext
 
 RUN groupadd -g 999 python && \
     useradd -r -u 999 -g python python

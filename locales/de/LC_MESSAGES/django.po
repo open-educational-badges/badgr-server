@@ -1,0 +1,195 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-12 18:00+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: apps/badgeuser/models.py:41
+msgid "email address"
+msgstr ""
+
+#: apps/badgeuser/models.py:42
+msgid "email addresses"
+msgstr ""
+
+#: apps/badgeuser/models.py:122
+msgid "email confirmation"
+msgstr ""
+
+#: apps/badgeuser/models.py:123
+msgid "email confirmations"
+msgstr ""
+
+#: apps/badgeuser/models.py:264
+msgid "badge user"
+msgstr ""
+
+#: apps/badgeuser/models.py:265
+msgid "badge users"
+msgstr ""
+
+#: apps/mainsite/admin.py:50
+msgid "Badgr"
+msgstr ""
+
+#: apps/mainsite/admin_actions.py:48
+#, python-format
+msgid "Successfully deleted %(count)d %(items)s."
+msgstr ""
+
+#: apps/mainsite/admin_actions.py:61
+#, python-format
+msgid "Cannot delete %(name)s"
+msgstr ""
+
+#: apps/mainsite/admin_actions.py:63
+msgid "Are you sure?"
+msgstr ""
+
+#: apps/mainsite/admin_actions.py:92
+#, python-format
+msgid "Delete selected %(verbose_name_plural)s"
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:407 apps/mainsite/badge_pdf.py:428
+msgid "<strong>Competencies</strong>"
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:411 apps/mainsite/badge_pdf.py:434
+#, python-format
+msgid "that %(name)s has acquired with the Badge %(badge_name)s:"
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:499 apps/mainsite/badge_pdf.py:526
+#, python-format
+msgid "that %(name)s has acquired with the Micro Degree %(md_name)s:"
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:609 apps/mainsite/badge_pdf.py:634
+#: apps/mainsite/badge_pdf.py:654
+msgid "Award Criteria"
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:734
+msgid "Narrative"
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:749
+msgid ""
+"A link to the proof is provided on the badge details page (see QR code, page "
+"1)."
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:808
+msgid "CERTIFICATE"
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:1163
+msgid ""
+"(E) = Competency according to ESCO (European Skills, Competences, "
+"Qualifications and Occupations)."
+msgstr ""
+
+#: apps/mainsite/badge_pdf.py:1165
+msgid "The competence descriptions according to ESCO are available at "
+msgstr ""
+
+#: apps/mainsite/drf_fields.py:19
+msgid "Base64 string is incorrect"
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_badge_request_subject.txt:3
+msgid "Badge-Anfragen per QR-Code"
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_confirmation_message.html:12
+#, python-format
+msgid ""
+"\n"
+"      Ein %(site_name)s Benutzer hat angefordert, diese E-Mail zu seinem "
+"Konto hinzuzufügen oder sie in einer verknüpften Anwendung zu verwenden.\n"
+"      Wenn dies bestätigt wird, kannst Du Badges auf Dein %(site_name)s "
+"Konto hochladen, die für diese Email-Adresse ausgestellt wurden oder\n"
+"      verwende Features innerhalb verknüpften Anwendungen.\n"
+"      "
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_confirmation_message.txt:4
+#, python-format
+msgid ""
+"\n"
+"Ein %(site_name)s Benutzer hat angefordert, diese E-Mail zu seinem Konto "
+"hinzuzufügen oder sie in einer verknüpften Anwendung zu verwenden.\n"
+"Wenn dies bestätigt wird, kannst Du Badges auf Dein %(site_name)s Konto "
+"hochladen, die für diese Email-Adresse ausgestellt wurden oder\n"
+"verwende Features innerhalb verknüpften Anwendungen.\n"
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_confirmation_signup_message.html:11
+msgid ""
+"\n"
+"      <span style=\"color: #323232\">Herzlich Willkommen bei</span><br> "
+"<b>Open Educational Badges.</b>\n"
+"    "
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_confirmation_signup_message.html:16
+msgid ""
+"\n"
+"      Bitte bestätige deinen Account, um Badges <br>\n"
+"      zu <b>sammeln</b>, zu <b>erstellen</b> und zu <b>vergeben.</b>\n"
+"    "
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_confirmation_signup_subject.txt:3
+msgid "Bestätige Deinen Account bei OpenEducationalBadges"
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_confirmation_subject.txt:3
+msgid "Bestätige Deine OpenEducationalBadges Email-Addresse"
+msgstr ""
+
+#: apps/mainsite/templates/account/email/email_staff_request_subject.txt:3
+msgid "Mitgliedsanfrage bestätigen"
+msgstr ""
+
+#: apps/mainsite/templates/account/email/password_reset_confirmation_subject.txt:3
+msgid "Dein Passwort wurde erfolgreich geändert"
+msgstr ""
+
+#: apps/mainsite/templates/account/email/password_reset_key_message.html:9
+#: apps/mainsite/templates/account/email/password_reset_key_message.txt:3
+#, python-format
+msgid ""
+"Bitte bestätige Deine Anfrage zum Zurücksetzen Deines %(site_name)s-"
+"Passworts."
+msgstr ""
+
+#: apps/mainsite/templates/account/email/password_reset_key_message.html:12
+#: apps/mainsite/templates/account/email/password_reset_key_message.txt:5
+#, python-format
+msgid ""
+"Du erhältst diese E-Mail, weil Du oder jemand anderes ein Passwort für Dein "
+"Benutzerkonto bei <b>%(site_domain)s</b> angefordert hat. Du kannst sie "
+"getrost ignorieren, wenn Du dieses Zurücksetzen nicht angefordert hast. Wenn "
+"Du das doch warst und Dein Passwort ändern möchtest, klicke auf die "
+"Schaltfläche unten."
+msgstr ""
+
+#: apps/mainsite/templates/admin/base_site.html:4
+msgid "Django site admin"
+msgstr ""
