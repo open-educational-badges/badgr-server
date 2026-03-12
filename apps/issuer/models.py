@@ -1019,6 +1019,9 @@ class BadgeClass(
     criteria_url = models.CharField(max_length=254, blank=True, null=True, default=None)
     criteria_text = models.TextField(blank=True, null=True)
     course_url = models.CharField(max_length=255, blank=True, null=True, default=None)
+    language = models.CharField(max_length=2, blank=True, null=True, default=None)
+    """Badge language as ISO 639-1 code"""
+
     expiration = models.IntegerField(
         blank=True,
         null=True,
