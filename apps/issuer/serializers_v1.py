@@ -469,7 +469,7 @@ class BadgeClassSerializerV1(
     course_url = StripTagsCharField(
         required=False, allow_blank=True, allow_null=True, validators=[URLValidator()]
     )
-    language = serializers.CharField(max_length=2, allow_blank=True, allow_null=True)
+    language = serializers.CharField(max_length=2)
     criteria = JSONField(required=False, allow_null=True)
     criteria_text = MarkdownCharField(required=False, allow_null=True, allow_blank=True)
     criteria_url = StripTagsCharField(
@@ -632,7 +632,7 @@ class BadgeClassSerializerV1(
 
             instance.expiration = validated_data.get("expiration", None)
             instance.course_url = validated_data.get("course_url", "")
-            instance.language = validated_data.get("language", None)
+            instance.language = validated_data.get("language", "en")
             instance.imageFrame = validated_data.get("imageFrame", True)
 
             instance.copy_permissions_list = validated_data.get(
