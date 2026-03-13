@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-13 12:42+0100\n"
+"POT-Creation-Date: 2026-03-13 13:12+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -239,45 +239,46 @@ msgstr ""
 msgid "Django site admin"
 msgstr ""
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:13
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:14
 #: apps/mainsite/templates/issuer/email/notify_earner_message.txt:5
 msgid "Congratulations"
 msgstr "Herzlichen Glückwunsch"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:23
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:24
 #, python-format
 msgid "you've received a <strong>MICRO DEGREE</strong> from %(issuer_name)s!"
 msgstr ""
 "du hast von %(issuer_name)s einen <strong>MICRO DEGREE</strong> erhalten!"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:27
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:28
 msgid "you've received a <strong>MICRO DEGREE</strong>!"
 msgstr "du hast einen <strong>MICRO DEGREE</strong> erhalten!"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:31
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:32
 #, python-format
 msgid "you've received a <strong>BADGE</strong> from %(issuer_name)s!"
 msgstr "du hast von %(issuer_name)s einen <strong>BADGE</strong> erhalten!"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:35
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:36
 msgid "you've received a <strong>BADGE</strong>!"
 msgstr "du hast einen <strong>BADGE</strong> erhalten!"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:50
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:51
 #, python-format
 msgid ""
 "You have successfully participated at the educational offering <span "
-"style=\"font-weight: 600;\">%(badge_name)s</span>"
+"style=\"font-weight: 600\">%(badge_name)s</span>"
 msgstr ""
 "Du hast erfolgreich an dem Lernangebot <span style=\"font-weight: 600;"
 "\">%(badge_name)s</span> teilgenommen."
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:61
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:64
+#, fuzzy
 msgid ""
-"By participating you have improved the following <span style='font-weight: "
-"600;'>competencies</span>:"
+"By participating you have improved the following <span style=\"font-weight: "
+"600\">competencies</span>:"
 msgstr ""
-"Dabei hast du folgende <span style='font-weight: 600;'>Kompetenzen</span> "
+"Dabei hast du folgende <span style=\"font-weight: 600;\">Kompetenzen</span> "
 "gestärkt:"
 
 #: apps/mainsite/templates/issuer/email/base_notify_award.html:106
@@ -285,40 +286,42 @@ msgstr ""
 msgid "Issued by:"
 msgstr "Vergeben von:"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:117
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:115
 msgid ""
-"You can find the <span style='font-weight: bold;'>Micro Degree file</span> "
-"next to the <span style='font-weight: bold;'>Badge-PDF</span> demonstrating "
+"You can find the <span style=\"font-weight: bold\">Micro Degree file</span> "
+"next to the <span style=\"font-weight: bold\">Badge-PDF</span> demonstrating "
 "your learning outcomes in this mails attachment."
 msgstr ""
-"Im Anhang dieser Mail findest du neben der <span style='font-weight: "
-"bold;'>Micro-Degree-Datei</span> ein <span style='font-weight: bold;'>Badge-"
+"Im Anhang dieser Mail findest du neben der <span style=\"font-weight: "
+"bold;\">Micro-Degree-Datei</span> ein <span style=\"font-weight: bold;\">Badge-"
 "PDF</span>, das deinen Lernerfolg ebenfalls ausweist."
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:127
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:128
 msgid ""
-"You can find the <span style='font-weight: bold;'>Badge file</span> next to "
-"the <span style='font-weight: bold;'>Badge-PDF</span> demonstrating your "
+"You can find the <span style=\"font-weight: bold\">Badge file</span> next to "
+"the <span style=\"font-weight: bold\">Badge-PDF</span> demonstrating your "
 "learning outcomes in this mails attachment."
 msgstr ""
-"Im Anhang dieser Mail findest du deine <span style='font-weight: "
-"bold;'>Badge-Datei</span> und das zugehörige <span style='font-weight: "
-"bold;'>Badge-PDF</span> zum Herunterladen."
+"Im Anhang dieser Mail findest du deine <span style=\"font-weight: "
+"bold;\">Badge-Datei</span> und das zugehörige <span style=\"font-weight: "
+"bold;\">Badge-PDF</span> zum Herunterladen."
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:137
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:138
 msgid "Share badge on LinkedIn"
 msgstr "Badge auf LinkedIn teilen"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:143
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:145
 msgid ""
-"Collect all your badges in your <a href='https://openbadges.education/"
-"recipient/badges?tab=badges' target='_blank' style='text-decoration:"
-"underline'>Open Educational Badges</a> backpack and use them for "
+"Collect all your badges in your <a href=\"https://openbadges.education/"
+"recipient/badges?tab=badges\" target=\"_blank\" style=\"text-decoration: "
+"underline\">Open Educational Badges</a> backpack and use them for "
 "applications. Just create your free account here:"
 msgstr ""
-"Alle deine erhaltenen Badges kannst du auf <a href='https://openbadges.education/recipient/badges?tab=badges' target='_blank' style='text-decoration:underline'>Open Educational Badges</a> in deinem "
-"Rucksack sammeln und für Bewerbungen zusammenstellen. Lege dafür einfach "
-"kostenlos einen Account an:"
+"Alle deine erhaltenen Badges kannst du auf <a href=\"https://openbadges."
+"education/recipient/badges?tab=badges\" target=\"_blank\" style=\"text-"
+"decoration:underline\">Open Educational Badges</a> in deinem Rucksack sammeln "
+"und für Bewerbungen zusammenstellen. Lege dafür einfach kostenlos einen "
+"Account an:"
 
 #: apps/mainsite/templates/issuer/email/notify_earner_message.txt:7
 msgid "you've received a MICRO DEGREE!"
