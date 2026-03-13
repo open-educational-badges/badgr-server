@@ -115,35 +115,33 @@ class BadgePDFCreator:
                     f"<strong>{activityStartDate.strftime('%d.%m.%Y')}"
                     f" – {activityEndDate.strftime('%d.%m.%Y')}</strong>"
                 )
-            text = "hat vom " + date_text
+            place_and_date_part = _("from %(date_text)s") % {"date_text": date_text}
         elif activityStartDate:
             date_text = f"<strong>{activityStartDate.strftime('%d.%m.%Y')}</strong>"
-            text = "hat am " + date_text
+            place_and_date_part = _("on %(date_text)s") % {"date_text": date_text}
         else:
             date_text = f"<strong>{issuedOn.strftime('%d.%m.%Y')}</strong>"
-            text = "hat am " + date_text
+            place_and_date_part = _("on %(date_text)s") % {"date_text": date_text}
 
         if activityCity:
-            text += f" <strong>in {activityCity}</strong>"
+            place_and_date_part += f" <strong>in {activityCity}</strong>"
         elif activityOnline:
-            text += " <strong>online</strong>"
-
-        p = Paragraph(text, text_style)
-        _, h = p.wrap(document_width, 3 * 22.5)
-        first_page_content.append(p)
-        self.used_space += h + 10
+            place_and_date_part += " <strong>online</strong>"
 
         studyload_text = self._format_studyload(studyload_minutes=studyLoad)
-        if studyload_text:
-            studyload_p = Paragraph(studyload_text, text_style)
-            _, studyload_h = studyload_p.wrap(document_width, 2 * text_style.leading)
-            first_page_content.append(studyload_p)
-            self.used_space += studyload_h + 10
 
-        text = "den folgenden Badge erworben:"
-        first_page_content.append(Paragraph(text, text_style))
+        text = _(
+            "earned the following Badge %(place_and_date_part)s %(duration_part)s:"
+        ) % {
+            "place_and_date_part": f"<br />{place_and_date_part}",
+            "duration_part": f"<br />{studyload_text}",
+        }
+
+        p = Paragraph(text, text_style)
+        __, h = p.wrap(document_width, 6 * text_style.leading)
+        first_page_content.append(p)
         first_page_content.append(Spacer(1, 10))
-        self.used_space += 43  # spacer and paragraph
+        self.used_space += 20 + h  # spacer and paragraph
 
     def add_title(self, first_page_content, badge_class_name):
         document_width, document_height = A4
@@ -230,22 +228,22 @@ class BadgePDFCreator:
         parts = []
 
         if hours > 0:
-            hour_unit = "Stunde" if hours == 1 else "Stunden"
+            hour_unit = _("hour") if hours == 1 else _("hours")
             parts.append(f"{hours} {hour_unit}")
 
         if minutes > 0:
-            minute_unit = "Minute" if minutes == 1 else "Minuten"
+            minute_unit = _("minute") if minutes == 1 else _("minutes")
             parts.append(f"{minutes} {minute_unit}")
 
         if not parts:
             return None
 
         if len(parts) == 2:
-            duration_text = f"{parts[0]} und {parts[1]}"
+            duration_text = f"{parts[0]} {_('and')} {parts[1]}"
         else:
             duration_text = parts[0]
 
-        return f"innerhalb von <strong>{duration_text}</strong>"
+        return f"{_('within')} <strong>{duration_text}</strong>"
 
     def add_description(self, first_page_content, description):
         description_style = ParagraphStyle(

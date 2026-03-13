@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-12 18:00+0100\n"
+"POT-Creation-Date: 2026-03-13 10:06+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,97 +20,128 @@ msgstr ""
 
 #: apps/badgeuser/models.py:41
 msgid "email address"
-msgstr ""
+msgstr "Email Adresse"
 
 #: apps/badgeuser/models.py:42
 msgid "email addresses"
-msgstr ""
+msgstr "Email Adressen"
 
 #: apps/badgeuser/models.py:122
 msgid "email confirmation"
-msgstr ""
+msgstr "Email Bestätigung"
 
 #: apps/badgeuser/models.py:123
 msgid "email confirmations"
-msgstr ""
+msgstr "Email Bestätigungen"
 
 #: apps/badgeuser/models.py:264
 msgid "badge user"
-msgstr ""
+msgstr "Badge User"
 
 #: apps/badgeuser/models.py:265
 msgid "badge users"
-msgstr ""
+msgstr "Badge User"
 
 #: apps/mainsite/admin.py:50
 msgid "Badgr"
-msgstr ""
+msgstr "Badgr"
 
 #: apps/mainsite/admin_actions.py:48
 #, python-format
 msgid "Successfully deleted %(count)d %(items)s."
-msgstr ""
+msgstr "%(count)d %(items)s erfolgreich gelöscht."
 
 #: apps/mainsite/admin_actions.py:61
 #, python-format
 msgid "Cannot delete %(name)s"
-msgstr ""
+msgstr "%(name)s konnte nicht gelöscht werden"
 
 #: apps/mainsite/admin_actions.py:63
 msgid "Are you sure?"
-msgstr ""
+msgstr "Bist du sicher?"
 
 #: apps/mainsite/admin_actions.py:92
 #, python-format
 msgid "Delete selected %(verbose_name_plural)s"
-msgstr ""
+msgstr "Ausgewählte %(verbose_name_plural)s löschen"
 
-#: apps/mainsite/badge_pdf.py:407 apps/mainsite/badge_pdf.py:428
+#: apps/mainsite/badge_pdf.py:118
+#, python-format
+msgid "from %(date_text)s"
+msgstr "hat vom %(date_text)s"
+
+#: apps/mainsite/badge_pdf.py:121 apps/mainsite/badge_pdf.py:124
+#, python-format
+msgid "on %(date_text)s"
+msgstr "hat am %(date_text)s"
+
+#: apps/mainsite/badge_pdf.py:134
+#, python-format
+msgid "earned the following Badge %(place_and_date_part)s %(duration_part)s:"
+msgstr "%(place_and_date_part)s %(duration_part)s den folgenden Badge erhalten:"
+
+#: apps/mainsite/badge_pdf.py:231
+msgid "hour"
+msgstr "Stunde"
+
+#: apps/mainsite/badge_pdf.py:231
+msgid "hours"
+msgstr "Stunden"
+
+#: apps/mainsite/badge_pdf.py:235
+msgid "minute"
+msgstr "Minute"
+
+#: apps/mainsite/badge_pdf.py:235
+msgid "minutes"
+msgstr "Minuten"
+
+#: apps/mainsite/badge_pdf.py:405 apps/mainsite/badge_pdf.py:426
 msgid "<strong>Competencies</strong>"
-msgstr ""
+msgstr "<strong>Kompetenzen</strong>"
 
-#: apps/mainsite/badge_pdf.py:411 apps/mainsite/badge_pdf.py:434
+#: apps/mainsite/badge_pdf.py:409 apps/mainsite/badge_pdf.py:432
 #, python-format
 msgid "that %(name)s has acquired with the Badge %(badge_name)s:"
-msgstr ""
+msgstr "die %(name)s mit dem Badge %(badge_name)s erworben hat:"
 
-#: apps/mainsite/badge_pdf.py:499 apps/mainsite/badge_pdf.py:526
+#: apps/mainsite/badge_pdf.py:497 apps/mainsite/badge_pdf.py:524
 #, python-format
 msgid "that %(name)s has acquired with the Micro Degree %(md_name)s:"
-msgstr ""
+msgstr "die %(name)s mit dem Micro Degree %(md_name)s erworben hat:"
 
-#: apps/mainsite/badge_pdf.py:609 apps/mainsite/badge_pdf.py:634
-#: apps/mainsite/badge_pdf.py:654
+#: apps/mainsite/badge_pdf.py:607 apps/mainsite/badge_pdf.py:632
+#: apps/mainsite/badge_pdf.py:652
 msgid "Award Criteria"
-msgstr ""
+msgstr "Vergabe-Kriterien"
 
-#: apps/mainsite/badge_pdf.py:734
+#: apps/mainsite/badge_pdf.py:732
 msgid "Narrative"
-msgstr ""
+msgstr "Narrativ"
 
-#: apps/mainsite/badge_pdf.py:749
+#: apps/mainsite/badge_pdf.py:747
 msgid ""
 "A link to the proof is provided on the badge details page (see QR code, page "
 "1)."
-msgstr ""
+msgstr "Auf der Badge-Detail-Seite ist ein Link zum Nachweis hinterlegt (s. QR-Code, Seite 1)."
 
-#: apps/mainsite/badge_pdf.py:808
+#: apps/mainsite/badge_pdf.py:806
 msgid "CERTIFICATE"
-msgstr ""
+msgstr "ZERTIFIKAT"
 
-#: apps/mainsite/badge_pdf.py:1163
+#: apps/mainsite/badge_pdf.py:1161
 msgid ""
 "(E) = Competency according to ESCO (European Skills, Competences, "
 "Qualifications and Occupations)."
-msgstr ""
+msgstr "(E) = Kompetenz nach ESCO (European Skills, Competences, Qualifications and Occupations)."
 
-#: apps/mainsite/badge_pdf.py:1165
+#: apps/mainsite/badge_pdf.py:1163
 msgid "The competence descriptions according to ESCO are available at "
-msgstr ""
+msgstr "Die Kompetenzbeschreibung gemäß ESCO sind abrufbar über "
 
 #: apps/mainsite/drf_fields.py:19
 msgid "Base64 string is incorrect"
-msgstr ""
+msgstr "Ungültiger Base64 String"
 
 #: apps/mainsite/templates/account/email/email_badge_request_subject.txt:3
 msgid "Badge-Anfragen per QR-Code"
