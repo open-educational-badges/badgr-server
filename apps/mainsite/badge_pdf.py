@@ -352,10 +352,10 @@ class BadgePDFCreator:
             alignment=TA_CENTER,
         )
         content_html = (
-            '<span fontName="Rubik-Bold">ERSTELLT ÜBER '
+            f'<span fontName="Rubik-Bold">{_("CREATED VIA")} '
             '<a href="https://openbadges.education" color="#1400FF" underline="true">'
             "OPENBADGES.EDUCATION</a></span><br/>"
-            '<span fontName="Rubik-Regular">Der digitale Badge kann über den QR-Code abgerufen werden.</span>'
+            f'<span fontName="Rubik-Regular">{_("Use the QR code to retrieve the digital badge.")}</span>'
         )
 
         p = Paragraph(content_html, footer_style)
@@ -404,7 +404,7 @@ class BadgePDFCreator:
                 alignment=TA_LEFT,
             )
 
-            Story.append(Paragraph(_("<strong>Competencies</strong>")))
+            Story.append(Paragraph(_("<strong>Competencies</strong>"), title_style))
             Story.append(Spacer(1, 15))
             page_used_space += 35  # Title height + spacing
 
@@ -1165,7 +1165,7 @@ class PageNumCanvas(canvas.Canvas):
         line2 = _("The competence descriptions according to ESCO are available at ")
         line3 = '<a color="blue" href="https://esco.ec.europa.eu/">https://esco.ec.europa.eu/</a>.</i></span>'
 
-        link_text = line0 + "<br />" + line1 + line2 + line3
+        link_text = line0 + line1 + "<br />" + line2 + line3
         paragraph_with_link = Paragraph(link_text, text_style)
         story = [paragraph_with_link]
         story[0].wrapOn(self, page_width - 20, 50)
