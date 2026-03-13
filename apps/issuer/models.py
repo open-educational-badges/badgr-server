@@ -2073,6 +2073,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                 "badge_category": categoryExtension["Category"],
                 "badge_id": self.entity_id,
                 "badge_description": self.badgeclass.description,
+                "badge_language": self.badgeclass.language,
                 "badge_competencies": competencies,
                 "help_email": getattr(settings, "HELP_EMAIL", "info@opensenselab.org"),
                 "issuer_name": self.issuer.name,
