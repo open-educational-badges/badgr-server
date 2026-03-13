@@ -1,7 +1,7 @@
 # Best practies taken from here: https://snyk.io/blog/best-practices-containerizing-python-docker/
 
 # ------------------------------> Build image
-FROM python:3.10-slim-bookworm AS build
+FROM python:3.14-slim-bookworm AS build
 RUN apt-get clean all && apt-get update
 RUN apt-get install -y default-libmysqlclient-dev \
                        python3-dev \
@@ -22,7 +22,7 @@ COPY requirements.txt .
 RUN pip install --no-dependencies -r requirements.txt
 
 # ------------------------------> Final image
-FROM python:3.10-slim-bookworm
+FROM python:3.14-slim-bookworm
 RUN apt-get update
 RUN apt-get install -y default-libmysqlclient-dev \
                        python3-cairo \
