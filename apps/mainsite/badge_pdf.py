@@ -129,12 +129,15 @@ class BadgePDFCreator:
             place_and_date_part += " <strong>online</strong>"
 
         studyload_text = self._format_studyload(studyload_minutes=studyLoad)
+        studyload_text = (
+            f"<br />{studyload_text}" if studyload_text is not None else None
+        )
 
         text = _(
-            "earned the following Badge %(place_and_date_part)s %(duration_part)s:"
+            "earned the following Badge <br />%(place_and_date_part)s %(duration_part)s:"
         ) % {
-            "place_and_date_part": f"<br />{place_and_date_part}",
-            "duration_part": f"<br />{studyload_text}",
+            "place_and_date_part": place_and_date_part,
+            "duration_part": studyload_text,
         }
 
         p = Paragraph(text, text_style)
@@ -238,12 +241,14 @@ class BadgePDFCreator:
         if not parts:
             return None
 
+        and_word = _("and")
+        within_word = _("within")
         if len(parts) == 2:
-            duration_text = f"{parts[0]} {_('and')} {parts[1]}"
+            duration_text = f"{parts[0]} {and_word} {parts[1]}"
         else:
             duration_text = parts[0]
 
-        return f"{_('within')} <strong>{duration_text}</strong>"
+        return f"{within_word} <strong>{duration_text}</strong>"
 
     def add_description(self, first_page_content, description):
         description_style = ParagraphStyle(

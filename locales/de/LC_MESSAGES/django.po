@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-13 10:06+0100\n"
+"POT-Creation-Date: 2026-03-13 10:24+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -75,67 +75,81 @@ msgstr "hat vom %(date_text)s"
 msgid "on %(date_text)s"
 msgstr "hat am %(date_text)s"
 
-#: apps/mainsite/badge_pdf.py:134
+#: apps/mainsite/badge_pdf.py:137
 #, python-format
-msgid "earned the following Badge %(place_and_date_part)s %(duration_part)s:"
-msgstr "%(place_and_date_part)s %(duration_part)s den folgenden Badge erhalten:"
+msgid ""
+"earned the following Badge <br />%(place_and_date_part)s %(duration_part)s:"
+msgstr ""
+"%(place_and_date_part)s %(duration_part)s<br/> den folgenden Badge erhalten:"
 
-#: apps/mainsite/badge_pdf.py:231
+#: apps/mainsite/badge_pdf.py:234
 msgid "hour"
 msgstr "Stunde"
 
-#: apps/mainsite/badge_pdf.py:231
+#: apps/mainsite/badge_pdf.py:234
 msgid "hours"
 msgstr "Stunden"
 
-#: apps/mainsite/badge_pdf.py:235
+#: apps/mainsite/badge_pdf.py:238
 msgid "minute"
 msgstr "Minute"
 
-#: apps/mainsite/badge_pdf.py:235
+#: apps/mainsite/badge_pdf.py:238
 msgid "minutes"
 msgstr "Minuten"
 
-#: apps/mainsite/badge_pdf.py:405 apps/mainsite/badge_pdf.py:426
+#: apps/mainsite/badge_pdf.py:244
+msgid "and"
+msgstr "und"
+
+#: apps/mainsite/badge_pdf.py:245
+msgid "within"
+msgstr "innerhalb von"
+
+#: apps/mainsite/badge_pdf.py:410 apps/mainsite/badge_pdf.py:431
 msgid "<strong>Competencies</strong>"
 msgstr "<strong>Kompetenzen</strong>"
 
-#: apps/mainsite/badge_pdf.py:409 apps/mainsite/badge_pdf.py:432
+#: apps/mainsite/badge_pdf.py:414 apps/mainsite/badge_pdf.py:437
 #, python-format
 msgid "that %(name)s has acquired with the Badge %(badge_name)s:"
 msgstr "die %(name)s mit dem Badge %(badge_name)s erworben hat:"
 
-#: apps/mainsite/badge_pdf.py:497 apps/mainsite/badge_pdf.py:524
+#: apps/mainsite/badge_pdf.py:502 apps/mainsite/badge_pdf.py:529
 #, python-format
 msgid "that %(name)s has acquired with the Micro Degree %(md_name)s:"
 msgstr "die %(name)s mit dem Micro Degree %(md_name)s erworben hat:"
 
-#: apps/mainsite/badge_pdf.py:607 apps/mainsite/badge_pdf.py:632
-#: apps/mainsite/badge_pdf.py:652
+#: apps/mainsite/badge_pdf.py:612 apps/mainsite/badge_pdf.py:637
+#: apps/mainsite/badge_pdf.py:657
 msgid "Award Criteria"
 msgstr "Vergabe-Kriterien"
 
-#: apps/mainsite/badge_pdf.py:732
+#: apps/mainsite/badge_pdf.py:737
 msgid "Narrative"
 msgstr "Narrativ"
 
-#: apps/mainsite/badge_pdf.py:747
+#: apps/mainsite/badge_pdf.py:752
 msgid ""
 "A link to the proof is provided on the badge details page (see QR code, page "
 "1)."
-msgstr "Auf der Badge-Detail-Seite ist ein Link zum Nachweis hinterlegt (s. QR-Code, Seite 1)."
+msgstr ""
+"Auf der Badge-Detail-Seite ist ein Link zum Nachweis hinterlegt (s. QR-Code, "
+"Seite 1)."
 
-#: apps/mainsite/badge_pdf.py:806
+#: apps/mainsite/badge_pdf.py:811
 msgid "CERTIFICATE"
 msgstr "ZERTIFIKAT"
 
-#: apps/mainsite/badge_pdf.py:1161
+#: apps/mainsite/badge_pdf.py:1166
 msgid ""
 "(E) = Competency according to ESCO (European Skills, Competences, "
 "Qualifications and Occupations)."
-msgstr "(E) = Kompetenz nach ESCO (European Skills, Competences, Qualifications and Occupations)."
+msgstr ""
+"(E) = Kompetenz nach ESCO (European Skills, Competences, Qualifications and "
+"Occupations)."
 
-#: apps/mainsite/badge_pdf.py:1163
+#: apps/mainsite/badge_pdf.py:1168
 msgid "The competence descriptions according to ESCO are available at "
 msgstr "Die Kompetenzbeschreibung gemäß ESCO sind abrufbar über "
 
