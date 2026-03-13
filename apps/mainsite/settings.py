@@ -382,7 +382,10 @@ CAIROSVG_VERSION_SUFFIX = "2"
 
 SITE_ID = 2
 
-USE_I18N = False
+USE_I18N = True
+LOCALE_PATHS = [os.path.join(TOP_DIR, "locales")]
+
+
 USE_L10N = False
 USE_TZ = True
 

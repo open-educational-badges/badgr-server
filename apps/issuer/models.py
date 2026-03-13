@@ -1019,6 +1019,9 @@ class BadgeClass(
     criteria_url = models.CharField(max_length=254, blank=True, null=True, default=None)
     criteria_text = models.TextField(blank=True, null=True)
     course_url = models.CharField(max_length=255, blank=True, null=True, default=None)
+    language = models.CharField(max_length=2, blank=True, null=True, default="en")
+    """Badge language as ISO 639-1 code"""
+
     expiration = models.IntegerField(
         blank=True,
         null=True,
@@ -2070,6 +2073,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                 "badge_category": categoryExtension["Category"],
                 "badge_id": self.entity_id,
                 "badge_description": self.badgeclass.description,
+                "badge_language": self.badgeclass.language,
                 "badge_competencies": competencies,
                 "help_email": getattr(settings, "HELP_EMAIL", "info@opensenselab.org"),
                 "issuer_name": self.issuer.name,

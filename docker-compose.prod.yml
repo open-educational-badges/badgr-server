@@ -8,7 +8,8 @@ services:
       - badgr_server_api_sock:/badgr_server/sock
       - badgr_server_staticfiles:/badgr_server/staticfiles
       - badgr_server_mediafiles:/badgr_server/mediafiles
-    command: chown -R 999:999 /badgr_server/sock /badgr_server/staticfiles /badgr_server/mediafiles
+      - badgr_server_locales:/badgr_server/locales
+    command: chown -R 999:999 /badgr_server/sock /badgr_server/staticfiles /badgr_server/mediafiles /badgr_server/locales
 
   # this container copies in the project code and runs the app with uwsgi
   api:
@@ -28,6 +29,7 @@ services:
       - badgr_server_api_sock:/badgr_server/sock
       - badgr_server_mediafiles:/badgr_server/mediafiles
       - badgr_server_staticfiles:/badgr_server/staticfiles
+      - badgr_server_locales:/badgr_server/locales
     networks:
       - badgr
     environment:
@@ -82,6 +84,7 @@ services:
       - badgr_server_api_sock:/sock
       - badgr_server_mediafiles:/mediafiles
       - badgr_server_staticfiles:/staticfiles
+      - badgr_server_locales:/badgr_server/locales
     depends_on:
       - "api"
     networks:
@@ -101,6 +104,7 @@ services:
       bash -c "PYTHONPATH=/badgr_server/apps celery -A mainsite worker --loglevel=info"
     volumes:
       - badgr_server_mediafiles:/badgr_server/mediafiles
+      - badgr_server_locales:/badgr_server/locales
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -130,4 +134,5 @@ volumes:
   badgr_server_api_sock:
   badgr_server_mediafiles:
   badgr_server_staticfiles:
+  badgr_server_locales:
   badgr_server_prod_db:
