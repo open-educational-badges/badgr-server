@@ -603,6 +603,7 @@ class V1BadgeClassSerializer(serializers.Serializer):
     criteria_url = BadgeURLField(required=False)
     issuer = V1IssuerSerializer()
     tags = serializers.ListField(child=BadgeStringField(), required=False)
+    areas = serializers.ListField(child=BadgeStringField(), required=False)
     slug = BadgeStringField()
 
     def to_representation(self, instance):
