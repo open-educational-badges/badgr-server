@@ -220,13 +220,23 @@ def geocode(addr_string: str):
     return geoloc
 
 
+# quota check decorator
 def quota_check(quota_name: str):
     def decorator(function):
         def wrapper(*args, **kwargs):
             issuer = args[0].get_object(args[1], **kwargs)
-            quota = issuer.get_quota_usage(quota_name)
-            if not quota:
+            max_quota = issuer.get_max_quota(quota_name)
+            quota_usage = issuer.get_quota_usage(quota_name)
+
+            # FIXME: currently the learning path creation process creates a participation badge without LP connection first
+            # so as a quickfix we allow the BADGE_CREATE quota to be exceeded by one
+            # this should be removed once the learning path creation process can be updated
+            if quota_name == 'BADGE_CREATE':
+                quota_usage = max(0, quota_usage - 1)
+
+            if max(0, max_quota - quota_usage) == 0:
                 raise BadgrQuotaExceededException
+
             return function(*args, **kwargs)
         return wrapper
     return decorator

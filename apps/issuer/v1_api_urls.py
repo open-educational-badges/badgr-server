@@ -35,8 +35,7 @@ from issuer.api import (
     QRCodeDetail,
     BadgeImageComposition,
     QRCodeList,
-    UpgradeQuotaRequestView,
-    IndividualQuotaRequestView,
+    QuotaUpgradeRequestView,
 )
 from issuer.api_v1 import FindBadgeClassDetail, IssuerAiSkills, IssuerStaffList
 
@@ -231,12 +230,7 @@ urlpatterns = [
     ),
     re_path(
         r"^issuers/(?P<issuerSlug>[^/]+)/upgradeQuota$",
-        UpgradeQuotaRequestView.as_view(),
+        QuotaUpgradeRequestView.as_view(),
         name="v1_api_issuer_upgrade_quota_request",
-    ),
-    re_path(
-        r"^issuers/(?P<issuerSlug>[^/]+)/individualQuota$",
-        IndividualQuotaRequestView.as_view(),
-        name="v1_api_issuer_individual_quota_request",
     ),
 ]

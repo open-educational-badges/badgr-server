@@ -53,9 +53,7 @@ from .models import (
     Quota,
     RequestedBadge,
     RequestedLearningPath,
-    UpgradeQuotaRequest,
-    IndividualQuotaRequest,
-    QuotaPackageDefaults,
+    QuotaUpgradeRequest,
 )
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
@@ -213,7 +211,7 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
         representation["json"] = instance.get_json(
             obi_version="1_1", use_canonical_id=True
         )
-        # representation["badgeClassCount"] = len(instance.cached_badgeclasses())
+        representation["badgeClassCount"] = len(instance.cached_badgeclasses())
         # TODO: retrieve from cache?
         representation["learningPathCount"] = instance.learningpaths.count()
         representation["partnerBadgesCount"] = instance.shared_badges.count()
@@ -431,7 +429,7 @@ class QuotaRepresentationMixin(serializers.Serializer):
                 if type(usage) is int:
                     return {
                         "used": usage,
-                        "quota": max(0, max_quota - usage),
+                        "quota": -1 if max_quota == -1 else max(0, max_quota - usage),
                         "max": max_quota,
                         "custom": custom,
                     }
@@ -1460,12 +1458,12 @@ class BadgeClassNetworkShareSerializerV1(serializers.ModelSerializer):
         ).count()
 
 
-class UpgradeQuotaRequestSerializer(serializers.Serializer):
+class QuotaUpgradeRequestSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=254, required=True)
     email = serializers.EmailField(max_length=254, required=True)
     issuer_id = serializers.CharField(max_length=254, required=True)
-    package = serializers.CharField(
-        validators=[ChoicesValidator(list(dict(QuotaPackageDefaults.choices).keys()))],
+    quota = serializers.CharField(
+        validators=[lambda value: Quota.objects.get(key=value)],
         required=True
     )
 
@@ -1479,41 +1477,15 @@ class UpgradeQuotaRequestSerializer(serializers.Serializer):
                 f"Issuer with ID '{issuer_id}' does not exist."
             )
 
-        new_upgradequotarequest = UpgradeQuotaRequest.objects.create(
+        quota = Quota.objects.get(key=validated_data.get("quota"))
+
+        new_QuotaUpgradeRequest = QuotaUpgradeRequest.objects.create(
             name=validated_data.get("name"),
             email=validated_data.get("email"),
             issuer=issuer,
-            package=validated_data.get("package")
+            quota=quota
         )
 
-        new_upgradequotarequest.notify()
+        new_QuotaUpgradeRequest.notify()
 
-        return new_upgradequotarequest
-
-
-class IndividualQuotaRequestSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=254, required=True)
-    email = serializers.EmailField(max_length=254, required=True)
-    issuer_id = serializers.CharField(max_length=254, required=True)
-    message = serializers.CharField(required=True)
-
-    def create(self, validated_data, **kwargs):
-        issuer_id = validated_data.get("issuer_id")
-
-        try:
-            issuer = Issuer.objects.get(entity_id=issuer_id)
-        except Issuer.DoesNotExist:
-            raise serializers.ValidationError(
-                f"Issuer with ID '{issuer_id}' does not exist."
-            )
-
-        new_individualquotarequest = IndividualQuotaRequest.objects.create(
-            name=validated_data.get("name"),
-            email=validated_data.get("email"),
-            issuer=issuer,
-            message=validated_data.get("message")
-        )
-
-        new_individualquotarequest.notify()
-
-        return new_individualquotarequest
+        return new_QuotaUpgradeRequest

@@ -353,6 +353,7 @@ class Issuer(
         if quota_name == "BADGE_CREATE":
             value = len(
                 self.cached_badgeclasses()
+                    .filter(learningpath_as_participationbadge=None)
                     .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
             )
 
@@ -360,8 +361,22 @@ class Issuer(
             value = len(
                 self.badgeinstance_set.all()
                     .filter(revoked=False)
+                    # this removes network badges from the count
+                    .filter(badgeclass__issuer=self)
+                    # this removes partner badges from the count
+                    .filter(badgeclass__network_shares__id=None)
                     .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
             )
+            # if network, find network and partner badge instances
+            if self.is_network:
+                value += len(
+                    BadgeInstance.objects
+                        .filter(revoked=False)
+                        .filter(
+                            Q(badgeclass__issuer=self)
+                            | Q(badgeclass__network_shares__network=self)
+                        )
+                )
 
         if quota_name == "LEARNINGPATH_CREATE":
             value = len(
@@ -400,7 +415,7 @@ class Issuer(
             if attr is not None:
                 return attr
         except AttributeError as e:
-            print(e)
+            pass
 
         quota = self.get_quota_object()
 
@@ -418,7 +433,7 @@ class Issuer(
             attr = getattr(self, f'quota_{quota_name.lower()}')
             if attr is not None:
                 try:
-                    return getattr(self.quota, quota_name.lower()) != attr
+                    return getattr(self.get_quota_object(), quota_name.lower()) != attr
                 except AttributeError:
                     return False
         except AttributeError as e:
@@ -3176,7 +3191,7 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
         related_name="learningpaths",
     )
     participationBadge = models.ForeignKey(
-        BadgeClass, blank=False, null=False, on_delete=models.CASCADE
+        BadgeClass, blank=False, null=False, on_delete=models.CASCADE, related_name='learningpath_as_participationbadge'
     )
     badgrapp = models.ForeignKey(
         "mainsite.BadgrApp",
@@ -3416,9 +3431,9 @@ class Quota(cachemodel.CacheModel):
     name = models.CharField(max_length=254, blank=False, null=False)
     key = models.CharField(max_length=254, blank=False, null=False, unique=True)
     price = models.FloatField(blank=True, null=True)
-    upgrade = models.OneToOneField("Quota", on_delete=models.SET_NULL, blank=True, null=True)
+    upgrade = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
     default = models.CharField(
-        max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE
+        max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE, unique=True
     )
 
     badge_create = models.PositiveIntegerField(verbose_name="Create Badges")
@@ -3434,7 +3449,8 @@ class Quota(cachemodel.CacheModel):
         return str(self.name)
 
 
-class QuotaRequest(models.Model):
+
+class QuotaUpgradeRequest(models.Model):
     name = models.CharField(max_length=254, blank=False, null=False)
     email = models.EmailField(blank=False, null=False)
     issuer = models.ForeignKey(
@@ -3442,38 +3458,7 @@ class QuotaRequest(models.Model):
         on_delete=models.CASCADE,
         related_name="quota_requests",
     )
-
-    def notify(self):
-        """
-        Send an email notification to the sales team.
-        """
-
-        adapter = get_adapter()
-
-        email_context = {
-            "name": self.name,
-            "email": self.email,
-            "issuer": self.issuer.name,
-            "category": "default",
-        }
-
-        template_name = "issuer/email/quotas/notify_sales"
-
-        adapter.send_mail(
-            template_name,
-            getattr(settings, "QUOTAS_RECIPIENT_EMAIL", "sales@openbadges.education"),
-            context=email_context
-        )
-
-
-class QuotaPackageDefaults(models.TextChoices):
-    FREE = "free", "Free"
-    PRO = "pro", "Pro"
-    ENTERPRISE = "enterprise", "Enterprise"
-    NETWORK = "network", "Network"
-
-class UpgradeQuotaRequest(QuotaRequest):
-    package = models.CharField(max_length=254, choices=QuotaPackageDefaults.choices, blank=False, null=False)
+    quota = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
 
     class Meta:
         verbose_name_plural  = "Quotas: Upgrade Requests"
@@ -3489,8 +3474,8 @@ class UpgradeQuotaRequest(QuotaRequest):
             "name": self.name,
             "email": self.email,
             "issuer": self.issuer.name,
-            "package": self.get_package_display,
-            "category": "upgrade",
+            "issuerPk": self.issuer.pk,
+            "quota": self.quota.name,
         }
 
         template_name = "issuer/email/quotas/notify_sales"
@@ -3501,35 +3486,6 @@ class UpgradeQuotaRequest(QuotaRequest):
             context=email_context
         )
 
-
-class IndividualQuotaRequest(QuotaRequest):
-    message = models.TextField(blank=False, null=False)
-
-    class Meta:
-        verbose_name_plural  = "Quotas: Individual Requests"
-
-    def notify(self):
-        """
-        Send an email notification to the sales team.
-        """
-
-        adapter = get_adapter()
-
-        email_context = {
-            "name": self.name,
-            "email": self.email,
-            "issuer": self.issuer.name,
-            "message": self.message,
-            "category": "individual",
-        }
-
-        template_name = "issuer/email/quotas/notify_sales"
-
-        adapter.send_mail(
-            template_name,
-            getattr(settings, "QUOTAS_RECIPIENT_EMAIL", "sales@openbadges.education"),
-            context=email_context
-        )
 
 
 class AiSkillRequest(BaseAuditedModel):

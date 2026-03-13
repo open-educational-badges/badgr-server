@@ -36,8 +36,7 @@ from .models import (
     RequestedLearningPath,
     IssuerStaffRequest,
     ImportedBadgeAssertion,
-    UpgradeQuotaRequest,
-    IndividualQuotaRequest,
+    QuotaUpgradeRequest,
 )
 from .tasks import resend_notifications
 import csv
@@ -320,7 +319,7 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
 
         def help_text_int_fn(quota_name):
             try:
-                return f"{( instance.get_quota_usage(quota_name))} / {instance.get_max_quota(quota_name)}"
+                return f"{( instance.get_quota_usage(quota_name))} / {instance.get_max_quota(quota_name)}{ '*' if instance.is_custom_quota(quota_name) else '' }"
             except TypeError:
                 return ""
 
@@ -883,16 +882,10 @@ class QuotaAdmin(ModelAdmin):
 badgr_admin.register(Quota, QuotaAdmin)
 
 
-class UpgradeQuotaRequestAdmin(ModelAdmin):
-    list_display = ("name", "email", "issuer", "package")
+class QuotaUpgradeRequestAdmin(ModelAdmin):
+    list_display = ("name", "email", "issuer", "quota")
 
-badgr_admin.register(UpgradeQuotaRequest, UpgradeQuotaRequestAdmin)
-
-
-class IndividualQuotaRequestAdmin(ModelAdmin):
-    list_display = ("name", "email", "issuer", "message")
-
-badgr_admin.register(IndividualQuotaRequest, IndividualQuotaRequestAdmin)
+badgr_admin.register(QuotaUpgradeRequest, QuotaUpgradeRequestAdmin)
 
 
 class AiSkillRequestsAdmin(ModelAdmin):

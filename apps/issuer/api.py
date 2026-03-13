@@ -23,6 +23,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from apps.issuer.utils import quota_check
+from apps.mainsite.exceptions import BadgrQuotaExceededException
 from entity.api import (
     BaseEntityDetailView,
     BaseEntityListView,
@@ -43,8 +44,7 @@ from issuer.models import (
     NetworkMembership,
     QrCode,
     RequestedBadge,
-    UpgradeQuotaRequest,
-    IndividualQuotaRequest,
+    QuotaUpgradeRequest,
 )
 from issuer.permissions import (
     ApprovedIssuersOnly,
@@ -75,8 +75,7 @@ from issuer.serializers_v1 import (
     QrCodeSerializerV1,
     RequestedBadgeSerializer,
     BadgeClassNetworkShareSerializerV1,
-    UpgradeQuotaRequestSerializer,
-    IndividualQuotaRequestSerializer,
+    QuotaUpgradeRequestSerializer,
 )
 from issuer.serializers_v2 import (
     BadgeClassSerializerV2,
@@ -838,10 +837,21 @@ class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
         if not self.has_object_permissions(request, badgeclass):
             return Response(status=HTTP_404_NOT_FOUND)
 
+
         try:
             create_notification = request.data.get("create_notification", False)
         except AttributeError:
             return Response(status=HTTP_400_BAD_REQUEST)
+
+
+        # raise error if creating assertions would exceed quota
+        issuer = Issuer.objects.get(entity_id=issuerSlug)
+        max_quota = issuer.get_max_quota('BADGE_AWARD')
+        usage = issuer.get_quota_usage('BADGE_AWARD')
+        if max_quota is not None and max(0, max_quota - usage) < len(assertions):
+            raise BadgrQuotaExceededException
+
+        return Response(status=HTTP_404_NOT_FOUND)
 
         # Start async task
         task = process_batch_assertions.delay(
@@ -2814,8 +2824,8 @@ class BadgeClassNetworkShareView(BaseEntityDetailView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class UpgradeQuotaRequestView(BaseEntityListView):
-    model = UpgradeQuotaRequest
+class QuotaUpgradeRequestView(BaseEntityListView):
+    model = QuotaUpgradeRequest
     permission_classes = [
         IsServerAdmin
         | (
@@ -2824,35 +2834,13 @@ class UpgradeQuotaRequestView(BaseEntityListView):
         )
         | BadgrOAuthTokenHasEntityScope
     ]
-    serializer_class = UpgradeQuotaRequestSerializer
+    serializer_class = QuotaUpgradeRequestSerializer
     valid_scopes = ["rw:issuer", "rw:issuer:*"]
 
     @extend_schema(
         summary="Create a new upgrade quota request",
         tags=["QuotaRequests"],
-        request=UpgradeQuotaRequestSerializer(many=True),
-    )
-    def post(self, request, **kwargs):
-        return super().post(request, **kwargs)
-
-
-class IndividualQuotaRequestView(BaseEntityListView):
-    model = IndividualQuotaRequest
-    permission_classes = [
-        IsServerAdmin
-        | (
-            AuthenticatedWithVerifiedIdentifier
-            & BadgrOAuthTokenHasScope
-        )
-        | BadgrOAuthTokenHasEntityScope
-    ]
-    serializer_class = IndividualQuotaRequestSerializer
-    valid_scopes = ["rw:issuer", "rw:issuer:*"]
-
-    @extend_schema(
-        summary="Create a new individual quota request",
-        tags=["QuotaRequests"],
-        request=IndividualQuotaRequestSerializer(many=True),
+        request=QuotaUpgradeRequestSerializer(many=True),
     )
     def post(self, request, **kwargs):
         return super().post(request, **kwargs)
