@@ -1,66 +1,76 @@
 {% extends "email/base.html" %}
 {% load static %}
 {% load mjml %}
-{% load i18n %}
+{% load i18n
+%}
 {% with lang=badge_language|default:"en" %}
     {% language lang %}
-        {% mjml %}
-        {% block main %}
-            <mj-section>
-            <mj-column>
-            <mj-image src="{% static '/images/Logo-Oeb.png' %}" alt="Logo" href="https://openbadges.education" padding-right="25px" width="150px" height="77px" align="right" />
-            <mj-text font-size="24px">
-            <span style="font-weight: bold;">{% translate "Congratulations" %}</span>
-            {% if name %}
-                <br />
-                <span>{{ name }},</span>
-            {% else %}
-                ,
-            {% endif %}
+        {% mjml %} {%
+        block main %}
+        <mj-section>
+        <mj-column>
+        <mj-image src="{% static '/images/Logo-Oeb.png' %}" alt="Logo" href="https://openbadges.education" padding-right="25px" width="150px" height="77px" align="right" />
+        <mj-text font-size="24px">
+        <span style="font-weight: bold">{% translate "Congratulations" %}</span>
+        {% if name %}
             <br />
-            {% if badge_category == "learningpath" %}
-                {% if issuer_name %}
-                    {% blocktranslate trimmed %}
-                        you've received a <strong>MICRO DEGREE</strong> from {{ issuer_name }}!
-                    {% endblocktranslate %}
-                {% else %}
-                    {% translate "you've received a <strong>MICRO DEGREE</strong>!" %}
-                {% endif %}
+            <span>{{ name }},</span>
+        {% else %}
+            ,
+        {% endif %}
+        <br />
+        {% if badge_category == "learningpath" %}
+            {% if issuer_name %}
+                {%
+                blocktranslate trimmed %} you've received a
+                <strong>MICRO DEGREE</strong> from {{ issuer_name }}! {%
+                endblocktranslate %}
             {% else %}
-                {% if issuer_name %}
-                    {% blocktranslate trimmed %}
-                        you've received a <strong>BADGE</strong> from {{ issuer_name }}!
-                    {% endblocktranslate %}
-                {% else %}
-                    {% translate "you've received a <strong>BADGE</strong>!" %}
-                {% endif %}
+                {% translate "you've received a
+                <strong>MICRO DEGREE</strong>!" %}
             {% endif %}
+        {% else %}
+            {% if
+                issuer_name %}
+                {% blocktranslate trimmed %}
+                    you've received a
+                    <strong>BADGE</strong> from {{ issuer_name }}!
+                {% endblocktranslate
+                %}
+            {% else %}
+                {% translate "you've received a
+                <strong>BADGE</strong>!" %}
+            {% endif %}
+        {% endif %}
+        </mj-text>
+        </mj-column>
+        </mj-section>
+        <mj-section padding="0px 41px">
+        <mj-column background-color="#ffffff" padding="0px 10px">
+        <mj-image src="{{ image_url }}" alt="Badge Logo" href="{{ badge_instance_url }}" align="center" padding="32px 0px" width="175px" height="175px" />
+        </mj-column>
+        </mj-section>
+        {% if badge_category != "learningpath" %}
+            <mj-section padding="0px 41px">
+            <mj-column background-color="#ffffff">
+            <mj-text padding-top="0px">
+            {% blocktranslate trimmed %}
+                You have successfully participated at
+                the educational offering
+                <span style="font-weight: 600">{{ badge_name }}</span>
+            {% endblocktranslate %}
             </mj-text>
             </mj-column>
             </mj-section>
+        {% endif %}
+        {% if badge_competencies %}
             <mj-section padding="0px 41px">
-            <mj-column background-color="#ffffff" padding="0px 10px">
-            <mj-image src="{{ image_url }}" alt="Badge Logo" href="{{ badge_instance_url }}" align="center" padding="32px 0px" width="175px" height="175px" />
-            </mj-column>
-            </mj-section>
-            {% if badge_category != "learningpath" %}
-                <mj-section padding="0px 41px">
-                <mj-column background-color="#ffffff">
-                <mj-text padding-top="0px">
-                {% blocktranslate trimmed %}
-                    You have successfully participated at the educational offering <span style="font-weight: 600;">{{ badge_name }}</span>
-                {% endblocktranslate %}
-                </mj-text>
-                </mj-column>
-                </mj-section>
-            {% endif %}
-            {% if badge_competencies %}
-                <mj-section padding="0px 41px">
-                <mj-column background-color="#ffffff">
-                <mj-text>
-                {% blocktranslate %}
-                By participating you have improved the following <span style='font-weight: 600;'>competencies</span>:
-                {% endblocktranslate %}
+            <mj-column background-color="#ffffff">
+            <mj-text>
+            {% blocktranslate trimmed %}
+                By participating you have improved the
+                following <span style="font-weight: 600">competencies</span>: {%
+                endblocktranslate %}
                 </mj-text>
                 </mj-column>
                 </mj-section>
@@ -69,10 +79,10 @@
                 {% for item in badge_competencies %}
                     <mj-table padding="0" cellspacing="0" cellpadding="10" border="1px solid #492e98" padding-bottom="10px" font-size="14px">
                     <tr style="background-color: #f5f6fa">
-                        <td style="font-weight: 600;">
+                        <td style="font-weight: 600">
                             {{ item.name }}
                             {% if item.framework == "esco" %}
-                                <a href="{{ item.framework_identifier }}" style="text-decoration:none">[E]</a>
+                                <a href="{{ item.framework_identifier }}" style="text-decoration: none">[E]</a>
                             {% endif %}
                         </td>
                         <td align="right"
@@ -80,7 +90,7 @@
                             style="padding-left: 0;
                                    color: #492e98;
                                    width: 96px">{{ item.studyLoad }}</td>
-                        <td align="left" width="16" style="padding-left: 0;">
+                        <td align="left" width="16" style="padding-left: 0">
                             <img src="{% static '/images/clock-icon.png' %}"
                                  alt="Clock"
                                  width="16"
@@ -114,8 +124,11 @@
                 <mj-column>
                 <mj-button align="left" href="{{ activate_url }}">{{ call_to_action_label }}</mj-button>
                 <mj-text font-style="italic">
-                {% blocktranslate %}
-                You can find the <span style='font-weight: bold;'>Micro Degree file</span> next to the <span style='font-weight: bold;'>Badge-PDF</span> demonstrating your learning outcomes in this mails attachment.
+                {% blocktranslate trimmed %}
+                    You can find the
+                    <span style="font-weight: bold">Micro Degree file</span> next to the
+                    <span style="font-weight: bold">Badge-PDF</span> demonstrating your
+                    learning outcomes in this mails attachment.
                 {% endblocktranslate %}
                 </mj-text>
                 </mj-column>
@@ -124,8 +137,11 @@
                 <mj-section>
                 <mj-column>
                 <mj-text>
-                {% blocktranslate %}
-                You can find the <span style='font-weight: bold;'>Badge file</span> next to the <span style='font-weight: bold;'>Badge-PDF</span> demonstrating your learning outcomes in this mails attachment.
+                {% blocktranslate trimmed %}
+                    You can find the
+                    <span style="font-weight: bold">Badge file</span> next to the
+                    <span style="font-weight: bold">Badge-PDF</span> demonstrating your
+                    learning outcomes in this mails attachment.
                 {% endblocktranslate %}
                 </mj-text>
                 {% if linked_in_share_url %}
@@ -134,14 +150,21 @@
                          alt=""
                          style="height: 28px;
                                 vertical-align: middle" />
-                    <span style="vertical-align: middle;">{% translate "Share badge on LinkedIn" %}</span></mj-button>
+                    <span style="vertical-align: middle">{% translate "Share badge on LinkedIn" %}</span></mj-button>
                     {% endif %}
                     </mj-column>
                     </mj-section>
                     <mj-section padding="0px 41px 32px 41px">
                     <mj-column border-radius="10px" background-color="#ccd7ff">
-                    <mj-text>{% blocktranslate %}
-                        Collect all your badges in your <a href='https://openbadges.education/recipient/badges?tab=badges' target='_blank' style='text-decoration:underline'>Open Educational Badges</a> backpack and use them for applications. Just create your free account here: {% endblocktranslate %}
+                    <mj-text>
+                    {% blocktranslate trimmed %}
+                        Collect all your badges in your
+                        <a href="https://openbadges.education/recipient/badges?tab=badges"
+                           target="_blank"
+                           style="text-decoration: underline">Open Educational Badges</a>
+                        backpack and use them for applications. Just create your free
+                        account here:
+                    {% endblocktranslate %}
                     </mj-text>
                     <mj-button width="100%" href="{{ activate_url }}">{{ call_to_action_label }}</mj-button>
                     </mj-column>
@@ -150,6 +173,6 @@
             {% endblock main %}
             {% block button %}
             {% endblock button %}
-        {% endmjml %}
-    {% endlanguage %}
-{% endwith %}
+            {%
+            endmjml %} {% endlanguage %}
+        {% endwith %}

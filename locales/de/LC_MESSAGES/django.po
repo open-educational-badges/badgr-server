@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-13 12:38+0100\n"
+"POT-Creation-Date: 2026-03-13 12:42+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -280,12 +280,12 @@ msgstr ""
 "Dabei hast du folgende <span style='font-weight: 600;'>Kompetenzen</span> "
 "gestärkt:"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:104
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:106
 #: apps/mainsite/templates/issuer/email/notify_earner_message.txt:12
 msgid "Issued by:"
 msgstr "Vergeben von:"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:115
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:117
 msgid ""
 "You can find the <span style='font-weight: bold;'>Micro Degree file</span> "
 "next to the <span style='font-weight: bold;'>Badge-PDF</span> demonstrating "
@@ -295,7 +295,7 @@ msgstr ""
 "bold;'>Micro-Degree-Datei</span> ein <span style='font-weight: bold;'>Badge-"
 "PDF</span>, das deinen Lernerfolg ebenfalls ausweist."
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:123
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:127
 msgid ""
 "You can find the <span style='font-weight: bold;'>Badge file</span> next to "
 "the <span style='font-weight: bold;'>Badge-PDF</span> demonstrating your "
@@ -305,23 +305,18 @@ msgstr ""
 "bold;'>Badge-Datei</span> und das zugehörige <span style='font-weight: "
 "bold;'>Badge-PDF</span> zum Herunterladen."
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:131
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:137
 msgid "Share badge on LinkedIn"
 msgstr "Badge auf LinkedIn teilen"
 
-#: apps/mainsite/templates/issuer/email/base_notify_award.html:137
-#, fuzzy
-#| msgid ""
-#| "Collect all your badges in your Open Educational Badges backpack and use "
-#| "them for applications. Just create your free account here:"
+#: apps/mainsite/templates/issuer/email/base_notify_award.html:143
 msgid ""
-"\n"
-"                        Collect all your badges in your <a href='https://"
-"openbadges.education/recipient/badges?tab=badges' target='_blank' "
-"style='text-decoration:underline'>Open Educational Badges</a> backpack and "
-"use them for applications. Just create your free account here: "
+"Collect all your badges in your <a href='https://openbadges.education/"
+"recipient/badges?tab=badges' target='_blank' style='text-decoration:"
+"underline'>Open Educational Badges</a> backpack and use them for "
+"applications. Just create your free account here:"
 msgstr ""
-"Alle deine erhaltenen Badges kannst du auf Open Educational Badges in deinem "
+"Alle deine erhaltenen Badges kannst du auf <a href='https://openbadges.education/recipient/badges?tab=badges' target='_blank' style='text-decoration:underline'>Open Educational Badges</a> in deinem "
 "Rucksack sammeln und für Bewerbungen zusammenstellen. Lege dafür einfach "
 "kostenlos einen Account an:"
 
