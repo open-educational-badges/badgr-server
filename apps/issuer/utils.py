@@ -234,7 +234,7 @@ def quota_check(quota_name: str):
             if quota_name == 'BADGE_CREATE':
                 quota_usage = max(0, quota_usage - 1)
 
-            if max(0, max_quota - quota_usage) == 0:
+            if not max_quota <= 0 and max(0, max_quota - quota_usage) == 0:
                 raise BadgrQuotaExceededException
 
             return function(*args, **kwargs)
