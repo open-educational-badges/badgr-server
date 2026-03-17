@@ -578,4 +578,4 @@ MJML_EXEC_CMD = ["mjml", "--config.fonts", "{}"]
 
 # datetime.strptime('2026-04-01 00:00:00', '%Y-%m-%d %H:%M:%S')
 QUOTAS_ENABLED_DATE=None
-QUOTAS_RECIPIENT_EMAIL = "sales@openbadges.education"
+QUOTAS_EMAIL = ""

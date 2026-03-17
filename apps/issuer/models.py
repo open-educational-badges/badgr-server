@@ -3468,23 +3468,26 @@ class QuotaUpgradeRequest(models.Model):
         Send an email notification to the sales team.
         """
 
-        adapter = get_adapter()
+        email = getattr(settings, "QUOTAS_EMAIL", None)
+        if email:
 
-        email_context = {
-            "name": self.name,
-            "email": self.email,
-            "issuer": self.issuer.name,
-            "issuerPk": self.issuer.pk,
-            "quota": self.quota.name,
-        }
+            adapter = get_adapter()
 
-        template_name = "issuer/email/quotas/notify_sales"
+            email_context = {
+                "name": self.name,
+                "email": self.email,
+                "issuer": self.issuer.name,
+                "issuerPk": self.issuer.pk,
+                "quota": self.quota.name,
+            }
 
-        adapter.send_mail(
-            template_name,
-            getattr(settings, "QUOTAS_RECIPIENT_EMAIL", "sales@openbadges.education"),
-            context=email_context
-        )
+            template_name = "issuer/email/quotas/notify_sales"
+
+            adapter.send_mail(
+                template_name,
+                email,
+                context=email_context
+            )
 
 
 
