@@ -11,23 +11,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='quotarequest',
-            name='issuer',
-        ),
-        migrations.RemoveField(
-            model_name='upgradequotarequest',
-            name='quotarequest_ptr',
-        ),
         migrations.AlterField(
             model_name='learningpath',
             name='participationBadge',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='learningpath_as_participationbadge', to='issuer.badgeclass'),
-        ),
-        migrations.AlterField(
-            model_name='quota',
-            name='default',
-            field=models.CharField(choices=[('NONE', 'None'), ('ISSUER', 'Issuer'), ('NETWORK', 'Network')], default='NONE', max_length=254, unique=True),
         ),
         migrations.CreateModel(
             name='QuotaUpgradeRequest',

@@ -449,7 +449,6 @@ class QuotaRepresentationMixin(serializers.Serializer):
                 "key": quota.key,
                 "nextLevel": upgradeQuota.key if upgradeQuota else None,
                 "periodStart": instance.quota_period_start,
-                "paymentPeriod": "month", # TODO
                 "nextPayment": instance.get_next_quota_payment(),
                 "quotas": {
                     "BADGE_CREATE": quota_dict('BADGE_CREATE'),

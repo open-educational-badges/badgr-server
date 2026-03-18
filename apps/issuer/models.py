@@ -308,6 +308,7 @@ class Issuer(
     quota = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
 
     quota_period_start = models.DateTimeField(blank=False, null=False, default=timezone.now, verbose_name="Period start")
+    quota_network_period_start = models.DateTimeField(blank=False, null=False, default=timezone.now, verbose_name="Network period start")
 
     quota_badge_create = models.PositiveIntegerField(blank=True, null=True, verbose_name="Create Badges")
     quota_badge_award = models.PositiveIntegerField(blank=True, null=True, verbose_name="Award Badges")
@@ -444,7 +445,7 @@ class Issuer(
     def get_next_quota_payment(self):
         dt_next = self.quota_period_start
         while(dt_next < timezone.now()):
-            dt_next = dt_next + relativedelta(months=1)
+            dt_next = dt_next + relativedelta(years=1)
 
         return dt_next
 
@@ -3433,7 +3434,7 @@ class Quota(cachemodel.CacheModel):
     price = models.FloatField(blank=True, null=True)
     upgrade = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
     default = models.CharField(
-        max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE, unique=True
+        max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE, unique=False
     )
 
     badge_create = models.PositiveIntegerField(verbose_name="Create Badges")

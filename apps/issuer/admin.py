@@ -254,6 +254,7 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
             "fields": (
                 "quota",
                 "quota_period_start",
+                "quota_network_period_start",
                 "quota_badge_create",
                 "quota_badge_award",
                 "quota_learningpath_create",
