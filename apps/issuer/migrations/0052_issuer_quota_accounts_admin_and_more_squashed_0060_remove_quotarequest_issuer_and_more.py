@@ -7,10 +7,11 @@ from django.conf import settings
 from django.db import migrations, models
 
 
-# Functions from the following migrations need manual copying.
-# Move them and any dependencies into this file, then update the
-# RunPython operations to refer to the local versions:
-# issuer.migrations.0057_quota_key
+def populate_key(apps, schema_editor):
+    quotas = apps.get_model('issuer', 'Quota')
+    for quota in quotas.objects.all().iterator():
+        quota.key = quota.name.upper()
+        quota.save()
 
 class Migration(migrations.Migration):
 
@@ -140,7 +141,7 @@ class Migration(migrations.Migration):
             bases=('issuer.quotarequest',),
         ),
         migrations.RunPython(
-            code=issuer.migrations.0057_quota_key.populate_key,
+            code=populate_key,
             reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
         migrations.AlterField(

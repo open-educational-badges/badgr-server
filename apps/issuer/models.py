@@ -415,7 +415,7 @@ class Issuer(
             attr = getattr(self, f'quota_{quota_name.lower()}')
             if attr is not None:
                 return attr
-        except AttributeError as e:
+        except AttributeError:
             pass
 
         quota = self.get_quota_object()
@@ -452,7 +452,7 @@ class Issuer(
     def get_next_quota_level(self):
         try:
             return self.quota.upgrade.name
-        except:
+        except AttributeError:
             return None
 
     def publish(self, publish_staff=True, *args, **kwargs):

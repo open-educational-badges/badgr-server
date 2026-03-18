@@ -7,7 +7,6 @@ from django_object_actions import DjangoObjectActions
 from django.utils.safestring import mark_safe
 from django import forms
 from django.contrib import admin
-from django.conf import settings
 
 from mainsite.admin import badgr_admin
 

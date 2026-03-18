@@ -1,9 +1,8 @@
 # encoding: utf-8
 
 import json
-from django.conf import Settings, settings
+from django.conf import settings
 from django.http import HttpResponse
-from django.views import View
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,

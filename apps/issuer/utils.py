@@ -14,7 +14,6 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from geopy.geocoders import Nominatim
 from ratelimit import limits, sleep_and_retry
-from rest_framework.response import Response
 
 from apps.mainsite.exceptions import BadgrQuotaExceededException
 from mainsite.utils import OriginSetting

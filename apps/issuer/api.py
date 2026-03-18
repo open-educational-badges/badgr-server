@@ -70,7 +70,6 @@ from issuer.serializers_v1 import (
     LearningPathSerializerV1,
     NetworkBadgeInstanceSerializerV1,
     NetworkInviteSerializer,
-    NetworkSerializerV1,
     NetworkSerializerV1Private,
     QrCodeSerializerV1,
     RequestedBadgeSerializer,

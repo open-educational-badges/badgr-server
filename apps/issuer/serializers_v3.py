@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from entity.serializers import DetailSerializerV2
-from issuer.models import BadgeClass, Issuer, Quota
+from issuer.models import BadgeClass, Issuer
 from django.contrib.gis.geos import Point
 from rest_framework_gis.serializers import (
     GeoFeatureModelSerializer,
