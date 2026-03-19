@@ -601,7 +601,8 @@ class IssuerSearch(JSONListView):
         search_term = kwargs.get("searchterm", "")
         if search_term:
             issuers = objects.filter(
-                Q(name__icontains=search_term) | Q(description__icontains=search_term)
+                Q(name__icontains=search_term) | Q(description__icontains=search_term),
+                is_network=False,
             )
         serializer_class = self.serializer_class
         serializer = serializer_class(
@@ -661,6 +662,8 @@ class BadgeClassJson(JSONComponentView):
             json["issuer"] = self.current_object.cached_issuer.get_json(
                 obi_version=obi_version
             )
+
+        json["courseUrl"] = self.current_object.course_url
 
         return json
 
@@ -757,6 +760,8 @@ class BadgeInstanceJson(JSONComponentView):
             expand_badgeclass=("badge" in expands),
             expand_issuer=("badge.issuer" in expands),
         )
+
+        json["courseUrl"] = self.current_object.course_url
 
         return json
 

@@ -48,10 +48,8 @@ from drf_spectacular.types import OpenApiTypes
     },
 )
 @api_view(["GET"])
-@authentication_classes(
-    [TokenAuthentication, SessionAuthentication, BasicAuthentication]
-)
-@permission_classes([IsAuthenticated])
+@authentication_classes([])
+@permission_classes([])
 def pdf(request, *args, **kwargs):
     slug = kwargs["slug"]
     try:

@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from entity.serializers import DetailSerializerV2
-from issuer.models import BadgeClass
+from issuer.models import BadgeClass, Issuer
+from django.contrib.gis.geos import Point
+from rest_framework_gis.serializers import (
+    GeoFeatureModelSerializer,
+    GeometrySerializerMethodField,
+)
 
 
 class BadgeClassSerializerV3(DetailSerializerV2):
@@ -27,6 +32,24 @@ class RequestIframeSerializer(BaseRequestIframeSerializer):
     email = serializers.CharField()
 
 
-class RequestIframeBadgeProcessSerializer(BaseRequestIframeSerializer):
+class RequestIframeIssuerSerializer(BaseRequestIframeSerializer):
     issuer = serializers.CharField(required=False, default=None)
+
+
+class RequestIframeBadgeProcessSerializer(RequestIframeIssuerSerializer):
     badge = serializers.CharField(required=False, default=None)
+
+
+class IssuerGeoJSONSerializer(GeoFeatureModelSerializer):
+    class Meta:
+        model = Issuer
+        geo_field = "location"  # Field containing the geometry (PointField)
+        fields = ["id", "name", "image", "description", "category"]
+
+    location = GeometrySerializerMethodField()
+
+    def get_location(self, obj):
+        if obj.lat and obj.lon:
+            return Point(obj.lon, obj.lat)
+        else:
+            return None

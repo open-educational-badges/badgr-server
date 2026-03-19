@@ -8,15 +8,13 @@ from rest_framework.exceptions import ValidationError
 
 from mainsite.utils import verify_svg
 
-from issuer.helpers import OpenBadgesContextCache
-
-import openbadges.verifier
-
 
 class ValidImageValidator(object):
     """
-    Verify a value is file-like and is either a PNG or a SVG
+    Verify a value is file-like and is either a PNG, a SVG or other format
     """
+    def __init__(self, formats=['PNG']):
+        self.formats = formats
 
     def __call__(self, image):
         if image:
@@ -29,8 +27,8 @@ class ValidImageValidator(object):
                 if not verify_svg(image):
                     raise ValidationError("Invalid image.")
             else:
-                if img.format != "PNG":
-                    raise ValidationError("Invalid PNG")
+                if img.format not in self.formats:
+                    raise ValidationError("Invalid image.")
 
 
 class ChoicesValidator(object):
@@ -69,18 +67,20 @@ class BadgeExtensionValidator(object):
     message = "Invalid OpenBadges Extension"
 
     def __call__(self, value):
-        if len(value) > 0:
-            result = openbadges.verifier.validate_extensions(
-                value.copy(), cache_backend=OpenBadgesContextCache()
-            )
-            report = result.get("report", {})
-            if not report.get("valid", False):
-                messages = report.get("messages", [])
-                if len(messages) > 0:
-                    msg = messages[0].get("result", self.message)
-                else:
-                    msg = self.message
-                raise ValidationError(msg)
+        # TEMPORARILY SKIP VALIDATION
+        pass
+        # if len(value) > 0:
+        #     result = openbadges.verifier.validate_extensions(
+        #         value.copy(), cache_backend=OpenBadgesContextCache()
+        #     )
+        #     report = result.get("report", {})
+        #     if not report.get("valid", False):
+        #         messages = report.get("messages", [])
+        #         if len(messages) > 0:
+        #             msg = messages[0].get("result", self.message)
+        #         else:
+        #             msg = self.message
+        #         raise ValidationError(msg)
 
 
 class PasswordValidator(object):

@@ -20,6 +20,7 @@ from rest_framework.decorators import action
 from issuer.serializers_v3 import (
     RequestIframeBadgeProcessSerializer,
     RequestIframeSerializer,
+    IssuerGeoJSONSerializer,
 )
 from backpack.api import BackpackAssertionList
 from badgeuser.api import LearningPathList
@@ -212,7 +213,7 @@ class BadgeInstances(EntityViewSet):
     ),
 )
 class Issuers(EntityViewSet):
-    queryset = Issuer.objects.all()
+    queryset = Issuer.objects.filter(is_network=False)
     serializer_class = IssuerSerializerV1
     filterset_class = IssuerFilter
 
@@ -220,9 +221,14 @@ class Issuers(EntityViewSet):
     ordering = ["-badge_count"]
 
     def get_queryset(self):
-        return Issuer.objects.all().annotate(
+        return Issuer.objects.filter(is_network=False).annotate(
             badge_count=Count("badgeclasses", distinct=True)
         )
+
+    def paginate_queryset(self, queryset):
+        if self.request.accepted_renderer.format == "geojson":
+            return None  # No pagination for GeoJSON
+        return super().paginate_queryset(queryset)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -235,6 +241,11 @@ class Issuers(EntityViewSet):
                 "created_by",
             ]
         return context
+
+    def get_serializer_class(self):
+        if self.request.accepted_media_type == "application/geo+json":
+            return IssuerGeoJSONSerializer
+        return IssuerSerializerV1
 
 
 @extend_schema_view(
@@ -358,7 +369,7 @@ class RequestIframe(APIView):
     def get(self, request, **kwargs):
         # for easier in-browser testing
         if settings.DEBUG:
-            request._request.POST = request.GET
+            request.data.update(request.GET.dict())
             return self.post(request, **kwargs)
         else:
             return HttpResponse(b"", status=405)
