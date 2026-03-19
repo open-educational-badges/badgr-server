@@ -359,18 +359,20 @@ class Issuer(
             )
 
         if quota_name == "BADGE_AWARD":
-            value = len(
-                self.badgeinstance_set.all()
-                    .filter(revoked=False)
-                    # this removes network badges from the count
-                    .filter(badgeclass__issuer=self)
-                    # this removes partner badges from the count
-                    .filter(badgeclass__network_shares__id=None)
-                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
-            )
-            # if network, find network and partner badge instances
-            if self.is_network:
-                value += len(
+            if not self.is_network:
+                # find all self-issued instances of self owned badges
+                value = len(
+                    self.badgeinstance_set.all()
+                        .filter(revoked=False)
+                        # this removes network badges from the count
+                        .filter(badgeclass__issuer=self)
+                        # this removes partner badges from the count
+                        .filter(badgeclass__network_shares__id=None)
+                        .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+                )
+            else:
+                # if network, find all network and partner badge instances
+                value = len(
                     BadgeInstance.objects
                         .filter(revoked=False)
                         .filter(
