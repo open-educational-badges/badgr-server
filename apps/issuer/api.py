@@ -720,7 +720,13 @@ class BadgeClassDetail(BaseEntityDetailView):
 
 @shared_task(bind=True)
 def process_batch_assertions(
-    self, assertions, user_id, badgeclass_id, issuerSlug, serializer_class, create_notification=False
+    self,
+    assertions,
+    user_id,
+    badgeclass_id,
+    issuerSlug,
+    serializer_class,
+    create_notification=False,
 ):
     try:
         User = get_user_model()
@@ -2066,13 +2072,31 @@ class LearningPathDetail(BaseEntityDetailView):
     @extend_schema(
         summary="Delete a single LearningPath",
         tags=["LearningPaths"],
-        responses={204: OpenApiResponse(description="Deleted")},
+        responses={
+            204: OpenApiResponse(description="Deleted"),
+            403: OpenApiResponse(description="Forbidden"),
+            409: OpenApiResponse(
+                description="Learning path cannot be deleted because it has already been completed by at least one user."
+            ),
+        },
     )
     def delete(self, request, **kwargs):
-        if not is_learningpath_editor(request.user, self.get_object(request, **kwargs)):
+        learning_path = self.get_object(request, **kwargs)
+        if not is_learningpath_editor(request.user, learning_path):
             return Response(
                 {"error": "You are not authorized to delete this learning path."},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        if learning_path.has_awarded_micro_degree:
+            return Response(
+                {
+                    "code": "learningpath_has_awards",
+                    "error": (
+                        "This learning path has already been completed by at least one "
+                        "user and can no longer be deleted. Archive it instead."
+                    ),
+                },
+                status=status.HTTP_409_CONFLICT,
             )
         return super(LearningPathDetail, self).delete(request, **kwargs)
 
