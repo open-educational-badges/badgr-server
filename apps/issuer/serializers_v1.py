@@ -2,8 +2,6 @@ import json
 import logging
 import os
 import uuid
-from functools import reduce
-
 from rest_framework.fields import JSONField
 import pytz
 from badgeuser.models import TermsVersion
