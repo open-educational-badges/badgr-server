@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     "entity",
     "issuer",
     "backpack",
-    "dashboard",
     # api docs
     "drf_spectacular",
     # deprecated
