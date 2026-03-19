@@ -59,7 +59,7 @@ class BadgeUserProfileSerializerV1(serializers.Serializer):
     secure_password_set = serializers.BooleanField(required=False)
     source = serializers.CharField(write_only=True, required=False)
     date_joined = serializers.DateTimeField(read_only=True)
-    quota_release_informed = serializers.BooleanField(read_only=False)
+    quota_release_informed = serializers.BooleanField(read_only=False, required=False)
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_has_password_set(self, obj):
