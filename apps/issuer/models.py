@@ -377,6 +377,7 @@ class Issuer(
                             Q(badgeclass__issuer=self)
                             | Q(badgeclass__network_shares__network=self)
                         )
+                        .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
                 )
 
         if quota_name == "LEARNINGPATH_CREATE":
