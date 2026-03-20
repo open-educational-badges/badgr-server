@@ -3434,7 +3434,7 @@ class Quota(cachemodel.CacheModel):
 
     name = models.CharField(max_length=254, blank=False, null=False)
     key = models.CharField(max_length=254, blank=False, null=False, unique=True)
-    price = models.FloatField(blank=True, null=True)
+    price = models.DecimalField(max_digits=11, decimal_places=2, blank=True, null=True)
     upgrade = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
     default = models.CharField(
         max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE, unique=False
