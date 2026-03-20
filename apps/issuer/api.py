@@ -850,8 +850,6 @@ class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
         if max_quota is not None and max(0, max_quota - usage) < len(assertions):
             raise BadgrQuotaExceededException
 
-        return Response(status=HTTP_404_NOT_FOUND)
-
         # Start async task
         task = process_batch_assertions.delay(
             assertions=assertions,
@@ -2562,6 +2560,12 @@ class NetworkInvitationList(BaseEntityListView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             slugs.append(slug)
+
+        # raise error if creating invitations would exceed quota
+        max_quota = network.get_max_quota('NETWORK_MEMBERSHIPS')
+        usage = network.get_quota_usage('NETWORK_MEMBERSHIPS')
+        if max_quota is not None and max(0, max_quota - usage) < len(slugs):
+            raise BadgrQuotaExceededException
 
         issuers = Issuer.objects.filter(entity_id__in=slugs, is_network=False)
         found_slugs = set(issuers.values_list("entity_id", flat=True))
