@@ -50,8 +50,10 @@ from .models import (
     LearningPathBadge,
     NetworkInvite,
     QrCode,
+    Quota,
     RequestedBadge,
     RequestedLearningPath,
+    QuotaUpgradeRequest,
 )
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
@@ -251,7 +253,6 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
 
         return None
 
-
 class IssuerSerializerV1(BaseIssuerSerializerV1):
     email = serializers.EmailField(max_length=255, required=True)
     networks = serializers.SerializerMethodField()
@@ -410,6 +411,65 @@ class IssuerSerializerV1(BaseIssuerSerializerV1):
 
         return representation
 
+# serializer including private informationen for members
+class QuotaRepresentationMixin(serializers.Serializer):
+
+    def to_representation(self, instance):
+        representation = super(QuotaRepresentationMixin, self).to_representation(instance)
+
+        quota = instance.get_quota_object()
+
+        if quota:
+
+            def quota_dict(quota_name: str):
+                usage = instance.get_quota_usage(quota_name)
+                max_quota = -1 if instance.get_max_quota(quota_name) == 0 else instance.get_max_quota(quota_name)
+                custom = instance.is_custom_quota(quota_name)
+
+                if type(usage) is int:
+                    return {
+                        "used": usage,
+                        "quota": -1 if max_quota == -1 else max(0, max_quota - usage),
+                        "max": max_quota,
+                        "custom": custom,
+                    }
+                else:
+                    return {
+                        "quota": usage,
+                        "custom": custom,
+                    }
+
+
+
+            # nextLevel = instance.get_next_quota_level()
+            upgradeQuota = quota.upgrade
+
+            representation["quotas"] = {
+                "name": quota.name,
+                "key": quota.key,
+                "nextLevel": upgradeQuota.key if upgradeQuota else None,
+                "periodStart": instance.quota_period_start,
+                "nextPayment": instance.get_next_quota_payment(),
+                "quotas": {
+                    "BADGE_CREATE": quota_dict('BADGE_CREATE'),
+                    "BADGE_AWARD": quota_dict('BADGE_AWARD'),
+                    "LEARNINGPATH_CREATE": quota_dict('LEARNINGPATH_CREATE'),
+                    "ACCOUNTS_ADMIN": quota_dict('ACCOUNTS_ADMIN'),
+                    "ACCOUNTS_MEMBER": quota_dict('ACCOUNTS_MEMBER'),
+                    "AISKILLS_REQUESTS": quota_dict('AISKILLS_REQUESTS'),
+                    "PDFEDITOR": quota_dict('PDFEDITOR'),
+                    "NETWORK_MEMBERSHIPS": quota_dict('NETWORK_MEMBERSHIPS'),
+                    "NETWORK_CREATE": quota_dict('NETWORK_CREATE'),
+                }
+            }
+
+        return representation
+
+class IssuerNetworkSerializerPrivateV1(QuotaRepresentationMixin, IssuerSerializerV1):
+    pass
+
+class NetworkSerializerV1Private(QuotaRepresentationMixin, NetworkSerializerV1):
+    pass
 
 class IssuerRoleActionSerializerV1(serializers.Serializer):
     """A serializer used for validating user role change POSTS"""
@@ -1395,3 +1455,36 @@ class BadgeClassNetworkShareSerializerV1(serializers.ModelSerializer):
             revoked=False,
             issued_on__gte=obj.shared_at,
         ).count()
+
+
+class QuotaUpgradeRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=254, required=True)
+    email = serializers.EmailField(max_length=254, required=True)
+    issuer_id = serializers.CharField(max_length=254, required=True)
+    quota = serializers.CharField(
+        validators=[lambda value: Quota.objects.get(key=value)],
+        required=True
+    )
+
+    def create(self, validated_data, **kwargs):
+        issuer_id = validated_data.get("issuer_id")
+
+        try:
+            issuer = Issuer.objects.get(entity_id=issuer_id)
+        except Issuer.DoesNotExist:
+            raise serializers.ValidationError(
+                f"Issuer with ID '{issuer_id}' does not exist."
+            )
+
+        quota = Quota.objects.get(key=validated_data.get("quota"))
+
+        new_QuotaUpgradeRequest = QuotaUpgradeRequest.objects.create(
+            name=validated_data.get("name"),
+            email=validated_data.get("email"),
+            issuer=issuer,
+            quota=quota
+        )
+
+        new_QuotaUpgradeRequest.notify()
+
+        return new_QuotaUpgradeRequest

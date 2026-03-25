@@ -74,6 +74,9 @@ RUN touch /var/log/cron_clear_altcha.log \
 RUN touch /var/log/cron_clear_iframe_urls.log \
     && chmod 644 /var/log/cron_clear_iframe_urls.log
 
+RUN touch /var/log/cron_clean_aiskill_requests.log \
+    && chmod 644 /var/log/cron_clean_aiskill_requests.log
+
 # Latest releases available at https://github.com/aptible/supercronic/releases
 ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.30/supercronic-linux-amd64 \
     SUPERCRONIC=supercronic-linux-amd64 \

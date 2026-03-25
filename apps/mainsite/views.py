@@ -224,8 +224,9 @@ def call_aiskills_api(endpoint, method, payload: dict):
 @authentication_classes(
     [TokenAuthentication, SessionAuthentication, BasicAuthentication]
 )
-# require valid Login OR valid altcha challenge for demo on start page
-@permission_classes([IsAuthenticated | ValidAltcha])
+
+# require valid altcha challenge for demo on start page
+@permission_classes([ValidAltcha])
 def aiskills(req):
     searchterm = req.data["text"]
 

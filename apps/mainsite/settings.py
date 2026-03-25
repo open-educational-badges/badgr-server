@@ -575,3 +575,7 @@ MJML_BACKEND_MODE = "cmd"
 # make sure to not load any fonts automatically
 MJML_EXEC_CMD = ["mjml", "--config.fonts", "{}"]
 # MJML_CHECK_CMD_ON_STARTUP = False
+
+# datetime.strptime('2026-04-01 00:00:00', '%Y-%m-%d %H:%M:%S')
+QUOTAS_ENABLED_DATE=None
+QUOTAS_EMAIL = ""

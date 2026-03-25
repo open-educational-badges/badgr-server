@@ -53,3 +53,27 @@ class IssuerGeoJSONSerializer(GeoFeatureModelSerializer):
             return Point(obj.lon, obj.lat)
         else:
             return None
+
+
+class QuotaSerializer(serializers.Serializer):
+
+    name = serializers.CharField()
+    key = serializers.CharField()
+    price = serializers.FloatField()
+    default = serializers.CharField()
+    badge_create = serializers.FloatField()
+    badge_award = serializers.FloatField()
+    learningpath_create = serializers.FloatField()
+    accounts_admin = serializers.FloatField()
+    accounts_member = serializers.FloatField()
+    aiskills_requests = serializers.FloatField()
+    pdfeditor = serializers.FloatField()
+    network_memberships = serializers.FloatField()
+
+    def to_representation(self, instance):
+        representation = super(QuotaSerializer, self).to_representation(instance)
+
+        if instance.upgrade:
+            representation['upgrade'] = instance.upgrade.name
+
+        return representation
