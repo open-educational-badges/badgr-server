@@ -58,3 +58,8 @@ class BadgrValidationMultipleFieldError(BadgrValidationError):
                 {"error_message": error_message, "error_code": error_code}
             ]
         super(BadgrValidationMultipleFieldError, self).__init__(error_messages, 999)
+
+class BadgrQuotaExceededException(APIException):
+
+    status_code = 402
+    default_detail = "Quota exceeded"

@@ -1,0 +1,17 @@
+{% extends "email/base.html" %}
+{% load static %}
+{% load mjml %}
+{% mjml %}
+{% block main %}
+    <mj-section>
+        <mj-column>
+            <mj-image src="{% static '/images/Logo-Oeb.png' %}" alt="Logo" href="https://openbadges.education" padding-right="25px" width="150px" height="77px" align="right" />
+            <mj-text font-size="20px">
+                {{name}} ({{ email }}) möchte für die Institution {{ issuer }} auf {{ quota }} upgraden.
+            </mj-text>
+        </mj-column>
+    </mj-section>
+{% endblock main %}
+{% block button %}
+{% endblock button %}
+{% endmjml %}

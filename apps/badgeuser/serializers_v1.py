@@ -58,6 +58,8 @@ class BadgeUserProfileSerializerV1(serializers.Serializer):
     has_password_set = serializers.SerializerMethodField()
     secure_password_set = serializers.BooleanField(required=False)
     source = serializers.CharField(write_only=True, required=False)
+    date_joined = serializers.DateTimeField(read_only=True)
+    quota_release_informed = serializers.BooleanField(read_only=False, required=False)
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_has_password_set(self, obj):
@@ -119,6 +121,9 @@ class BadgeUserProfileSerializerV1(serializers.Serializer):
 
         if "zip_code" in validated_data:
             user.zip_code = validated_data.get("zip_code")
+
+        if "quota_release_informed" in validated_data:
+            user.quota_release_informed = validated_data.get("quota_release_informed")
 
         user.save()
         return user
