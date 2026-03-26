@@ -115,6 +115,7 @@ override-dependencies = [
 [tool.djlint]
 profile = "django"
 ignore = "H021,H005,H031,D018,H006,H019,H023,H030,H006,H013, H025"
+max_attribute_length=120
 
 [tool.commitizen]
 name = "cz_conventional_commits"

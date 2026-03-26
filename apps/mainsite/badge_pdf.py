@@ -11,6 +11,7 @@ import qrcode
 from badgeuser.models import BadgeUser
 from django.conf import settings
 from django.db.models import Max
+from django.utils.translation import activate as activate_language, gettext as _
 from issuer.models import BadgeInstance, LearningPath
 from mainsite.utils import get_name
 from django.core.files.storage import DefaultStorage
@@ -114,35 +115,36 @@ class BadgePDFCreator:
                     f"<strong>{activityStartDate.strftime('%d.%m.%Y')}"
                     f" – {activityEndDate.strftime('%d.%m.%Y')}</strong>"
                 )
-            text = "hat vom " + date_text
+            place_and_date_part = _("from %(date_text)s") % {"date_text": date_text}
         elif activityStartDate:
             date_text = f"<strong>{activityStartDate.strftime('%d.%m.%Y')}</strong>"
-            text = "hat am " + date_text
+            place_and_date_part = _("on %(date_text)s") % {"date_text": date_text}
         else:
             date_text = f"<strong>{issuedOn.strftime('%d.%m.%Y')}</strong>"
-            text = "hat am " + date_text
+            place_and_date_part = _("on %(date_text)s") % {"date_text": date_text}
 
         if activityCity:
-            text += f" <strong>in {activityCity}</strong>"
+            place_and_date_part += f" <strong>in {activityCity}</strong>"
         elif activityOnline:
-            text += " <strong>online</strong>"
-
-        p = Paragraph(text, text_style)
-        _, h = p.wrap(document_width, 3 * 22.5)
-        first_page_content.append(p)
-        self.used_space += h + 10
+            place_and_date_part += " <strong>online</strong>"
 
         studyload_text = self._format_studyload(studyload_minutes=studyLoad)
-        if studyload_text:
-            studyload_p = Paragraph(studyload_text, text_style)
-            _, studyload_h = studyload_p.wrap(document_width, 2 * text_style.leading)
-            first_page_content.append(studyload_p)
-            self.used_space += studyload_h + 10
+        studyload_text = (
+            f"<br />{studyload_text}" if studyload_text is not None else None
+        )
 
-        text = "den folgenden Badge erworben:"
-        first_page_content.append(Paragraph(text, text_style))
+        text = _(
+            "earned the following Badge <br />%(place_and_date_part)s %(duration_part)s:"
+        ) % {
+            "place_and_date_part": place_and_date_part,
+            "duration_part": studyload_text,
+        }
+
+        p = Paragraph(text, text_style)
+        __, h = p.wrap(document_width, 6 * text_style.leading)
+        first_page_content.append(p)
         first_page_content.append(Spacer(1, 10))
-        self.used_space += 43  # spacer and paragraph
+        self.used_space += 20 + h  # spacer and paragraph
 
     def add_title(self, first_page_content, badge_class_name):
         document_width, document_height = A4
@@ -229,22 +231,24 @@ class BadgePDFCreator:
         parts = []
 
         if hours > 0:
-            hour_unit = "Stunde" if hours == 1 else "Stunden"
+            hour_unit = _("hour") if hours == 1 else _("hours")
             parts.append(f"{hours} {hour_unit}")
 
         if minutes > 0:
-            minute_unit = "Minute" if minutes == 1 else "Minuten"
+            minute_unit = _("minute") if minutes == 1 else _("minutes")
             parts.append(f"{minutes} {minute_unit}")
 
         if not parts:
             return None
 
+        and_word = _("and")
+        within_word = _("within")
         if len(parts) == 2:
-            duration_text = f"{parts[0]} und {parts[1]}"
+            duration_text = f"{parts[0]} {and_word} {parts[1]}"
         else:
             duration_text = parts[0]
 
-        return f"innerhalb von <strong>{duration_text}</strong>"
+        return f"{within_word} <strong>{duration_text}</strong>"
 
     def add_description(self, first_page_content, description):
         description_style = ParagraphStyle(
@@ -351,10 +355,10 @@ class BadgePDFCreator:
             alignment=TA_CENTER,
         )
         content_html = (
-            '<span fontName="Rubik-Bold">ERSTELLT ÜBER '
+            f'<span fontName="Rubik-Bold">{_("CREATED VIA")} '
             '<a href="https://openbadges.education" color="#1400FF" underline="true">'
             "OPENBADGES.EDUCATION</a></span><br/>"
-            '<span fontName="Rubik-Regular">Der digitale Badge kann über den QR-Code abgerufen werden.</span>'
+            f'<span fontName="Rubik-Regular">{_("Use the QR code to retrieve the digital badge.")}</span>'
         )
 
         p = Paragraph(content_html, footer_style)
@@ -403,11 +407,14 @@ class BadgePDFCreator:
                 alignment=TA_LEFT,
             )
 
-            Story.append(Paragraph("Kompetenzen", title_style))
+            Story.append(Paragraph(_("<strong>Competencies</strong>"), title_style))
             Story.append(Spacer(1, 15))
             page_used_space += 35  # Title height + spacing
 
-            text = f"die <strong>{name}</strong> mit dem Badge <strong>{badge_name}</strong> erworben hat:"
+            text = _("that %(name)s has acquired with the Badge %(badge_name)s:") % {
+                "name": f"<strong>{name}</strong>",
+                "badge_name": f"<strong>{badge_name}</strong>",
+            }
             Story.append(Paragraph(text, text_style))
             Story.append(Spacer(1, 10))
             page_used_space += 30  # Text height + spacer
@@ -420,11 +427,18 @@ class BadgePDFCreator:
                     Story.append(Spacer(1, 70))
                     page_used_space += 70
 
-                    Story.append(Paragraph("<strong>Kompetenzen</strong>", title_style))
+                    Story.append(
+                        Paragraph(_("<strong>Competencies</strong>"), title_style)
+                    )
                     Story.append(Spacer(1, 15))
                     page_used_space += 35  # Title height + spacer
 
-                    text = f"die <strong>{name}</strong> mit dem Badge <strong>{badge_name}</strong> erworben hat:"
+                    text = _(
+                        "that %(name)s has acquired with the Badge %(badge_name)s:"
+                    ) % {
+                        "name": f"<strong>{name}</strong>",
+                        "badge_name": f"<strong>{badge_name}</strong>",
+                    }
                     Story.append(Paragraph(text, text_style))
                     Story.append(Spacer(1, 20))
                     page_used_space += 40  # Text height + spacer
@@ -484,7 +498,12 @@ class BadgePDFCreator:
 
             Story.append(Spacer(1, 15))
 
-            text = f"die <strong>{name}</strong> mit dem Micro Degree <strong>{badge_name}</strong> erworben hat:"
+            text = _(
+                "that %(name)s has acquired with the Micro Degree %(md_name)s:",
+            ) % {
+                "name": f"<strong>{name}</strong>",
+                "md_name": f"<strong>{badge_name}</strong>",
+            }
             Story.append(Paragraph(text, text_style))
             Story.append(Spacer(1, 30))
 
@@ -506,10 +525,12 @@ class BadgePDFCreator:
                     Story.append(Paragraph("<strong>Badges</strong>", title_style))
                     Story.append(Spacer(1, 15))
 
-                    text = (
-                        f"die <strong>{name}</strong> mit dem Micro Degree"
-                        f"<strong>{badge_name}</strong> erworben hat:"
-                    )
+                    text = _(
+                        "that %(name)s has acquired with the Micro Degree %(md_name)s:",
+                    ) % {
+                        "name": f"<strong>{name}</strong>",
+                        "md_name": f"<strong>{badge_name}</strong>",
+                    }
 
                     Story.append(Paragraph(text, text_style))
                     Story.append(Spacer(1, 30))
@@ -588,7 +609,7 @@ class BadgePDFCreator:
         Story.append(Spacer(1, 30))
         self.used_space += 30
 
-        Story.append(Paragraph("Vergabe-Kriterien", title_style))
+        Story.append(Paragraph(_("Award Criteria"), title_style))
         Story.append(Spacer(1, 15))
         self.used_space += 35
 
@@ -613,7 +634,7 @@ class BadgePDFCreator:
                 Story.append(PageBreak())
                 Story.append(Spacer(1, 70))
 
-                Story.append(Paragraph("Vergabe-Kriterien", title_style))
+                Story.append(Paragraph(_("Award Criteria"), title_style))
                 Story.append(Spacer(1, 15))
 
                 # Reset used space counter with the header space
@@ -633,7 +654,7 @@ class BadgePDFCreator:
                 if self.used_space + criteria_space > 750:
                     Story.append(PageBreak())
                     Story.append(Spacer(1, 70))
-                    Story.append(Paragraph("Vergabe-Kriterien", title_style))
+                    Story.append(Paragraph(_("Award Criteria"), title_style))
                     Story.append(Spacer(1, 15))
                     self.used_space = 70 + 35  # Header spacer + title and spacing
                     Story.append(Paragraph(item["description"], description_style))
@@ -713,7 +734,7 @@ class BadgePDFCreator:
         else:
             self.used_space += 30  # top spacer
 
-        Story.append(Paragraph("Narrativ", title_style))
+        Story.append(Paragraph(_("Narrative"), title_style))
         Story.append(Spacer(1, 15))
         self.used_space += 35  # title + spacer
 
@@ -727,7 +748,9 @@ class BadgePDFCreator:
                     [
                         icon_img,
                         Paragraph(
-                            "Auf der Badge-Detail-Seite ist ein Link zum Nachweis hinterlegt (s. QR-Code, Seite 1).",
+                            _(
+                                "A link to the proof is provided on the badge details page (see QR code, page 1)."
+                            ),
                             linknote_style,
                         ),
                     ]
@@ -755,6 +778,8 @@ class BadgePDFCreator:
             self.used_space += narrative_height
 
     def generate_pdf(self, badge_instance, badge_class, origin):
+        activate_language(badge_class.language)
+
         buffer = BytesIO()
         competencies = badge_class.json["extensions:CompetencyExtension"]
         criteria = badge_class.criteria
@@ -783,7 +808,7 @@ class BadgePDFCreator:
             alignment=TA_CENTER,
         )
 
-        cert = "ZERTIFIKAT"
+        cert = _("CERTIFICATE")
         certificate = f"<strong>{cert}</strong>"
         first_page_content.append(Paragraph(certificate, cert_style))
         first_page_content.append(Spacer(1, 22))
@@ -1135,11 +1160,15 @@ class PageNumCanvas(canvas.Canvas):
             leftIndent=-35,
             rightIndent=-35,
         )
-        link_text = (
-            "<span><i>(E) = Kompetenz nach ESCO (European Skills, Competences, Qualifications and Occupations). <br/>"
-            'Die Kompetenzbeschreibungen gemäß ESCO sind abrufbar über "'
-            '<a color="blue" href="https://esco.ec.europa.eu/de">https://esco.ec.europa.eu/de</a>.</i></span>'
+
+        line0 = "<span><i>"
+        line1 = _(
+            "(E) = Competency according to ESCO (European Skills, Competences, Qualifications and Occupations)."
         )
+        line2 = _("The competence descriptions according to ESCO are available at ")
+        line3 = '<a color="blue" href="https://esco.ec.europa.eu/">https://esco.ec.europa.eu/</a>.</i></span>'
+
+        link_text = line0 + line1 + "<br />" + line2 + line3
         paragraph_with_link = Paragraph(link_text, text_style)
         story = [paragraph_with_link]
         story[0].wrapOn(self, page_width - 20, 50)
