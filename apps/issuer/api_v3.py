@@ -53,7 +53,7 @@ from .serializers_v1 import (
     NetworkSerializerV1,
 )
 
-from .serializers_v3 import TagSerializerV3
+from .serializers_v3 import QuotaSerializer, TagSerializerV3
 
 from .models import (
     BadgeClass,
@@ -64,6 +64,7 @@ from .models import (
     LearningPathTag,
     BadgeInstanceExtension,
     LearningPathBadge,
+    Quota,
 )
 from django.db.models import Q, Count
 
@@ -745,3 +746,18 @@ class BadgeEditEmbed(RequestIframe):
         )
 
         return JsonResponse({"url": iframe.url})
+
+
+class Quotas(APIView):
+    queryset = Quota.objects.all()
+
+    def get(self, request, **kwargs):
+        enabled_date = getattr(settings, "QUOTAS_ENABLED_DATE", None)
+        email = getattr(settings, "QUOTAS_EMAIL", None)
+        if enabled_date is not None:
+            enabled_date = int(enabled_date.timestamp())
+        return JsonResponse({
+            "enabled_date": enabled_date,
+            "email": email,
+            "quotas": QuotaSerializer(self.queryset.all(), many=True).data
+        })

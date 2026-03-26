@@ -36,8 +36,9 @@ from issuer.api import (
     QRCodeDetail,
     BadgeImageComposition,
     QRCodeList,
+    QuotaUpgradeRequestView,
 )
-from issuer.api_v1 import FindBadgeClassDetail, IssuerStaffList
+from issuer.api_v1 import FindBadgeClassDetail, IssuerAiSkills, IssuerStaffList
 
 urlpatterns = [
     # url(r'^$', RedirectView.as_view(url='/v1/issuer/issuers', permanent=False)),
@@ -227,5 +228,15 @@ urlpatterns = [
         r"^networks/(?P<networkSlug>[^/]+)/invite/(?P<slug>[^/]+)/confirm$",
         NetworkInvitationConfirm.as_view(),
         name="v1_api_network_invite_confirmation",
+    ),
+    re_path(
+        r"^issuers/(?P<issuerSlug>[^/]+)/aiskills$",
+        IssuerAiSkills.as_view(),
+        name="v1_api_issuer_aiskills",
+    ),
+    re_path(
+        r"^issuers/(?P<issuerSlug>[^/]+)/upgradeQuota$",
+        QuotaUpgradeRequestView.as_view(),
+        name="v1_api_issuer_upgrade_quota_request",
     ),
 ]

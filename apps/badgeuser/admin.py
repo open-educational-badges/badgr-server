@@ -98,6 +98,7 @@ class BadgeUserAdmin(DjangoObjectActions, ModelAdmin):
                     "agreed_terms_version",
                     "marketing_opt_in",
                     "secure_password_set",
+                    "quota_release_informed",
                 )
             },
         ),

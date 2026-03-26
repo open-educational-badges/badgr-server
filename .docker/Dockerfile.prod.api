@@ -87,6 +87,7 @@ RUN touch /var/log/cron_cleartokens.log && chmod 644 /var/log/cron_cleartokens.l
 RUN touch /var/log/cron_qr_badgerequests.log && chmod 644 /var/log/cron_qr_badgerequests.log
 RUN touch /var/log/cron_clear_altcha.log && chmod 644 /var/log/cron_clear_altcha.log
 RUN touch /var/log/cron_clear_iframe_urls.log && chmod 644 /var/log/cron_clear_iframe_urls.log
+RUN touch /var/log/cron_clean_aiskill_requests.log && chmod 644 /var/log/cron_clean_aiskill_requests.log
 
 ENV PATH="/badgr_server/venv/bin:$PATH"
 ENTRYPOINT ["./entrypoint.sh"]
