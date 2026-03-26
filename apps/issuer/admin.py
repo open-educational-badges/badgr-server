@@ -458,6 +458,7 @@ class BadgeClassAdmin(DjangoObjectActions, ModelAdmin):
                     "expiration",
                     "copy_permissions",
                     "course_url",
+                    "language",
                 )
             },
         ),
@@ -615,6 +616,7 @@ class BadgeInstanceAdmin(DjangoObjectActions, ModelAdmin):
                     "activity_online",
                     "course_url",
                     "narrative",
+                    "language",
                 )
             },
         ),
