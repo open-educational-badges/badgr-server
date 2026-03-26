@@ -9,6 +9,7 @@ from issuer.api import (
     IssuerNetworkBadgeClassList,
     IssuerSharedNetworkBadgesView,
     IssuerStaffRequestConfirm,
+    LearningPathArchive,
     NetworkBadgeClassesList,
     NetworkBadgeInstanceList,
     NetworkBadgeQRCodeList,
@@ -182,6 +183,11 @@ urlpatterns = [
         r"^issuers/(?P<issuerSlug>[^/]+)/learningpath/(?P<slug>[^/]+)$",
         LearningPathDetail.as_view(),
         name="v1_api_learningpath_detail",
+    ),
+    re_path(
+        r"^issuers/(?P<issuerSlug>[^/]+)/learningpath/(?P<slug>[^/]+)/archive$",
+        LearningPathArchive.as_view(),
+        name="v1_api_learningpath_archive",
     ),
     re_path(
         r"^learningpath/(?P<slug>[^/]+)/participants$",
