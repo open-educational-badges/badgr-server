@@ -1424,6 +1424,35 @@ class BadgeClass(
                 if tag.name not in new_idx:
                     tag.delete()
 
+    @cachemodel.cached_method(auto_publish=True)
+    def cached_areas(self):
+        return self.badgeclassarea_set.all()
+
+    @property
+    def area_items(self):
+        return self.cached_areas()
+
+    @area_items.setter
+    def area_items(self, value):
+        if value is None:
+            value = []
+        existing_idx = [a.name for a in self.area_items]
+        new_idx = value
+
+        with transaction.atomic():
+            if not self.pk:
+                self.save()
+
+            # add missing
+            for a in value:
+                if a not in existing_idx:
+                    self.badgeclassarea_set.create(name=a)
+
+            # remove old
+            for area in self.area_items:
+                if area.name not in new_idx:
+                    area.delete()
+
     def get_extensions_manager(self):
         return self.badgeclassextension_set
 
@@ -1590,12 +1619,13 @@ class BadgeClass(
                 json["sourceUrl"] = self.source_url
                 json["hostedUrl"] = OriginSetting.HTTP + self.get_absolute_url()
 
-        # alignment / tags
+        # alignment / tags / areas
         if obi_version == "2_0" or obi_version == "3_0":
             json["alignment"] = [
                 a.get_json(obi_version=obi_version) for a in self.cached_alignments()
             ]
             json["tags"] = list(t.name for t in self.cached_tags())
+            json["areas"] = list(a.name for a in self.cached_areas())
 
         # extensions
         if len(self.cached_extensions()) > 0:
@@ -3042,6 +3072,22 @@ class BadgeClassTag(cachemodel.CacheModel):
 
     def delete(self, *args, **kwargs):
         super(BadgeClassTag, self).delete(*args, **kwargs)
+        self.badgeclass.publish()
+
+
+class BadgeClassArea(cachemodel.CacheModel):
+    badgeclass = models.ForeignKey("issuer.BadgeClass", on_delete=models.CASCADE)
+    name = models.CharField(max_length=254, db_index=True)
+
+    def __str__(self):
+        return self.name
+
+    def publish(self):
+        super(BadgeClassArea, self).publish()
+        self.badgeclass.publish()
+
+    def delete(self, *args, **kwargs):
+        super(BadgeClassArea, self).delete(*args, **kwargs)
         self.badgeclass.publish()
 
 
