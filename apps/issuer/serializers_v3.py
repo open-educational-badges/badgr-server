@@ -17,6 +17,10 @@ class TagSerializerV3(serializers.Serializer):
     tags = serializers.ListField(child=serializers.CharField())
 
 
+class AreaSerializerV3(serializers.Serializer):
+    areas = serializers.ListField(child=serializers.CharField())
+
+
 class BaseRequestIframeSerializer(serializers.Serializer):
     """Base serializer for all iFrame request endpoints"""
 
