@@ -20,6 +20,7 @@ from rest_framework.decorators import action
 from issuer.serializers_v3 import (
     RequestIframeBadgeProcessSerializer,
     RequestIframeSerializer,
+    IssuerGeoJSONSerializer,
 )
 from backpack.api import BackpackAssertionList
 from badgeuser.api import LearningPathList
@@ -52,7 +53,7 @@ from .serializers_v1 import (
     NetworkSerializerV1,
 )
 
-from .serializers_v3 import TagSerializerV3
+from .serializers_v3 import QuotaSerializer, TagSerializerV3
 
 from .models import (
     BadgeClass,
@@ -63,6 +64,7 @@ from .models import (
     LearningPathTag,
     BadgeInstanceExtension,
     LearningPathBadge,
+    Quota,
 )
 from django.db.models import Q, Count
 
@@ -172,6 +174,7 @@ class Badges(EntityViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        queryset = queryset.exclude(learningpath__archived=True)
         return queryset.distinct()
 
 
@@ -212,7 +215,7 @@ class BadgeInstances(EntityViewSet):
     ),
 )
 class Issuers(EntityViewSet):
-    queryset = Issuer.objects.all()
+    queryset = Issuer.objects.filter(is_network=False)
     serializer_class = IssuerSerializerV1
     filterset_class = IssuerFilter
 
@@ -220,9 +223,14 @@ class Issuers(EntityViewSet):
     ordering = ["-badge_count"]
 
     def get_queryset(self):
-        return Issuer.objects.all().annotate(
+        return Issuer.objects.filter(is_network=False).annotate(
             badge_count=Count("badgeclasses", distinct=True)
         )
+
+    def paginate_queryset(self, queryset):
+        if self.request.accepted_renderer.format == "geojson":
+            return None  # No pagination for GeoJSON
+        return super().paginate_queryset(queryset)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -235,6 +243,11 @@ class Issuers(EntityViewSet):
                 "created_by",
             ]
         return context
+
+    def get_serializer_class(self):
+        if self.request.accepted_media_type == "application/geo+json":
+            return IssuerGeoJSONSerializer
+        return IssuerSerializerV1
 
 
 @extend_schema_view(
@@ -319,7 +332,7 @@ class LearningPathFilter(EntityFilter):
     ),
 )
 class LearningPaths(EntityViewSet):
-    queryset = LearningPath.objects.all()
+    queryset = LearningPath.objects.filter(archived=False)
     serializer_class = LearningPathSerializerV1
     filterset_class = LearningPathFilter
 
@@ -358,7 +371,7 @@ class RequestIframe(APIView):
     def get(self, request, **kwargs):
         # for easier in-browser testing
         if settings.DEBUG:
-            request._request.POST = request.GET
+            request.data.update(request.GET.dict())
             return self.post(request, **kwargs)
         else:
             return HttpResponse(b"", status=405)
@@ -733,3 +746,18 @@ class BadgeEditEmbed(RequestIframe):
         )
 
         return JsonResponse({"url": iframe.url})
+
+
+class Quotas(APIView):
+    queryset = Quota.objects.all()
+
+    def get(self, request, **kwargs):
+        enabled_date = getattr(settings, "QUOTAS_ENABLED_DATE", None)
+        email = getattr(settings, "QUOTAS_EMAIL", None)
+        if enabled_date is not None:
+            enabled_date = int(enabled_date.timestamp())
+        return JsonResponse({
+            "enabled_date": enabled_date,
+            "email": email,
+            "quotas": QuotaSerializer(self.queryset.all(), many=True).data
+        })

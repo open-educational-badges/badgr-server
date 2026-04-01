@@ -12,6 +12,7 @@ from mainsite.views import (
     AdminUser,
     badgeRequestsByBadgeClass,
     downloadQrCode,
+    public_assertion_pdf,
     upload,
     nounproject,
     aiskills,
@@ -241,6 +242,11 @@ urlpatterns = [
         r"^download-qrcode/(?P<qrCodeId>[^/]+)/(?P<badgeSlug>[^/]+)$",
         downloadQrCode,
         name="download-qrcode",
+    ),
+    re_path(
+        r"^assertions/(?P<entity_id>[^/]+/pdf)",
+        public_assertion_pdf,
+        name="assertion-pdf",
     ),
     re_path(
         r"^badgeRequests/(?P<badgeSlug>[^/]+)$",

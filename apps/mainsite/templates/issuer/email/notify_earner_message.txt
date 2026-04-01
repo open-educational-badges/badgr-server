@@ -1,12 +1,22 @@
-Herzlichen Glückwunsch{% if name %} {{ name }}{% endif %},
-du hast einen {% if badge_category == "learningpath" %}MICRO DEGREE{% else %}BADGE{% endif %}erhalten!
+{% load i18n %}
+{% with lang=badge_language|default:"en" %}
+{% language lang %}
 
-Vergeben von: {{ issuer_name }}
+{% translate "Congratulations" %}{% if name %} {{ name }}{% endif %},
+{% if badge_category == "learningpath" %}
+{% translate "you've received a MICRO DEGREE!" %}
+{% else %}
+{% translate "you've received a BADGE!" %}
+{% endif %}
+
+{% translate "Issued by:" %} {{ issuer_name }}
 {% if badge_category != "learningpath" %}
-Du hast erfolgreich an dem Lernangebot {{ badge_name }} teilgenommen.
+{% blocktranslate trimmed %}
+You have successfully participated at the educational offering {{ badge_name }}
+{% endblocktranslate %}
 {% endif %}
 {% if badge_competencies %}
-Dabei hast du folgende Kompetenzen gestärkt:
+{% translate 'By participating you have improved the following competencies:' %}
 {% for item in badge_competencies %}
     {{ item.name }} - {{ item.studyLoad }}
 {% endfor %}
@@ -14,12 +24,13 @@ Dabei hast du folgende Kompetenzen gestärkt:
 {% if badge_category == "learningpath" %}
 {{ call_to_action_label }}: {{ activate_url }}
 
-Im Anhang dieser Mail findest du neben der Micro-Degree-Datei ein PDF-Zertifikat, das deinen Lernerfolg ebenfalls ausweist.
+{% translate 'You can find the Micro Degree file next to the Badge-PDF demonstrating your learning outcomes in this mails attachment.' %}
 {% else %}
-Im Anhang dieser Mail findest du deine Badge-Datei und das zugehörige PDF-Zertifikat zum Herunterladen.
+{% translate 'You can find the Badge file next to the Badge-PDF demonstrating your learning outcomes in this mails attachment.' %}
 
-Alle deine erhaltenen Badges kannst du auf Open Educational Badges
-in deinem Rucksack sammeln und mit anderen teilen.
-Lege dafür einfach kostenlos einen Account an:
+{% translate 'Collect all your badges in your Open Educational Badges backpack and use them for applications. Just create your free account here:' %}
 {{ activate_url }}
 {% endif %}
+
+{% endlanguage %}
+{% endwith %}

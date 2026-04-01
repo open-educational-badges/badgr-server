@@ -37,6 +37,7 @@ dependencies = [
     "django-object-actions>=3.2.0",
     "django-prometheus==2.3.1",
     "djangorestframework>=3.14.0",
+    "djangorestframework-gis>=1.2.0",
     "drf-spectacular>=0.29.0",
     "geopy==2.4.1",
     "idna==2.8",
@@ -114,6 +115,7 @@ override-dependencies = [
 [tool.djlint]
 profile = "django"
 ignore = "H021,H005,H031,D018,H006,H019,H023,H030,H006,H013, H025"
+max_attribute_length=120
 
 [tool.commitizen]
 name = "cz_conventional_commits"

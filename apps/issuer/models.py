@@ -1,4 +1,5 @@
 import datetime
+from django.db.models.fields import PositiveIntegerField
 import io
 import math
 import os
@@ -23,7 +24,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
-from django.db.models import ProtectedError
+from django.db.models import Q, ProtectedError
 from django.urls import reverse
 from django.utils import timezone
 from apps.issuer.services.image_composer import ImageComposer
@@ -46,6 +47,7 @@ from mainsite.mixins import (
 from mainsite.models import BadgrApp, EmailBlacklist
 from mainsite.utils import OriginSetting, generate_entity_uri, get_name
 from openbadges_bakery import bake
+from dateutil.relativedelta import relativedelta
 
 from .utils import (
     CURRENT_OBI_VERSION,
@@ -303,6 +305,159 @@ class Issuer(
         max_length=512, blank=True, null=True, default=generate_private_key_pem
     )
 
+    quota = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
+
+    quota_period_start = models.DateTimeField(blank=False, null=False, default=timezone.now, verbose_name="Period start")
+    quota_network_period_start = models.DateTimeField(blank=False, null=False, default=timezone.now, verbose_name="Network period start")
+
+    quota_badge_create = models.PositiveIntegerField(blank=True, null=True, verbose_name="Create Badges")
+    quota_badge_award = models.PositiveIntegerField(blank=True, null=True, verbose_name="Award Badges")
+    quota_learningpath_create = models.PositiveIntegerField(blank=True, null=True, verbose_name="Create Learningpaths")
+    quota_accounts_admin = models.PositiveIntegerField(blank=True, null=True, verbose_name="Admin Accounts")
+    quota_accounts_member = models.PositiveIntegerField(blank=True, null=True, verbose_name="Member Accounts")
+    quota_aiskills_requests = models.PositiveIntegerField(blank=True, null=True, verbose_name="AI Tool Requests")
+    quota_pdfeditor = models.BooleanField(blank=True, null=True, verbose_name="PDF Editor")
+    quota_network_memberships = models.PositiveIntegerField(blank=True, null=True, verbose_name="Network Memberships")
+    quota_network_create = models.BooleanField(blank=True, null=True, verbose_name="Create Networks")
+
+    def get_quota_object(self):
+        quota = self.quota
+        if not quota:
+            if self.is_network:
+                quota = Quota.objects.filter(default=QuotaDefaults.NETWORK).first()
+            else:
+                quota = Quota.objects.filter(default=QuotaDefaults.ISSUER).first()
+
+        return quota
+
+    def get_quota_usage(self, quota_name: str):
+        max_quota = self.get_max_quota(quota_name)
+
+        if max_quota is None:
+            return None
+
+        value = 0
+
+        # find current yearly quota period based on period start
+        dt_end_yr = self.quota_period_start
+        while(dt_end_yr < timezone.now()):
+            dt_end_yr = dt_end_yr + relativedelta(years=1)
+        dt_start_yr = dt_end_yr - relativedelta(years=1)
+
+        # find current monthly quota period based on period start
+        dt_end_mo = self.quota_period_start
+        while(dt_end_mo < timezone.now()):
+            dt_end_mo = dt_end_mo + relativedelta(months=1)
+        dt_start_mo = dt_end_mo - relativedelta(months=1)
+
+
+        if quota_name == "BADGE_CREATE":
+            value = len(
+                self.cached_badgeclasses()
+                    .filter(learningpath_as_participationbadge=None)
+                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+            )
+
+        if quota_name == "BADGE_AWARD":
+            if not self.is_network:
+                # find all self-issued instances of self owned badges
+                value = len(
+                    self.badgeinstance_set.all()
+                        .filter(revoked=False)
+                        # this removes network badges from the count
+                        .filter(badgeclass__issuer=self)
+                        # this removes partner badges from the count
+                        .filter(badgeclass__network_shares__id=None)
+                        .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+                )
+            else:
+                # if network, find all network and partner badge instances
+                value = len(
+                    BadgeInstance.objects
+                        .filter(revoked=False)
+                        .filter(
+                            Q(badgeclass__issuer=self)
+                            | Q(badgeclass__network_shares__network=self)
+                        )
+                        .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+                )
+
+        if quota_name == "LEARNINGPATH_CREATE":
+            value = len(
+                self.cached_learningpaths()
+                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+            )
+
+        staff = self.cached_issuerstaff()
+
+        if quota_name == "ACCOUNTS_ADMIN":
+            value = len(
+                [x for x in staff if x.role == "owner" or x.role == "editor"]
+            )
+        if quota_name == "ACCOUNTS_MEMBER":
+            value = len(
+                [x for x in staff if x.role != "owner" and x.role != "editor"]
+            )
+
+        if quota_name == "AISKILLS_REQUESTS":
+            value = len(self.aiskill_requests.filter(created_at__date__range=(dt_start_mo, dt_end_mo)))
+
+        if quota_name == "PDFEDITOR":
+            value = max_quota
+
+        if quota_name == "NETWORK_MEMBERSHIPS":
+            value = len(self.partner_issuers.all()) + len(self.invites.filter(status="Pending").all())
+
+        if quota_name == "NETWORK_CREATE":
+            value = max_quota
+
+        return value
+
+    def get_max_quota(self, quota_name: str):
+        try:
+            attr = getattr(self, f'quota_{quota_name.lower()}')
+            if attr is not None:
+                return attr
+        except AttributeError:
+            pass
+
+        quota = self.get_quota_object()
+
+        if quota:
+            try:
+                return getattr(quota, quota_name.lower())
+            except AttributeError:
+                pass
+
+        return None
+
+    # check if a custom value has been set and differs from the default value
+    def is_custom_quota(self, quota_name: str):
+        try:
+            attr = getattr(self, f'quota_{quota_name.lower()}')
+            if attr is not None:
+                try:
+                    return getattr(self.get_quota_object(), quota_name.lower()) != attr
+                except AttributeError:
+                    return False
+        except AttributeError as e:
+            print(e)
+
+        return False
+
+    def get_next_quota_payment(self):
+        dt_next = self.quota_period_start
+        while(dt_next < timezone.now()):
+            dt_next = dt_next + relativedelta(years=1)
+
+        return dt_next
+
+    def get_next_quota_level(self):
+        try:
+            return self.quota.upgrade.name
+        except AttributeError:
+            return None
+
     def publish(self, publish_staff=True, *args, **kwargs):
         fields_cache = (
             self._state.fields_cache
@@ -358,6 +513,7 @@ class Issuer(
         if not self.pk:
             self.notify_admins(self)
             should_geocode = True
+
             if not self.verified:
                 badgr_app = BadgrApp.objects.get_current(None)
                 try:
@@ -1019,6 +1175,9 @@ class BadgeClass(
     criteria_url = models.CharField(max_length=254, blank=True, null=True, default=None)
     criteria_text = models.TextField(blank=True, null=True)
     course_url = models.CharField(max_length=255, blank=True, null=True, default=None)
+    language = models.CharField(max_length=2, blank=True, null=True, default="en")
+    """Badge language as ISO 639-1 code"""
+
     expiration = models.IntegerField(
         blank=True,
         null=True,
@@ -1945,6 +2104,15 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         if not revocation_reason:
             raise ValidationError("revocation_reason is required")
 
+        archived_learningpath = LearningPath.objects.filter(
+            participationBadge=self.badgeclass, archived=True
+        ).first()
+
+        if archived_learningpath:
+            raise ValidationError(
+                f"Cannot revoke micro degree from archived learning path: {archived_learningpath.name}"
+            )
+
         self.revoked = True
         self.revocation_reason = revocation_reason
         self.image.delete()
@@ -2043,12 +2211,34 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
 
             url = "{url}?a={badgr_app}".format(url=save_url, badgr_app=badgr_app)
 
+            share_params = {
+                "startTask": "CERTIFICATION_NAME",  # this is the name LinkedIn has given the task
+                "name": self.badgeclass.name,
+                "organizationName": self.issuer.name,
+                "issueYear": str(self.issued_on.year),
+                "issueMonth": f"{self.issued_on.month:02d}",  # Zero-padded month
+                "expirationYear": str(self.expires_at.year)
+                if self.expires_at
+                else None,
+                "expirationMonth": f"{self.expires_at.month:02d}"
+                if self.expires_at
+                else None,
+                "certUrl": self.share_url,
+                "certId": self.entity_id,
+                "organizationId": self.issuer.linkedinId
+                if hasattr(self.issuer, "linkedinId") and self.issuer.linkedinId
+                else None,
+            }
+            share_params = {k: v for k, v in share_params.items() if v is not None}
+            linked_in_share_url = f"https://www.linkedin.com/profile/add?{urllib.parse.urlencode(share_params, quote_via=urllib.parse.quote)}"
+
             email_context = {
                 "name": name,
                 "badge_name": self.badgeclass.name,
                 "badge_category": categoryExtension["Category"],
                 "badge_id": self.entity_id,
                 "badge_description": self.badgeclass.description,
+                "badge_language": self.badgeclass.language,
                 "badge_competencies": competencies,
                 "help_email": getattr(settings, "HELP_EMAIL", "info@opensenselab.org"),
                 "issuer_name": self.issuer.name,
@@ -2066,6 +2256,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                 "badgr_app": badgr_app,
                 "activate_url": url,
                 "call_to_action_label": "Badge im Rucksack sammeln",
+                "linked_in_share_url": linked_in_share_url,
             }
             if badgr_app.cors == "badgr.io":
                 email_context["promote_mobile"] = True
@@ -2416,6 +2607,46 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
             # unique
             extension_contexts = list(set(extension_contexts))
             json["@context"] += extension_contexts
+
+        badgeclass_extensions = self.cached_badgeclass.cached_extensions()
+        if badgeclass_extensions:
+            extension_contexts = []
+
+            for extension in badgeclass_extensions:
+                if extension.name == "extensions:OrgImageExtension":
+                    continue
+                extension_json = json_loads(extension.original_json)
+                extension_name = extension.name
+
+                # Extract contexts from extension data
+                items = (
+                    extension_json
+                    if isinstance(extension_json, list)
+                    else [extension_json]
+                )
+                for item in items:
+                    if isinstance(item, dict) and "@context" in item:
+                        ctx = item["@context"]
+                        extension_contexts += ctx if isinstance(ctx, list) else [ctx]
+
+                # Add cleaned extension data to credential
+                if isinstance(extension_json, list):
+                    json[extension_name] = [
+                        {k: v for k, v in item.items() if k not in ["@context", "type"]}
+                        for item in extension_json
+                        if isinstance(item, dict)
+                    ]
+                else:
+                    json[extension_name] = {
+                        k: v
+                        for k, v in extension_json.items()
+                        if k not in ["@context", "type"]
+                    }
+
+            # Add unique contexts to top-level context
+            json["@context"] += [
+                ctx for ctx in set(extension_contexts) if ctx not in json["@context"]
+            ]
 
         ##### proof / signing #####
 
@@ -2977,7 +3208,7 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
         related_name="learningpaths",
     )
     participationBadge = models.ForeignKey(
-        BadgeClass, blank=False, null=False, on_delete=models.CASCADE
+        BadgeClass, blank=False, null=False, on_delete=models.CASCADE, related_name='learningpath_as_participationbadge'
     )
     badgrapp = models.ForeignKey(
         "mainsite.BadgrApp",
@@ -2992,6 +3223,28 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
 
     required_badges_count = models.PositiveIntegerField()
     activated = models.BooleanField(null=False, default=False)
+
+    archived = models.BooleanField(null=False, default=False)
+    archived_at = models.DateTimeField(blank=True, null=True, default=None)
+
+    @property
+    def is_active(self):
+        return self.activated and not self.archived
+
+    def archive(self):
+        if not self.archived:
+            self.archived = True
+            self.archived_at = timezone.now()
+            self.save()
+
+    @property
+    def has_awarded_micro_degree(self):
+        """Check if any micro degree has been awarded for this learning path"""
+        return self.participationBadge.badgeinstances.filter(revoked=False).exists()
+
+    @property
+    def awarded_badges_count(self):
+        return self.participationBadge.badgeinstances.filter(revoked=False).count()
 
     @property
     def public_url(self):
@@ -3152,13 +3405,11 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
 
         return False
 
-    def calculate_progress(self, badgeclasses):
-        return sum(
-            json_loads(ext.original_json)["StudyLoad"]
-            for badge in badgeclasses
-            for ext in badge.cached_extensions()
-            if ext.name == "extensions:StudyLoadExtension"
-        )
+    def badge_progress(self, all_badges, completed_badges):
+        total = len(set(all_badges))
+        completed = len(set(completed_badges))
+        pct = int((completed / total) * 100) if total else 0
+        return pct
 
     def get_lp_badgeinstance(self, recipient_identifier):
         return BadgeInstance.objects.filter(
@@ -3206,4 +3457,80 @@ class RequestedLearningPath(BaseVersionedEntity):
 
     status = models.CharField(
         max_length=254, blank=False, null=False, default="Pending"
+    )
+
+class QuotaDefaults(models.TextChoices):
+    NONE = "NONE", "None"
+    ISSUER = "ISSUER", "Issuer"
+    NETWORK = "NETWORK", "Network"
+class Quota(cachemodel.CacheModel):
+
+    name = models.CharField(max_length=254, blank=False, null=False)
+    key = models.CharField(max_length=254, blank=False, null=False, unique=True)
+    price = models.DecimalField(max_digits=11, decimal_places=2, blank=True, null=True)
+    upgrade = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
+    default = models.CharField(
+        max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE, unique=False
+    )
+
+    badge_create = models.PositiveIntegerField(verbose_name="Create Badges")
+    badge_award = models.PositiveIntegerField(verbose_name="Award Badges")
+    learningpath_create = models.PositiveIntegerField(verbose_name="Create Learningpaths")
+    accounts_admin = models.PositiveIntegerField(verbose_name="Admin Accounts")
+    accounts_member = models.PositiveIntegerField(verbose_name="Member Accounts")
+    aiskills_requests: PositiveIntegerField = models.PositiveIntegerField(verbose_name="AI Tool Requests")
+    pdfeditor = models.BooleanField(verbose_name="PDF Editor")
+    network_memberships = models.PositiveIntegerField(verbose_name="Network Memberships")
+
+    def __str__(self):
+        return str(self.name)
+
+
+
+class QuotaUpgradeRequest(models.Model):
+    name = models.CharField(max_length=254, blank=False, null=False)
+    email = models.EmailField(blank=False, null=False)
+    issuer = models.ForeignKey(
+        Issuer,
+        on_delete=models.CASCADE,
+        related_name="quota_requests",
+    )
+    quota = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
+
+    class Meta:
+        verbose_name_plural  = "Quotas: Upgrade Requests"
+
+    def notify(self):
+        """
+        Send an email notification to the sales team.
+        """
+
+        email = getattr(settings, "QUOTAS_EMAIL", None)
+        if email:
+
+            adapter = get_adapter()
+
+            email_context = {
+                "name": self.name,
+                "email": self.email,
+                "issuer": self.issuer.name,
+                "issuerPk": self.issuer.pk,
+                "quota": self.quota.name,
+            }
+
+            template_name = "issuer/email/quotas/notify_sales"
+
+            adapter.send_mail(
+                template_name,
+                email,
+                context=email_context
+            )
+
+
+
+class AiSkillRequest(BaseAuditedModel):
+    issuer = models.ForeignKey(
+        Issuer,
+        on_delete=models.CASCADE,
+        related_name="aiskill_requests",
     )

@@ -454,13 +454,11 @@ class BadgeInstanceManager(BaseOpenBadgeObjectManager):
 
         # check if badgeclass is used in learning paths
         learningpathes = LearningPath.objects.filter(
-            learningpathbadge__badge=badgeclass
+            learningpathbadge__badge=badgeclass, activated=True, archived=False
         )
         for learningpath in learningpathes:
             # all learningpath badges collected but participationBadge not yet issued
-            if learningpath.activated and learningpath.user_should_have_badge(
-                recipient_identifier
-            ):
+            if learningpath.user_should_have_badge(recipient_identifier):
                 # issue learningpath badge
                 learningpath.participationBadge.issue(
                     recipient_id=recipient_identifier,

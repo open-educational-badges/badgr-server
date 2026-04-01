@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from entity.serializers import DetailSerializerV2
-from issuer.models import BadgeClass
+from issuer.models import BadgeClass, Issuer
+from django.contrib.gis.geos import Point
+from rest_framework_gis.serializers import (
+    GeoFeatureModelSerializer,
+    GeometrySerializerMethodField,
+)
 
 
 class BadgeClassSerializerV3(DetailSerializerV2):
@@ -27,6 +32,48 @@ class RequestIframeSerializer(BaseRequestIframeSerializer):
     email = serializers.CharField()
 
 
-class RequestIframeBadgeProcessSerializer(BaseRequestIframeSerializer):
+class RequestIframeIssuerSerializer(BaseRequestIframeSerializer):
     issuer = serializers.CharField(required=False, default=None)
+
+
+class RequestIframeBadgeProcessSerializer(RequestIframeIssuerSerializer):
     badge = serializers.CharField(required=False, default=None)
+
+
+class IssuerGeoJSONSerializer(GeoFeatureModelSerializer):
+    class Meta:
+        model = Issuer
+        geo_field = "location"  # Field containing the geometry (PointField)
+        fields = ["id", "name", "image", "description", "category"]
+
+    location = GeometrySerializerMethodField()
+
+    def get_location(self, obj):
+        if obj.lat and obj.lon:
+            return Point(obj.lon, obj.lat)
+        else:
+            return None
+
+
+class QuotaSerializer(serializers.Serializer):
+
+    name = serializers.CharField()
+    key = serializers.CharField()
+    price = serializers.FloatField()
+    default = serializers.CharField()
+    badge_create = serializers.FloatField()
+    badge_award = serializers.FloatField()
+    learningpath_create = serializers.FloatField()
+    accounts_admin = serializers.FloatField()
+    accounts_member = serializers.FloatField()
+    aiskills_requests = serializers.FloatField()
+    pdfeditor = serializers.FloatField()
+    network_memberships = serializers.FloatField()
+
+    def to_representation(self, instance):
+        representation = super(QuotaSerializer, self).to_representation(instance)
+
+        if instance.upgrade:
+            representation['upgrade'] = instance.upgrade.name
+
+        return representation

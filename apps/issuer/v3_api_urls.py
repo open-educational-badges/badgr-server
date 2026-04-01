@@ -18,5 +18,6 @@ urlpatterns = [
     path("learners-backpack", api_v3.LearnersBackpack.as_view()),
     path("badge-create-embed", api_v3.BadgeCreateEmbed.as_view()),
     path("badge-edit-embed", api_v3.BadgeEditEmbed.as_view()),
+    path("quotas", api_v3.Quotas.as_view()),
     path("", include(router.urls)),
 ]

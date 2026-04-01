@@ -22,6 +22,8 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
+from apps.issuer.utils import quota_check
+from apps.mainsite.exceptions import BadgrQuotaExceededException
 from entity.api import (
     BaseEntityDetailView,
     BaseEntityListView,
@@ -42,6 +44,7 @@ from issuer.models import (
     NetworkMembership,
     QrCode,
     RequestedBadge,
+    QuotaUpgradeRequest,
 )
 from issuer.permissions import (
     ApprovedIssuersOnly,
@@ -60,16 +63,18 @@ from issuer.permissions import (
 from issuer.serializers_v1 import (
     BadgeClassSerializerV1,
     BadgeInstanceSerializerV1,
+    IssuerNetworkSerializerPrivateV1,
     IssuerSerializerV1,
     IssuerStaffRequestSerializer,
     LearningPathParticipantSerializerV1,
     LearningPathSerializerV1,
     NetworkBadgeInstanceSerializerV1,
     NetworkInviteSerializer,
-    NetworkSerializerV1,
+    NetworkSerializerV1Private,
     QrCodeSerializerV1,
     RequestedBadgeSerializer,
     BadgeClassNetworkShareSerializerV1,
+    QuotaUpgradeRequestSerializer,
 )
 from issuer.serializers_v2 import (
     BadgeClassSerializerV2,
@@ -108,7 +113,7 @@ class IssuerList(BaseEntityListView):
     """
 
     model = Issuer
-    v1_serializer_class = IssuerSerializerV1
+    v1_serializer_class = IssuerNetworkSerializerPrivateV1
     v2_serializer_class = IssuerSerializerV2
     permission_classes = [
         IsServerAdmin
@@ -147,7 +152,7 @@ class NetworkList(BaseEntityListView):
     """
 
     model = Issuer
-    v1_serializer_class = NetworkSerializerV1
+    v1_serializer_class = NetworkSerializerV1Private
     permission_classes = [
         IsServerAdmin
         | (
@@ -178,7 +183,7 @@ class NetworkList(BaseEntityListView):
 
 class NetworkDetail(BaseEntityDetailView):
     model = Issuer
-    v1_serializer_class = NetworkSerializerV1
+    v1_serializer_class = NetworkSerializerV1Private
     permission_classes = [
         IsServerAdmin
         | (
@@ -205,7 +210,7 @@ class NetworkUserIssuersList(BaseEntityListView):
     """
 
     model = Issuer
-    v1_serializer_class = IssuerSerializerV1
+    v1_serializer_class = IssuerNetworkSerializerPrivateV1
     v2_serializer_class = IssuerSerializerV2
     permission_classes = [
         IsServerAdmin
@@ -244,7 +249,7 @@ class NetworkUserIssuersList(BaseEntityListView):
 
 class IssuerDetail(BaseEntityDetailView):
     model = Issuer
-    v1_serializer_class = IssuerSerializerV1
+    v1_serializer_class = IssuerNetworkSerializerPrivateV1
     v2_serializer_class = IssuerSerializerV2
     permission_classes = [
         IsServerAdmin
@@ -454,6 +459,7 @@ class IssuerBadgeClassList(
         description="Authenticated user must have owner, editor, or staff status on the Issuer",
         tags=["Issuers", "BadgeClasses"],
     )
+    @quota_check('BADGE_CREATE')
     def post(self, request, **kwargs):
         self.get_object(request, **kwargs)  # trigger a has_object_permissions() check
         return super(IssuerBadgeClassList, self).post(request, **kwargs)
@@ -575,7 +581,19 @@ class IssuerLearningPathList(
 
     def get_queryset(self, request=None, **kwargs):
         issuer = self.get_object(request, **kwargs)
-        return LearningPath.objects.filter(issuer=issuer)
+
+        archived_param = (
+            request.query_params.get("archived", "false").lower()
+            if request
+            else "false"
+        )
+
+        if archived_param == "all":
+            return LearningPath.objects.filter(issuer=issuer)
+        elif archived_param == "true":
+            return LearningPath.objects.filter(issuer=issuer, archived=True)
+        else:
+            return LearningPath.objects.filter(issuer=issuer, archived=False)
 
     def get_context_data(self, **kwargs):
         context = super(IssuerLearningPathList, self).get_context_data(**kwargs)
@@ -593,6 +611,14 @@ class IssuerLearningPathList(
                 location=OpenApiParameter.QUERY,
                 description="Request pagination of results",
             ),
+            OpenApiParameter(
+                name="archived",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter by archived status: "true" (archived only), "false" (active only, default), or "all" (both)',
+                required=False,
+                enum=["true", "false", "all"],
+            ),
         ],
     )
     def get(self, request, **kwargs):
@@ -603,6 +629,7 @@ class IssuerLearningPathList(
         description="Authenticated user must have owner, editor, or staff status",
         tags=["Issuers", "LearningPaths"],
     )
+    @quota_check('LEARNINGPATH_CREATE')
     def post(self, request, **kwargs):
         self.get_object(request, **kwargs)  # trigger a has_object_permissions() check
         return super(IssuerLearningPathList, self).post(request, **kwargs)
@@ -700,7 +727,13 @@ class BadgeClassDetail(BaseEntityDetailView):
 
 @shared_task(bind=True)
 def process_batch_assertions(
-    self, assertions, user_id, badgeclass_id, issuerSlug, create_notification=False
+    self,
+    assertions,
+    user_id,
+    badgeclass_id,
+    issuerSlug,
+    serializer_class,
+    create_notification=False,
 ):
     try:
         User = get_user_model()
@@ -714,9 +747,10 @@ def process_batch_assertions(
         errors = []
 
         for assertion in assertions:
+            request_entity_id = assertion.get("request_entity_id")
             assertion["create_notification"] = create_notification
 
-            serializer = BadgeInstanceSerializerV1(
+            serializer = serializer_class(
                 data=assertion,
                 context={
                     "badgeclass": badgeclass,
@@ -728,7 +762,12 @@ def process_batch_assertions(
             if serializer.is_valid():
                 try:
                     instance = serializer.save(created_by=user)
-                    successful.append(BadgeInstanceSerializerV1(instance).data)
+                    successful.append(
+                        {
+                            "badge_instance": serializer_class(instance).data,
+                            "request_entity_id": request_entity_id,
+                        }
+                    )
                 except Exception as e:
                     errors.append({"assertion": assertion, "error": str(e)})
             else:
@@ -823,10 +862,19 @@ class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
         if not self.has_object_permissions(request, badgeclass):
             return Response(status=HTTP_404_NOT_FOUND)
 
+
         try:
             create_notification = request.data.get("create_notification", False)
         except AttributeError:
             return Response(status=HTTP_400_BAD_REQUEST)
+
+
+        # raise error if creating assertions would exceed quota
+        issuer = Issuer.objects.get(entity_id=issuerSlug)
+        max_quota = issuer.get_max_quota('BADGE_AWARD')
+        usage = issuer.get_quota_usage('BADGE_AWARD')
+        if max_quota is not None and max(0, max_quota - usage) < len(assertions):
+            raise BadgrQuotaExceededException
 
         # Start async task
         task = process_batch_assertions.delay(
@@ -834,6 +882,7 @@ class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
             user_id=request.user.id,
             badgeclass_id=badgeclass.id,
             issuerSlug=issuerSlug,
+            serializer_class=self.v1_serializer_class,
             create_notification=create_notification,
         )
 
@@ -1250,6 +1299,7 @@ class IssuerBadgeInstanceList(
         summary="Issue a new Assertion to a recipient",
         tags=["Assertions", "Issuers"],
     )
+    @quota_check('BADGE_AWARD')
     def post(self, request, **kwargs):
         kwargs["issuer"] = self.get_object(
             request, **kwargs
@@ -2039,15 +2089,66 @@ class LearningPathDetail(BaseEntityDetailView):
     @extend_schema(
         summary="Delete a single LearningPath",
         tags=["LearningPaths"],
-        responses={204: OpenApiResponse(description="Deleted")},
+        responses={
+            204: OpenApiResponse(description="Deleted"),
+            403: OpenApiResponse(description="Forbidden"),
+            409: OpenApiResponse(
+                description="Learning path cannot be deleted because it has already been completed by at least one user."
+            ),
+        },
     )
     def delete(self, request, **kwargs):
-        if not is_learningpath_editor(request.user, self.get_object(request, **kwargs)):
+        learning_path = self.get_object(request, **kwargs)
+        if not is_learningpath_editor(request.user, learning_path):
             return Response(
                 {"error": "You are not authorized to delete this learning path."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+        if learning_path.has_awarded_micro_degree:
+            return Response(
+                {
+                    "code": "learningpath_has_awards",
+                    "error": (
+                        "This learning path has already been completed by at least one "
+                        "user and can no longer be deleted. Archive it instead."
+                    ),
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         return super(LearningPathDetail, self).delete(request, **kwargs)
+
+
+class LearningPathArchive(BaseEntityDetailView):
+    model = LearningPath
+    v1_serializer_class = LearningPathSerializerV1
+    permission_classes = (BadgrOAuthTokenHasScope, MayIssueLearningPath)
+    valid_scopes = ["rw:issuer"]
+
+    @extend_schema(
+        summary="Archive a LearningPath",
+        tags=["LearningPaths"],
+        responses=LearningPathSerializerV1,
+    )
+    def post(self, request, **kwargs):
+        if not is_learningpath_editor(request.user, self.get_object(request, **kwargs)):
+            return Response(
+                {"error": "You are not authorized to archive this learning path."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        learning_path = self.get_object(request, **kwargs)
+
+        if learning_path.archived:
+            return Response(
+                {"error": "Learning path is already archived."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        learning_path.archive()
+        serializer = self.v1_serializer_class(
+            learning_path, context={"request": request}
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class IssuerStaffRequestList(BaseEntityListView):
@@ -2537,6 +2638,12 @@ class NetworkInvitationList(BaseEntityListView):
                 )
             slugs.append(slug)
 
+        # raise error if creating invitations would exceed quota
+        max_quota = network.get_max_quota('NETWORK_MEMBERSHIPS')
+        usage = network.get_quota_usage('NETWORK_MEMBERSHIPS')
+        if max_quota is not None and max(0, max_quota - usage) < len(slugs):
+            raise BadgrQuotaExceededException
+
         issuers = Issuer.objects.filter(entity_id__in=slugs, is_network=False)
         found_slugs = set(issuers.values_list("entity_id", flat=True))
 
@@ -2795,3 +2902,25 @@ class BadgeClassNetworkShareView(BaseEntityDetailView):
 
         serializer = self.get_serializer_class()(share)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class QuotaUpgradeRequestView(BaseEntityListView):
+    model = QuotaUpgradeRequest
+    permission_classes = [
+        IsServerAdmin
+        | (
+            AuthenticatedWithVerifiedIdentifier
+            & BadgrOAuthTokenHasScope
+        )
+        | BadgrOAuthTokenHasEntityScope
+    ]
+    serializer_class = QuotaUpgradeRequestSerializer
+    valid_scopes = ["rw:issuer", "rw:issuer:*"]
+
+    @extend_schema(
+        summary="Create a new upgrade quota request",
+        tags=["QuotaRequests"],
+        request=QuotaUpgradeRequestSerializer(many=True),
+    )
+    def post(self, request, **kwargs):
+        return super().post(request, **kwargs)

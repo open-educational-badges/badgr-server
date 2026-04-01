@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.oauth2",
     "corsheaders",
     "rest_framework",
+    "rest_framework_gis",
     "rest_framework.authtoken",
     "django_celery_results",
     "dbbackup",  # django-dbbackup
@@ -331,6 +332,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_RENDERER_CLASSES": (
         "mainsite.renderers.JSONLDRenderer",
+        "mainsite.renderers.GeoJSONRenderer",
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
@@ -380,7 +382,10 @@ CAIROSVG_VERSION_SUFFIX = "2"
 
 SITE_ID = 2
 
-USE_I18N = False
+USE_I18N = True
+LOCALE_PATHS = [os.path.join(TOP_DIR, "locales")]
+
+
 USE_L10N = False
 USE_TZ = True
 
@@ -573,3 +578,7 @@ MJML_BACKEND_MODE = "cmd"
 # make sure to not load any fonts automatically
 MJML_EXEC_CMD = ["mjml", "--config.fonts", "{}"]
 # MJML_CHECK_CMD_ON_STARTUP = False
+
+# datetime.strptime('2026-04-01 00:00:00', '%Y-%m-%d %H:%M:%S')
+QUOTAS_ENABLED_DATE=None
+QUOTAS_EMAIL = ""

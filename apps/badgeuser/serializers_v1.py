@@ -58,6 +58,8 @@ class BadgeUserProfileSerializerV1(serializers.Serializer):
     has_password_set = serializers.SerializerMethodField()
     secure_password_set = serializers.BooleanField(required=False)
     source = serializers.CharField(write_only=True, required=False)
+    date_joined = serializers.DateTimeField(read_only=True)
+    quota_release_informed = serializers.BooleanField(read_only=False, required=False)
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_has_password_set(self, obj):
@@ -119,6 +121,9 @@ class BadgeUserProfileSerializerV1(serializers.Serializer):
 
         if "zip_code" in validated_data:
             user.zip_code = validated_data.get("zip_code")
+
+        if "quota_release_informed" in validated_data:
+            user.quota_release_informed = validated_data.get("quota_release_informed")
 
         user.save()
         return user
@@ -200,5 +205,20 @@ class BadgeUserIdentifierFieldV1(serializers.CharField):
     def to_representation(self, value):
         try:
             return BadgeUser.cached.get(pk=value).primary_email
+        except BadgeUser.DoesNotExist:
+            return None
+
+
+class BadgeUserFullNameFieldV1(serializers.CharField):
+    def __init__(self, *args, **kwargs):
+        if "source" not in kwargs:
+            kwargs["source"] = "created_by_id"
+        if "read_only" not in kwargs:
+            kwargs["read_only"] = True
+        super(BadgeUserFullNameFieldV1, self).__init__(*args, **kwargs)
+
+    def to_representation(self, value):
+        try:
+            return BadgeUser.cached.get(pk=value).get_full_name()
         except BadgeUser.DoesNotExist:
             return None

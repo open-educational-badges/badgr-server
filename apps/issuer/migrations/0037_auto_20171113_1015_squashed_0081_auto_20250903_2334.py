@@ -35,7 +35,8 @@ def badgeinstance_generate_ob2_json(apps, schema):
 
 
 def set_required_badges_count(apps, schema_editor):
-    for lp in issuer.models.LearningPath.objects.all():
+    LearningPath = apps.get_model("issuer", "LearningPath")
+    for lp in LearningPath.objects.all():
         badge_count = issuer.models.LearningPathBadge.objects.filter(
             learning_path=lp
         ).count()
