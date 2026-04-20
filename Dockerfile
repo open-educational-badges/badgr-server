@@ -10,8 +10,7 @@ RUN apt-get install -y default-libmysqlclient-dev \
                        xmlsec1 \
                        libxmlsec1-dev \
                        pkg-config \
-                       curl \
-                       git
+                       curl
 
 RUN mkdir /badgr_server
 WORKDIR /badgr_server
@@ -21,17 +20,6 @@ ENV TZ="Europe/Berlin"
 
 COPY requirements.txt .
 RUN pip install --no-dependencies -r requirements.txt
-
-ARG WIZZARD_REPO=https://github.com/mycelia-gGmbH/wizzard.git
-ARG WAFFLE_REPO=https://github.com/mycelia-gGmbH/waffle.git
-ARG WIZZARD_REF=main
-ARG WAFFLE_REF=main
-
-RUN mkdir -p /tmp/plugins \
-    && git clone "${WIZZARD_REPO}" /tmp/plugins/wizzard \
-    && git -C /tmp/plugins/wizzard checkout "${WIZZARD_REF}" \
-    && git clone "${WAFFLE_REPO}" /tmp/plugins/waffle \
-    && git -C /tmp/plugins/waffle checkout "${WAFFLE_REF}"
 
 # ------------------------------> Final image
 FROM python:3.10-slim-bookworm
@@ -70,9 +58,6 @@ COPY --chown=python:python  openbadges_bakery                  ./openbadges_bake
 COPY --chown=python:python  .docker/etc/settings_local.py      ./apps/mainsite/settings_local.py
 COPY --chown=python:python  entrypoint.sh                      .
 COPY --chown=python:python  crontab                             /etc/cron.d/crontab
-
-COPY --chown=python:python --from=build /tmp/plugins/wizzard/dashboard ./apps/dashboard
-COPY --chown=python:python --from=build /tmp/plugins/waffle/pdfeditor ./apps/pdfeditor
 
 RUN chmod +x entrypoint.sh
 
