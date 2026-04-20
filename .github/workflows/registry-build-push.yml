@@ -47,6 +47,9 @@ jobs:
                 cp -R .tmp/dashboard/dashboard apps/dashboard
                 cp -R .tmp/pdfeditor/pdfeditor apps/pdfeditor
 
+            - name: 🏄 Copy default env vars
+              run: cp .docker/etc/settings_local.prod.py.example .docker/etc/settings_local.py
+
             - name: 🔑 Log in to the Container registry
               uses: docker/login-action@v4.0.0
               with:
