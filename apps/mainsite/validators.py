@@ -44,7 +44,7 @@ class ChoicesValidator(object):
             self.choices = [c.lower() for c in choices]
 
     def __call__(self, value):
-        if self.case_sensitive and type(value) == str:
+        if self.case_sensitive and type(value) is str:
             value = value.lower()
         if value not in self.choices:
             raise ValidationError(
