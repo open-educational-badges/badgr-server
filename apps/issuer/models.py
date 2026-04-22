@@ -317,6 +317,7 @@ class Issuer(
     quota_accounts_member = models.PositiveIntegerField(blank=True, null=True, verbose_name="Member Accounts")
     quota_aiskills_requests = models.PositiveIntegerField(blank=True, null=True, verbose_name="AI Tool Requests")
     quota_pdfeditor = models.BooleanField(blank=True, null=True, verbose_name="PDF Editor")
+    quota_dashboard = models.BooleanField(blank=True, null=True, verbose_name="Dashboard")
     quota_network_memberships = models.PositiveIntegerField(blank=True, null=True, verbose_name="Network Memberships")
     quota_network_create = models.BooleanField(blank=True, null=True, verbose_name="Create Networks")
 
@@ -403,6 +404,9 @@ class Issuer(
             value = len(self.aiskill_requests.filter(created_at__date__range=(dt_start_mo, dt_end_mo)))
 
         if quota_name == "PDFEDITOR":
+            value = max_quota
+
+        if quota_name == "DASHBOARD":
             value = max_quota
 
         if quota_name == "NETWORK_MEMBERSHIPS":
@@ -3480,6 +3484,7 @@ class Quota(cachemodel.CacheModel):
     accounts_member = models.PositiveIntegerField(verbose_name="Member Accounts")
     aiskills_requests: PositiveIntegerField = models.PositiveIntegerField(verbose_name="AI Tool Requests")
     pdfeditor = models.BooleanField(verbose_name="PDF Editor")
+    dashboard = models.BooleanField(verbose_name="Dashboard")
     network_memberships = models.PositiveIntegerField(verbose_name="Network Memberships")
 
     def __str__(self):
