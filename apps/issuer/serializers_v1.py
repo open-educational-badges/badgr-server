@@ -546,6 +546,9 @@ class BadgeClassSerializerV1(
     tags = serializers.ListField(
         child=StripTagsCharField(max_length=254), source="tag_items", required=False
     )
+    areas = serializers.ListField(
+        child=StripTagsCharField(max_length=254), source="area_items", required=False
+    )
 
     extensions = serializers.DictField(
         source="extension_items", required=False, validators=[BadgeExtensionValidator()]
@@ -688,6 +691,7 @@ class BadgeClassSerializerV1(
 
             instance.alignment_items = validated_data.get("alignment_items")
             instance.tag_items = validated_data.get("tag_items")
+            instance.area_items = validated_data.get("area_items")
 
             instance.expiration = validated_data.get("expiration", None)
             instance.course_url = validated_data.get("course_url", "")
@@ -729,6 +733,7 @@ class BadgeClassSerializerV1(
         logger.debug(validated_data)
 
         tags = validated_data.pop("tag_items", [])
+        areas = validated_data.pop("area_items", [])
         alignments = validated_data.pop("alignment_items", [])
         extension_data = validated_data.pop("extension_items", [])
 
@@ -742,6 +747,7 @@ class BadgeClassSerializerV1(
             new_badgeclass = BadgeClass.objects.create(**validated_data)
 
             new_badgeclass.tag_items = tags
+            new_badgeclass.area_items = areas
 
             new_badgeclass.alignment_items = alignments
 
