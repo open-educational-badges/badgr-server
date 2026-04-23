@@ -174,7 +174,7 @@ class Badges(EntityViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        queryset = queryset.exclude(learningpath__archived=True)
+        queryset = queryset.exclude(learningpath_as_participationbadge__archived=True)
         return queryset.distinct()
 
 
