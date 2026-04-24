@@ -20,6 +20,7 @@ from .models import (
     BadgeInstanceEvidence,
     BadgeClassAlignment,
     BadgeClassTag,
+    BadgeClassArea,
     BadgeClassExtension,
     IssuerExtension,
     BadgeInstanceExtension,
@@ -370,6 +371,12 @@ class BadgeClassTagInline(TabularInline):
     fields = ("name",)
 
 
+class BadgeClassAreaInline(TabularInline):
+    model = BadgeClassArea
+    extra = 0
+    fields = ("name",)
+
+
 class BadgeClassExtensionInline(TabularInline):
     model = BadgeClassExtension
     extra = 0
@@ -470,6 +477,7 @@ class BadgeClassAdmin(DjangoObjectActions, ModelAdmin):
         BadgeClassTagInline,
         BadgeClassAlignmentInline,
         BadgeClassExtensionInline,
+        BadgeClassAreaInline,
     ]
     change_actions = ["redirect_issuer", "redirect_instances"]
 
