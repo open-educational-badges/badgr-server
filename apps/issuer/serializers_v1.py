@@ -1256,7 +1256,7 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             {badgeinstance.badgeclass for badgeinstance in user_badgeinstances}
         )
 
-        required = instance.required_badges_count
+        required = instance.required_badges_count or len(lp_badges)
         completed = len(user_completed_badges)
 
         progress_pct = int((min(completed, required) / required) * 100)
