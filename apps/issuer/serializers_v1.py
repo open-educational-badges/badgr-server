@@ -1259,7 +1259,10 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
         required = instance.required_badges_count or len(lp_badges)
         completed = len(user_completed_badges)
 
-        progress_pct = int((min(completed, required) / required) * 100)
+        if required != 0:
+            progress_pct = int((min(completed, required) / required) * 100)
+        else:
+            progress_pct = 0
 
         learningPathBadgeInstance = list(
             filter(
