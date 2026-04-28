@@ -25,6 +25,7 @@ from django.template.exceptions import TemplateDoesNotExist
 from django.utils.decorators import method_decorator
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.generic import FormView, RedirectView
+from apps.mainsite.badge_pdf import BadgePDFCreator
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.renderers import JSONRenderer
@@ -48,7 +49,7 @@ from badgeuser.serializers_v1 import BadgeUserProfileSerializerV1
 from entity.api_v3 import EntityViewSet
 from mainsite.authentication import BadgrOAuth2Authentication, ValidAltcha
 from issuer.tasks import rebake_all_assertions, update_issuedon_all_assertions
-from issuer.models import BadgeClass, Issuer, QrCode, RequestedBadge
+from issuer.models import BadgeClass, BadgeInstance, Issuer, QrCode, RequestedBadge
 from issuer.serializers_v1 import IssuerSerializerV1, RequestedBadgeSerializer
 from mainsite.admin_actions import clear_cache
 from mainsite.models import EmailBlacklist, BadgrApp, AltchaChallenge
@@ -76,6 +77,7 @@ import logging
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiParameter,
+    OpenApiResponse,
     OpenApiTypes,
     inline_serializer,
 )
@@ -224,8 +226,9 @@ def call_aiskills_api(endpoint, method, payload: dict):
 @authentication_classes(
     [TokenAuthentication, SessionAuthentication, BasicAuthentication]
 )
-# require valid Login OR valid altcha challenge for demo on start page
-@permission_classes([IsAuthenticated | ValidAltcha])
+
+# require valid altcha challenge for demo on start page
+@permission_classes([ValidAltcha])
 def aiskills(req):
     searchterm = req.data["text"]
 
@@ -678,6 +681,56 @@ def downloadQrCode(request, *args, **kwargs):
     create_page(response, Story, badgeImage, issuerImage)
 
     return response
+
+
+@extend_schema(
+    summary="Download Public Assertion PDF",
+    description=("Returns a PDF version of a publicly accessible badge instance. "),
+    parameters=[
+        OpenApiParameter(
+            name="slug",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="Entity ID of the badge instance.",
+        ),
+    ],
+    responses={
+        200: OpenApiResponse(
+            description="PDF file",
+            response=OpenApiTypes.BINARY,
+        ),
+        404: OpenApiResponse(description="Assertion not found"),
+    },
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def public_assertion_pdf(request, *args, **kwargs):
+    """
+    Public endpoint to download assertion PDF.
+    """
+    slug = kwargs["entity_id"]
+
+    try:
+        badgeinstance = BadgeInstance.objects.get(entity_id=slug)
+    except BadgeInstance.DoesNotExist:
+        return JsonResponse({"error": "Assertion not found"}, status=404)
+
+    if badgeinstance.revoked:
+        return JsonResponse({"error": "Assertion not found"}, status=404)
+
+    try:
+        badgeclass = BadgeClass.objects.get(
+            entity_id=badgeinstance.cached_badgeclass.entity_id
+        )
+    except BadgeClass.DoesNotExist:
+        return JsonResponse({"error": "Badgeclass not found"}, status=404)
+
+    pdf_creator = BadgePDFCreator()
+    pdf_content = pdf_creator.generate_pdf(
+        badgeinstance, badgeclass, origin=request.META.get("HTTP_ORIGIN")
+    )
+
+    return HttpResponse(pdf_content, content_type="application/pdf")
 
 
 def extractErrorMessage500(response: Response):

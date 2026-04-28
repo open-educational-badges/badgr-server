@@ -1,1 +1,13 @@
-{% if renotify %}Reminder: {% endif %}{% if issuer_name %}{{ issuer_name }} sendet dir einen Badge.{% else %}Herzlichen Glückwunsch, du hast einen Badge erhalten!{% endif %}
+{% load i18n %}
+{% with lang=badge_language|default:"en" %}
+{% language lang %}
+{% if renotify %}
+Reminder:
+{% endif %}
+{% if issuer_name %}
+{% blocktranslate trimmed %}{{ issuer_name }} is sending you a Badge.{% endblocktranslate %}
+{% else %}
+{% translate "Congratulations, you have earned a Badge!" %}
+{% endif %}
+{% endlanguage %}
+{% endwith %}

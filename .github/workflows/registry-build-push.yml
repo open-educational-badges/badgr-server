@@ -29,11 +29,29 @@ jobs:
             - name: ⬇️ Checkout repository
               uses: actions/checkout@v6
 
+            - name: Checkout dashboard plugin
+              uses: actions/checkout@v6
+              with:
+                repository: ${{ secrets.DASHBOARD_URL }}
+                path: .tmp/dashboard
+
+            - name: Checkout pdfeditor plugin
+              uses: actions/checkout@v6
+              with:
+                repository: ${{ secrets.PDFEDITOR_URL }}
+                path: .tmp/pdfeditor
+
+            - name: Inject plugin apps
+              run: |
+                rm -rf apps/dashboard apps/pdfeditor
+                cp -R .tmp/dashboard/dashboard apps/dashboard
+                cp -R .tmp/pdfeditor/pdfeditor apps/pdfeditor
+
             - name: 🏄 Copy default env vars
               run: cp .docker/etc/settings_local.prod.py.example .docker/etc/settings_local.py
 
             - name: 🔑 Log in to the Container registry
-              uses: docker/login-action@v3.7.0
+              uses: docker/login-action@v4.0.0
               with:
                   registry: ${{ env.REGISTRY }}
                   username: ${{ github.actor }}
@@ -41,7 +59,7 @@ jobs:
 
             - name: 📋 Extract metadata (tags, labels) for Docker
               id: meta
-              uses: docker/metadata-action@v5.10.0
+              uses: docker/metadata-action@v6.0.0
               with:
                   images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
                   flavor: |
@@ -50,7 +68,7 @@ jobs:
                       suffix=
 
             - name: 🏗️ Build and push Docker image
-              uses: docker/build-push-action@v6.19.2
+              uses: docker/build-push-action@v7.0.0
               with:
                   context: .
                   push: true
