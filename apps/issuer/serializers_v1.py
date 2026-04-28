@@ -709,8 +709,17 @@ class BadgeClassSerializerV1(
                     org_img_ext = extensions.get(name="extensions:OrgImageExtension")
                     original_image = json.loads(org_img_ext.original_json)["OrgImage"]
 
+                    issuer_image = None
+                    network_image = None
+
+                    if not (instance.issuer.is_network and category == "learningpath"):
+                        if instance.issuer.is_network:
+                            network_image = instance.issuer.image
+                        else:
+                            issuer_image = instance.issuer.image
+
                     instance.generate_badge_image(
-                        category, original_image, instance.issuer.image
+                        category, original_image, issuer_image, network_image
                     )
                     instance.save()
                 except BadgeClassExtension.DoesNotExist as e:
