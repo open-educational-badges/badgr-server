@@ -803,7 +803,7 @@ class BadgeInstancesBatchAssertionTask:
 
 @shared_task(bind=True)
 def process_batch_assertions(*args, **kwargs):
-    BadgeInstancesBatchAssertionTask.process_batch_assertions(*args, **kwargs)
+    return BadgeInstancesBatchAssertionTask.process_batch_assertions(*args, **kwargs)
 
 class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
     model = BadgeClass  # used by .get_object()
