@@ -11,7 +11,7 @@ import qrcode
 from badgeuser.models import BadgeUser
 from django.conf import settings
 from django.db.models import Max
-from django.utils.translation import activate as activate_language, gettext as _
+from django.utils.translation import gettext as _, override
 from issuer.models import BadgeInstance, LearningPath
 from mainsite.utils import get_name
 from django.core.files.storage import DefaultStorage
@@ -778,168 +778,167 @@ class BadgePDFCreator:
             self.used_space += narrative_height
 
     def generate_pdf(self, badge_instance, badge_class, origin):
-        activate_language(badge_class.language)
-
-        buffer = BytesIO()
-        competencies = badge_class.json["extensions:CompetencyExtension"]
-        criteria = badge_class.criteria
-        try:
-            name = get_name(badge_instance)
-        except BadgeUser.DoesNotExist:
-            # To resolve the issue with old awarded badges that doesn't
-            # include recipient-name and only have recipient-email
-            # We use email as this is the only identifier we have
-            name = badge_instance.recipient_identifier
-            # raise Http404
-
-        self.used_space = 0
-
-        first_page_content = []
-
-        first_page_content.append(Spacer(1, 80))
-        self.used_space += 80
-
-        cert_style = ParagraphStyle(
-            name="Certificate",
-            fontSize=40,
-            leading=48,
-            textColor="#323232",
-            fontName="Rubik-Bold",
-            alignment=TA_CENTER,
-        )
-
-        cert = _("CERTIFICATE")
-        certificate = f"<strong>{cert}</strong>"
-        first_page_content.append(Paragraph(certificate, cert_style))
-        first_page_content.append(Spacer(1, 22))
-        self.used_space += 22
-
-        extensions = badge_class.cached_extensions()
-
-        studyload_minutes = None
-        studyLoadExtension = extensions.filter(
-            name="extensions:StudyLoadExtension"
-        ).first()
-        if studyLoadExtension and studyLoadExtension.original_json:
+        with override(badge_class.language or "en"):
+            buffer = BytesIO()
+            competencies = badge_class.json["extensions:CompetencyExtension"]
+            criteria = badge_class.criteria
             try:
-                payload = json_loads(studyLoadExtension.original_json)
-                studyload_minutes = payload.get("StudyLoad")
-            except Exception:
-                studyload_minutes = None
+                name = get_name(badge_instance)
+            except BadgeUser.DoesNotExist:
+                # To resolve the issue with old awarded badges that doesn't
+                # include recipient-name and only have recipient-email
+                # We use email as this is the only identifier we have
+                name = badge_instance.recipient_identifier
+                # raise Http404
 
-        self.add_recipient_name(
-            first_page_content,
-            name,
-            badge_instance.issued_on,
-            activityStartDate=badge_instance.activity_start_date,
-            activityEndDate=badge_instance.activity_end_date,
-            activityCity=badge_instance.activity_city,
-            activityOnline=badge_instance.activity_online,
-            studyLoad=studyload_minutes,
-        )
-        self.add_badge_image(first_page_content, badge_instance.image)
-        self.add_title(first_page_content, badge_class.name)
-        self.add_description(first_page_content, badge_class.description)
+            self.used_space = 0
 
-        doc = BaseDocTemplate(
-            buffer,
-            pagesize=A4,
-            leftMargin=40,
-            rightMargin=40,
-            topMargin=40,
-            bottomMargin=20,
-        )
+            first_page_content = []
 
-        styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(name="Justify", alignment=TA_JUSTIFY))
+            first_page_content.append(Spacer(1, 80))
+            self.used_space += 80
 
-        Story = []
-        Story.extend(first_page_content)
+            cert_style = ParagraphStyle(
+                name="Certificate",
+                fontSize=40,
+                leading=48,
+                textColor="#323232",
+                fontName="Rubik-Bold",
+                alignment=TA_CENTER,
+            )
 
-        categoryExtension = extensions.get(name="extensions:CategoryExtension")
-        category = json_loads(categoryExtension.original_json)["Category"]
+            cert = _("CERTIFICATE")
+            certificate = f"<strong>{cert}</strong>"
+            first_page_content.append(Paragraph(certificate, cert_style))
+            first_page_content.append(Spacer(1, 22))
+            self.used_space += 22
 
-        if category == "learningpath":
-            lp = LearningPath.objects.filter(participationBadge=badge_class).first()
-            lp_badges = [badge.badge for badge in lp.learningpath_badges]
-            badgeuser = BadgeUser.objects.get(email=badge_instance.recipient_identifier)
-            badge_ids = (
-                BadgeInstance.objects.filter(
-                    badgeclass__in=lp_badges,
-                    recipient_identifier__in=badgeuser.verified_emails,
+            extensions = badge_class.cached_extensions()
+
+            studyload_minutes = None
+            studyLoadExtension = extensions.filter(
+                name="extensions:StudyLoadExtension"
+            ).first()
+            if studyLoadExtension and studyLoadExtension.original_json:
+                try:
+                    payload = json_loads(studyLoadExtension.original_json)
+                    studyload_minutes = payload.get("StudyLoad")
+                except Exception:
+                    studyload_minutes = None
+
+            self.add_recipient_name(
+                first_page_content,
+                name,
+                badge_instance.issued_on,
+                activityStartDate=badge_instance.activity_start_date,
+                activityEndDate=badge_instance.activity_end_date,
+                activityCity=badge_instance.activity_city,
+                activityOnline=badge_instance.activity_online,
+                studyLoad=studyload_minutes,
+            )
+            self.add_badge_image(first_page_content, badge_instance.image)
+            self.add_title(first_page_content, badge_class.name)
+            self.add_description(first_page_content, badge_class.description)
+
+            doc = BaseDocTemplate(
+                buffer,
+                pagesize=A4,
+                leftMargin=40,
+                rightMargin=40,
+                topMargin=40,
+                bottomMargin=20,
+            )
+
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(name="Justify", alignment=TA_JUSTIFY))
+
+            Story = []
+            Story.extend(first_page_content)
+
+            categoryExtension = extensions.get(name="extensions:CategoryExtension")
+            category = json_loads(categoryExtension.original_json)["Category"]
+
+            if category == "learningpath":
+                lp = LearningPath.objects.filter(participationBadge=badge_class).first()
+                lp_badges = [badge.badge for badge in lp.learningpath_badges]
+                badgeuser = BadgeUser.objects.get(email=badge_instance.recipient_identifier)
+                badge_ids = (
+                    BadgeInstance.objects.filter(
+                        badgeclass__in=lp_badges,
+                        recipient_identifier__in=badgeuser.verified_emails,
+                    )
+                    .values("badgeclass")
+                    .annotate(max_id=Max("id"))
+                    .values_list("max_id", flat=True)
                 )
-                .values("badgeclass")
-                .annotate(max_id=Max("id"))
-                .values_list("max_id", flat=True)
+
+                badgeinstances = BadgeInstance.objects.filter(id__in=badge_ids)
+                self.add_learningpath_badges(
+                    Story, badgeinstances, name, badge_class.name, competencies=competencies
+                )
+            else:
+                self.used_space = 0  # Reset used_space for competencies page
+                self.add_competencies(Story, competencies, name, badge_class.name)
+                self.add_criteria(Story, criteria)
+                self.add_evidence(
+                    Story,
+                    evidence_items=badge_instance.evidence_items,
+                    narrative=badge_instance.narrative,
+                    category=category,
+                )
+
+            footer_height = 100
+
+            first_page_frame = Frame(
+                doc.leftMargin,
+                doc.bottomMargin + footer_height,
+                doc.width,
+                doc.height - footer_height,
+                id="first_page_frame",
             )
 
-            badgeinstances = BadgeInstance.objects.filter(id__in=badge_ids)
-            self.add_learningpath_badges(
-                Story, badgeinstances, name, badge_class.name, competencies=competencies
-            )
-        else:
-            self.used_space = 0  # Reset used_space for competencies page
-            self.add_competencies(Story, competencies, name, badge_class.name)
-            self.add_criteria(Story, criteria)
-            self.add_evidence(
-                Story,
-                evidence_items=badge_instance.evidence_items,
-                narrative=badge_instance.narrative,
-                category=category,
+            frame = Frame(
+                doc.leftMargin,
+                doc.bottomMargin,
+                doc.width,
+                doc.height,
+                id="frame",
             )
 
-        footer_height = 100
+            qr_base64 = self.generate_qr_code(badge_instance, origin)
+            qr_reader = self._qr_imagereader_from_base64(qr_base64)
 
-        first_page_frame = Frame(
-            doc.leftMargin,
-            doc.bottomMargin + footer_height,
-            doc.width,
-            doc.height - footer_height,
-            id="first_page_frame",
-        )
+            try:
+                imageContent = image_file_to_image(badge_instance.issuer.image)
+            except Exception:
+                imageContent = None
 
-        frame = Frame(
-            doc.leftMargin,
-            doc.bottomMargin,
-            doc.width,
-            doc.height,
-            id="frame",
-        )
+            first_template = PageTemplate(
+                id="first_page",
+                frames=[first_page_frame],
+                onPage=partial(
+                    self.first_page_decor,
+                    content=imageContent,
+                    instituteName=badge_instance.issuer.name,
+                    qr_reader=qr_reader,
+                ),
+                autoNextPageTemplate="later_pages",
+            )
 
-        qr_base64 = self.generate_qr_code(badge_instance, origin)
-        qr_reader = self._qr_imagereader_from_base64(qr_base64)
-
-        try:
-            imageContent = image_file_to_image(badge_instance.issuer.image)
-        except Exception:
-            imageContent = None
-
-        first_template = PageTemplate(
-            id="first_page",
-            frames=[first_page_frame],
-            onPage=partial(
-                self.first_page_decor,
-                content=imageContent,
-                instituteName=badge_instance.issuer.name,
-                qr_reader=qr_reader,
-            ),
-            autoNextPageTemplate="later_pages",
-        )
-
-        later_template = PageTemplate(
-            id="later_pages",
-            frames=[frame],
-            onPage=partial(
-                self.header,
-                content=imageContent,
-                instituteName=badge_instance.issuer.name,
-            ),
-        )
-        doc.addPageTemplates([first_template, later_template])
-        doc.build(Story, canvasmaker=partial(PageNumCanvas, self.competencies))
-        pdfContent = buffer.getvalue()
-        buffer.close()
-        return pdfContent
+            later_template = PageTemplate(
+                id="later_pages",
+                frames=[frame],
+                onPage=partial(
+                    self.header,
+                    content=imageContent,
+                    instituteName=badge_instance.issuer.name,
+                ),
+            )
+            doc.addPageTemplates([first_template, later_template])
+            doc.build(Story, canvasmaker=partial(PageNumCanvas, self.competencies))
+            pdfContent = buffer.getvalue()
+            buffer.close()
+            return pdfContent
 
 
 # Class for rounded image as reportlabs table cell don't support rounded corners
