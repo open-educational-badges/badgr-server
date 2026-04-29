@@ -19,6 +19,7 @@ from mainsite.models import BadgrApp, AccessTokenProxy
 from mainsite.utils import get_name, OriginSetting, set_url_query_params
 
 from mainsite.badge_pdf import BadgePDFCreator
+from django.utils.translation import override
 
 import logging
 
@@ -70,7 +71,8 @@ class BadgrAccountAdapter(DefaultAccountAdapter):
         else:
             self.EMAIL_FROM_STRING = self.set_email_string(context)
 
-        msg = self.render_mail(template_prefix, email, context)
+        with override(context.get('badge_language', 'en')):
+            msg = self.render_mail(template_prefix, email, context)
         # badge_id is equal to the badge instance slug
         if template_prefix in (
             "issuer/email/notify_earner",
