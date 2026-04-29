@@ -10,7 +10,8 @@ RUN apt-get install -y default-libmysqlclient-dev \
     xmlsec1 \
     libxmlsec1-dev \
     pkg-config \
-    cron
+    cron \
+    gettext
 
 RUN mkdir /badgr_server
 WORKDIR /badgr_server
@@ -49,6 +50,7 @@ COPY --chown=python:python  manage.py                          .
 COPY --chown=python:python  .docker/etc/uwsgi.ini              .
 COPY --chown=python:python  .docker/etc/wsgi.py                .
 COPY --chown=python:python  apps                               ./apps
+COPY --chown=python:python  locales                            ./locales
 COPY --chown=python:python  openbadges                         ./openbadges
 COPY --chown=python:python  openbadges_bakery                  ./openbadges_bakery
 COPY --chown=python:python  .docker/etc/settings_local.py      ./apps/mainsite/
