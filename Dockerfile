@@ -31,7 +31,8 @@ RUN apt-get install -y default-libmysqlclient-dev \
                        default-mysql-client \
                        xz-utils \
                        gdal-bin \
-                       libgdal-dev
+                       libgdal-dev \
+                       gettext
 
 RUN groupadd -g 999 python && \
     useradd -r -u 999 -g python python
@@ -52,6 +53,7 @@ COPY --chown=python:python  manage.py                          .
 COPY --chown=python:python  .docker/etc/uwsgi.ini              .
 COPY --chown=python:python  .docker/etc/wsgi.py                .
 COPY --chown=python:python  apps                               ./apps
+COPY --chown=python:python  locales                             ./locales
 COPY --chown=python:python  openbadges                         ./openbadges
 COPY --chown=python:python  openbadges_bakery                  ./openbadges_bakery
 COPY --chown=python:python  .docker/etc/settings_local.py      ./apps/mainsite/settings_local.py
@@ -73,6 +75,9 @@ RUN touch /var/log/cron_clear_altcha.log \
 
 RUN touch /var/log/cron_clear_iframe_urls.log \
     && chmod 644 /var/log/cron_clear_iframe_urls.log
+
+RUN touch /var/log/cron_clean_aiskill_requests.log \
+    && chmod 644 /var/log/cron_clean_aiskill_requests.log
 
 # Latest releases available at https://github.com/aptible/supercronic/releases
 ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.30/supercronic-linux-amd64 \

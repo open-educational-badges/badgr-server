@@ -11,6 +11,7 @@ from django.contrib import admin
 from mainsite.admin import badgr_admin
 
 from .models import (
+    AiSkillRequest,
     BadgeClassNetworkShare,
     ImportedBadgeAssertionExtension,
     Issuer,
@@ -28,11 +29,13 @@ from .models import (
     LearningPathTag,
     NetworkInvite,
     NetworkMembership,
+    Quota,
     RequestedBadge,
     QrCode,
     RequestedLearningPath,
     IssuerStaffRequest,
     ImportedBadgeAssertion,
+    QuotaUpgradeRequest,
 )
 from .tasks import resend_notifications
 import csv
@@ -246,6 +249,23 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
             },
         ),
         ("JSON", {"fields": ("old_json",)}),
+        ("Quotas", {
+            "fields": (
+                "quota",
+                "quota_period_start",
+                "quota_network_period_start",
+                "quota_badge_create",
+                "quota_badge_award",
+                "quota_learningpath_create",
+                "quota_accounts_admin",
+                "quota_accounts_member",
+                "quota_aiskills_requests",
+                "quota_pdfeditor",
+                "quota_dashboard",
+                "quota_network_memberships",
+                "quota_network_create",
+            )
+        })
     )
 
     def get_inlines(self, request, obj):
@@ -295,6 +315,38 @@ class IssuerAdmin(DjangoObjectActions, ModelAdmin):
 
     redirect_badgeclasses.label = "BadgeClasses"
     redirect_badgeclasses.short_description = "See this issuer's defined BadgeClasses"
+
+    def render_change_form(self, request, context, *args, **kwargs):
+
+        def help_text_int_fn(quota_name):
+            try:
+                return f"{( instance.get_quota_usage(quota_name))} / {instance.get_max_quota(quota_name)}{ '*' if instance.is_custom_quota(quota_name) else '' }"
+            except TypeError:
+                return ""
+
+        instance = kwargs["obj"]
+        form_instance = context['adminform'].form
+        try:
+            form_instance.fields['quota_badge_create'].widget.attrs['placeholder'] = instance.get_max_quota('BADGE_CREATE')
+            form_instance.fields['quota_badge_create'].help_text = help_text_int_fn('BADGE_CREATE')
+            form_instance.fields['quota_badge_award'].widget.attrs['placeholder'] = instance.get_max_quota('BADGE_AWARD')
+            form_instance.fields['quota_badge_award'].help_text = help_text_int_fn('BADGE_AWARD')
+            form_instance.fields['quota_learningpath_create'].widget.attrs['placeholder'] = instance.get_max_quota('LEARNINGPATH_CREATE')
+            form_instance.fields['quota_learningpath_create'].help_text = help_text_int_fn('LEARNINGPATH_CREATE')
+            form_instance.fields['quota_accounts_admin'].widget.attrs['placeholder'] = instance.get_max_quota('ACCOUNTS_ADMIN')
+            form_instance.fields['quota_accounts_admin'].help_text = help_text_int_fn('ACCOUNTS_ADMIN')
+            form_instance.fields['quota_accounts_member'].widget.attrs['placeholder'] = instance.get_max_quota('ACCOUNTS_MEMBER')
+            form_instance.fields['quota_accounts_member'].help_text = help_text_int_fn('ACCOUNTS_MEMBER')
+            form_instance.fields['quota_aiskills_requests'].widget.attrs['placeholder'] = instance.get_max_quota('AISKILLS_REQUESTS')
+            form_instance.fields['quota_aiskills_requests'].help_text = help_text_int_fn('AISKILLS_REQUESTS')
+            form_instance.fields['quota_pdfeditor'].help_text = f"Value: {'Yes' if instance.get_max_quota('PDFEDITOR') else 'No'}"
+            form_instance.fields['quota_dashboard'].help_text = f"Value: {'Yes' if instance.get_max_quota('DASHBOARD') else 'No'}"
+            form_instance.fields['quota_network_memberships'].widget.attrs['placeholder'] = instance.get_max_quota('NETWORK_MEMBERSHIPS')
+            form_instance.fields['quota_network_memberships'].help_text = help_text_int_fn('NETWORK_MEMBERSHIPS')
+        except KeyError:
+            pass
+
+        return super().render_change_form(request, context, *args, **kwargs)
 
 
 badgr_admin.register(Issuer, IssuerAdmin)
@@ -408,6 +460,7 @@ class BadgeClassAdmin(DjangoObjectActions, ModelAdmin):
                     "expiration",
                     "copy_permissions",
                     "course_url",
+                    "language",
                 )
             },
         ),
@@ -564,7 +617,7 @@ class BadgeInstanceAdmin(DjangoObjectActions, ModelAdmin):
                     "activity_city",
                     "activity_online",
                     "course_url",
-                    "narrative",
+                    "narrative"
                 )
             },
         ),
@@ -823,3 +876,22 @@ class BadgeClassNetworkShareAdmin(ModelAdmin):
 
 
 badgr_admin.register(BadgeClassNetworkShare, BadgeClassNetworkShareAdmin)
+
+
+class QuotaAdmin(ModelAdmin):
+    list_display = ("name", "price")
+
+
+badgr_admin.register(Quota, QuotaAdmin)
+
+
+class QuotaUpgradeRequestAdmin(ModelAdmin):
+    list_display = ("name", "email", "issuer", "quota")
+
+badgr_admin.register(QuotaUpgradeRequest, QuotaUpgradeRequestAdmin)
+
+
+class AiSkillRequestsAdmin(ModelAdmin):
+    list_display = ("issuer", "created_at")
+
+badgr_admin.register(AiSkillRequest, AiSkillRequestsAdmin)

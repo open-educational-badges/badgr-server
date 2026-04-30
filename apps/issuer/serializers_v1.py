@@ -2,8 +2,6 @@ import json
 import logging
 import os
 import uuid
-from functools import reduce
-
 from rest_framework.fields import JSONField
 import pytz
 from badgeuser.models import TermsVersion
@@ -50,8 +48,10 @@ from .models import (
     LearningPathBadge,
     NetworkInvite,
     QrCode,
+    Quota,
     RequestedBadge,
     RequestedLearningPath,
+    QuotaUpgradeRequest,
 )
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
@@ -251,7 +251,6 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
 
         return None
 
-
 class IssuerSerializerV1(BaseIssuerSerializerV1):
     email = serializers.EmailField(max_length=255, required=True)
     networks = serializers.SerializerMethodField()
@@ -410,6 +409,66 @@ class IssuerSerializerV1(BaseIssuerSerializerV1):
 
         return representation
 
+# serializer including private informationen for members
+class QuotaRepresentationMixin(serializers.Serializer):
+
+    def to_representation(self, instance):
+        representation = super(QuotaRepresentationMixin, self).to_representation(instance)
+
+        quota = instance.get_quota_object()
+
+        if quota:
+
+            def quota_dict(quota_name: str):
+                usage = instance.get_quota_usage(quota_name)
+                max_quota = -1 if instance.get_max_quota(quota_name) == 0 else instance.get_max_quota(quota_name)
+                custom = instance.is_custom_quota(quota_name)
+
+                if type(usage) is int:
+                    return {
+                        "used": usage,
+                        "quota": -1 if max_quota == -1 else max(0, max_quota - usage),
+                        "max": max_quota,
+                        "custom": custom,
+                    }
+                else:
+                    return {
+                        "quota": usage,
+                        "custom": custom,
+                    }
+
+
+
+            # nextLevel = instance.get_next_quota_level()
+            upgradeQuota = quota.upgrade
+
+            representation["quotas"] = {
+                "name": quota.name,
+                "key": quota.key,
+                "nextLevel": upgradeQuota.key if upgradeQuota else None,
+                "periodStart": instance.quota_period_start,
+                "nextPayment": instance.get_next_quota_payment(),
+                "quotas": {
+                    "BADGE_CREATE": quota_dict('BADGE_CREATE'),
+                    "BADGE_AWARD": quota_dict('BADGE_AWARD'),
+                    "LEARNINGPATH_CREATE": quota_dict('LEARNINGPATH_CREATE'),
+                    "ACCOUNTS_ADMIN": quota_dict('ACCOUNTS_ADMIN'),
+                    "ACCOUNTS_MEMBER": quota_dict('ACCOUNTS_MEMBER'),
+                    "AISKILLS_REQUESTS": quota_dict('AISKILLS_REQUESTS'),
+                    "PDFEDITOR": quota_dict('PDFEDITOR'),
+                    "DASHBOARD": quota_dict('DASHBOARD'),
+                    "NETWORK_MEMBERSHIPS": quota_dict('NETWORK_MEMBERSHIPS'),
+                    "NETWORK_CREATE": quota_dict('NETWORK_CREATE'),
+                }
+            }
+
+        return representation
+
+class IssuerNetworkSerializerPrivateV1(QuotaRepresentationMixin, IssuerSerializerV1):
+    pass
+
+class NetworkSerializerV1Private(QuotaRepresentationMixin, NetworkSerializerV1):
+    pass
 
 class IssuerRoleActionSerializerV1(serializers.Serializer):
     """A serializer used for validating user role change POSTS"""
@@ -469,6 +528,7 @@ class BadgeClassSerializerV1(
     course_url = StripTagsCharField(
         required=False, allow_blank=True, allow_null=True, validators=[URLValidator()]
     )
+    language = serializers.CharField(max_length=2)
     criteria = JSONField(required=False, allow_null=True)
     criteria_text = MarkdownCharField(required=False, allow_null=True, allow_blank=True)
     criteria_url = StripTagsCharField(
@@ -631,6 +691,7 @@ class BadgeClassSerializerV1(
 
             instance.expiration = validated_data.get("expiration", None)
             instance.course_url = validated_data.get("course_url", "")
+            instance.language = validated_data.get("language", "en")
             instance.imageFrame = validated_data.get("imageFrame", True)
 
             instance.copy_permissions_list = validated_data.get(
@@ -648,8 +709,17 @@ class BadgeClassSerializerV1(
                     org_img_ext = extensions.get(name="extensions:OrgImageExtension")
                     original_image = json.loads(org_img_ext.original_json)["OrgImage"]
 
+                    issuer_image = None
+                    network_image = None
+
+                    if not (instance.issuer.is_network and category == "learningpath"):
+                        if instance.issuer.is_network:
+                            network_image = instance.issuer.image
+                        else:
+                            issuer_image = instance.issuer.image
+
                     instance.generate_badge_image(
-                        category, original_image, instance.issuer.image
+                        category, original_image, issuer_image, network_image
                     )
                     instance.save()
                 except BadgeClassExtension.DoesNotExist as e:
@@ -1109,6 +1179,8 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
 
     required_badges_count = serializers.IntegerField(required=True)
     activated = serializers.BooleanField(required=True)
+    archived = serializers.BooleanField(required=False)
+    archived_at = DateTimeWithUtcZAtEndField(read_only=True)
 
     name = StripTagsCharField(max_length=255)
     slug = StripTagsCharField(max_length=255, read_only=True, source="entity_id")
@@ -1120,6 +1192,8 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
     badges = BadgeOrderSerializer(many=True, required=False)
 
     participationBadge_image = serializers.SerializerMethodField()
+
+    has_awarded_micro_degree = serializers.SerializerMethodField()
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_participationBadge_image(self, obj):
@@ -1138,6 +1212,10 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             if obj.participationBadge.entity_id
             else None
         )
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_has_awarded_micro_degree(self, obj):
+        return obj.has_awarded_micro_degree
 
     def to_representation(self, instance):
         request = self.context.get("request")
@@ -1187,14 +1265,20 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             {badgeinstance.badgeclass for badgeinstance in user_badgeinstances}
         )
 
-        # calculate lp progress
-        max_progress = instance.calculate_progress(lp_badgeclasses)
-        user_progress = instance.calculate_progress(user_completed_badges)
+        required = instance.required_badges_count or len(lp_badges)
+        completed = len(user_completed_badges)
+
+        if required != 0:
+            progress_pct = int((min(completed, required) / required) * 100)
+        else:
+            progress_pct = 0
 
         learningPathBadgeInstance = list(
             filter(
-                lambda badge: badge.badgeclass.entity_id
-                == representation["participationBadge_id"],
+                lambda badge: (
+                    badge.badgeclass.entity_id
+                    == representation["participationBadge_id"]
+                ),
                 request.user.cached_badgeinstances().filter(revoked=False),
             )
         )
@@ -1203,20 +1287,18 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             representation["learningPathBadgeInstanceSlug"] = (
                 learningPathBadgeInstanceSlug
             )
-        # set lp completed at from newest badge issue date
-        # FIXME: maybe set from issued participation badge instead, would need to get
-        # user participation badgeclass aswell
-        completed_at = None
-        if user_progress >= max_progress:
-            completed_at = reduce(
-                lambda x, y: y.issued_on if x is None else max(x, y.issued_on),
-                user_badgeinstances,
-                None,
-            )
+
+        lp_instance = (
+            request.user.cached_badgeinstances()
+            .filter(badgeclass=instance.participationBadge, revoked=False)
+            .first()
+        )
+
+        completed_at = lp_instance.issued_on if lp_instance else None
 
         representation.update(
             {
-                "progress": user_progress,
+                "progress": progress_pct,
                 "completed_at": completed_at,
                 "completed_badges": BadgeClassSerializerV1(
                     user_completed_badges,
@@ -1395,3 +1477,36 @@ class BadgeClassNetworkShareSerializerV1(serializers.ModelSerializer):
             revoked=False,
             issued_on__gte=obj.shared_at,
         ).count()
+
+
+class QuotaUpgradeRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=254, required=True)
+    email = serializers.EmailField(max_length=254, required=True)
+    issuer_id = serializers.CharField(max_length=254, required=True)
+    quota = serializers.CharField(
+        validators=[lambda value: Quota.objects.get(key=value)],
+        required=True
+    )
+
+    def create(self, validated_data, **kwargs):
+        issuer_id = validated_data.get("issuer_id")
+
+        try:
+            issuer = Issuer.objects.get(entity_id=issuer_id)
+        except Issuer.DoesNotExist:
+            raise serializers.ValidationError(
+                f"Issuer with ID '{issuer_id}' does not exist."
+            )
+
+        quota = Quota.objects.get(key=validated_data.get("quota"))
+
+        new_QuotaUpgradeRequest = QuotaUpgradeRequest.objects.create(
+            name=validated_data.get("name"),
+            email=validated_data.get("email"),
+            issuer=issuer,
+            quota=quota
+        )
+
+        new_QuotaUpgradeRequest.notify()
+
+        return new_QuotaUpgradeRequest

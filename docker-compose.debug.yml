@@ -27,6 +27,7 @@ services:
             - ./backups:/backups
             - ./user_emails.csv:/badgr_server/user_emails.csv
             - ./badgr_server_mediafiles:/badgr_server/mediafiles
+            - ./locales:/badgr_server/locales
         networks:
             - badgr
         ports:
@@ -98,7 +99,7 @@ services:
             - ./manage.py:/badgr_server/manage.py
             - ./.docker/etc/settings_local.dev.py:/badgr_server/apps/mainsite/settings_local.py
             - ./badgr_server_mediafiles:/badgr_server/mediafiles
-
+            - ./locales:/badgr_server/locales
         environment:
             - CELERY_BROKER_URL=redis://redis:6379/0
             - CELERY_RESULT_BACKEND=redis://redis:6379/0
