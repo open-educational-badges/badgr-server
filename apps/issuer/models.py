@@ -27,7 +27,6 @@ from django.db import models, transaction
 from django.db.models import Q, ProtectedError
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import override
 from apps.issuer.services.image_composer import ImageComposer
 from entity.models import BaseVersionedEntity
 from issuer.managers import (
@@ -2292,10 +2291,9 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                 email_context["activate_url"] = url
                 email_context["call_to_action_label"] = "Micro Degree auf OEB ansehen"
 
-        with override(self.badgeclass.language or "en"):
-            adapter.send_mail(
-                template_name, self.recipient_identifier, context=email_context
-            )
+        adapter.send_mail(
+            template_name, self.recipient_identifier, context=email_context
+        )
 
     def get_extensions_manager(self):
         return self.badgeinstanceextension_set
