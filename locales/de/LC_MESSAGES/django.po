@@ -106,6 +106,14 @@ msgstr "und"
 msgid "within"
 msgstr "innerhalb von"
 
+#: apps/mainsite/badge_pdf.py:358
+msgid "CREATED VIA"
+msgstr "ERSTELLT ÜBER"
+
+#: apps/mainsite/badge_pdf.py:361
+msgid "Use the QR code to retrieve the digital badge."
+msgstr "Der digitale Badge kann über den QR-Code abgerufen werden."
+
 #: apps/mainsite/badge_pdf.py:410 apps/mainsite/badge_pdf.py:431
 msgid "<strong>Competencies</strong>"
 msgstr "<strong>Kompetenzen</strong>"
