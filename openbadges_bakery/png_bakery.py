@@ -1,8 +1,5 @@
 import codecs
-import hashlib
-from io import BytesIO, StringIO
 import itertools
-import os.path
 import png
 import re
 from tempfile import NamedTemporaryFile
@@ -10,16 +7,21 @@ from tempfile import NamedTemporaryFile
 
 def unbake(imageFile):
     """
-    Return the openbadgecredential content contained in a baked PNG file.
+    Return the openbadges content contained in a baked PNG file.
     If this doesn't work, return None.
 
-    If there is both an iTXt and tEXt chunk with keyword openbadgecredential,
-    the iTXt chunk content will be returned.
+    Recognises both 'openbadges' (OB2 standard, used by Moodle and modern issuers)
+    and 'openbadgecredential' (legacy keyword from older bakery implementations).
+    When both exist, the iTXt chunk takes precedence over tEXt.
     """
 
     reader = png.Reader(file=imageFile)
     for chunktype, content in reader.chunks():
-        if chunktype == b"iTXt" and content.startswith(b"openbadgecredential\x00"):
+        if chunktype == b"iTXt" and content.startswith(b"openbadges\x00"):
+            return re.sub(b"openbadges[\x00]+", b"", content).decode("utf8")
+        elif chunktype == b"tEXt" and content.startswith(b"openbadges\x00"):
+            return content.split(b"\x00")[1].decode("utf8")
+        elif chunktype == b"iTXt" and content.startswith(b"openbadgecredential\x00"):
             return re.sub(b"openbadgecredential[\x00]+", b"", content).decode("utf8")
         elif chunktype == b"tEXt" and content.startswith(b"openbadgecredential\x00"):
             return content.split(b"\x00")[1].decode("utf8")
@@ -51,7 +53,9 @@ def baked_chunks(original_chunks, badge_chunk):
     """
 
     def is_not_previous_assertion(chunk):
-        if chunk[1].startswith(b"openbadgecredential\x00"):
+        if chunk[1].startswith(b"openbadges\x00") or chunk[1].startswith(
+            b"openbadgecredential\x00"
+        ):
             return False
         return True
 
