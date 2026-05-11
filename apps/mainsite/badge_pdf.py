@@ -56,6 +56,24 @@ pdfmetrics.registerFont(TTFont("Rubik-Bold", font_path_rubik_bold))
 pdfmetrics.registerFont(TTFont("Rubik-Italic", font_path_rubik_italic))
 
 
+def get_leaf_badges(lp, visited=None):
+    """Recursively expand nested LPs to their constituent (leaf) badges."""
+    if visited is None:
+        visited = set()
+    if lp.pk in visited:
+        return []
+    visited.add(lp.pk)
+    badges = []
+    for lp_badge in lp.learningpath_badges:
+        badge = lp_badge.badge
+        nested_lp = LearningPath.objects.filter(participationBadge=badge).first()
+        if nested_lp:
+            badges.extend(get_leaf_badges(nested_lp, visited))
+        else:
+            badges.append(badge)
+    return badges
+
+
 class BadgePDFCreator:
     def __init__(self):
         self.competencies = []
@@ -861,7 +879,7 @@ class BadgePDFCreator:
 
         if category == "learningpath":
             lp = LearningPath.objects.filter(participationBadge=badge_class).first()
-            lp_badges = [badge.badge for badge in lp.learningpath_badges]
+            lp_badges = get_leaf_badges(lp)
             badgeuser = BadgeUser.objects.get(email=badge_instance.recipient_identifier)
             badge_ids = (
                 BadgeInstance.objects.filter(
