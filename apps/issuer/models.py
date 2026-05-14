@@ -1285,6 +1285,11 @@ class BadgeClass(
                 self,
             )
 
+        for lp_badge in LearningPathBadge.objects.filter(badge=self):
+            lp = lp_badge.learning_path
+            if lp.learningpathbadge_set.count() <= 2:
+                lp.delete()
+
         issuer = self.issuer
         super(BadgeClass, self).delete(*args, **kwargs)
         issuer.publish(publish_staff=False)
@@ -3428,6 +3433,16 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
         )
         studyLoadJson = json_loads(studyLoadExt.original_json)
         return studyLoadJson["StudyLoad"]
+
+    def delete(self, *args, **kwargs):
+        affected_lp_badges = list(
+            LearningPathBadge.objects.filter(badge=self.participationBadge).exclude(learning_path=self)
+        )
+        for lpb in affected_lp_badges:
+            lpb.delete()
+            if lpb.learning_path.learningpathbadge_set.count() < 2:
+                lpb.learning_path.delete()
+        super().delete(*args, **kwargs)
 
 
 class LearningPathBadge(cachemodel.CacheModel):
