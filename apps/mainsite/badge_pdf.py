@@ -56,19 +56,25 @@ pdfmetrics.registerFont(TTFont("Rubik-Bold", font_path_rubik_bold))
 pdfmetrics.registerFont(TTFont("Rubik-Italic", font_path_rubik_italic))
 
 
-def get_leaf_badges(lp, visited=None):
-    """Recursively expand nested LPs to their constituent (leaf) badges."""
+def get_leaf_badges(lp, lp_map=None, visited=None):
+    if lp_map is None:
+        all_lps = LearningPath.objects.prefetch_related("learningpathbadge_set")
+        lp_map = {
+            nested_lp.participationBadge_id: nested_lp for nested_lp in all_lps if nested_lp.participationBadge_id
+        }
+
     if visited is None:
         visited = set()
     if lp.pk in visited:
         return []
     visited.add(lp.pk)
+
     badges = []
     for lp_badge in lp.learningpath_badges:
         badge = lp_badge.badge
-        nested_lp = LearningPath.objects.filter(participationBadge=badge).first()
+        nested_lp = lp_map.get(badge.pk)
         if nested_lp:
-            badges.extend(get_leaf_badges(nested_lp, visited))
+            badges.extend(get_leaf_badges(nested_lp, lp_map, visited))
         else:
             badges.append(badge)
     return badges
