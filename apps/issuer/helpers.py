@@ -255,20 +255,64 @@ class ImportedBadgeHelper:
                 except (TypeError, ValueError):
                     raise ValidationError("Could not parse dict to json")
 
+            if hasattr(query, "seek"):
+                query.seek(0)
+
             # use openbadges library to parse json from images
             verifier_store = openbadges.load_store(
                 query,
                 recipient_profile=badgecheck_recipient_profile,
                 **cls.badgecheck_options(),
             )
-            query_json = verifier_store.get_state()["input"]["value"]
-            verifier_input = json.loads(query_json)
+            store_state = verifier_store.get_state()
 
-            # TODO: ob3 as JWT
-            # try:
-            #     verifier_input = verifier_input['vc']
-            # except:
-            #     pass
+            # Surface errors from store init (e.g. PNG with no embedded OB metadata)
+            failed_tasks = [
+                t for t in store_state.get("tasks", []) if t.get("success") is False
+            ]
+            if failed_tasks:
+                raise ValidationError(
+                    [
+                        {
+                            "name": "INVALID_BADGE",
+                            "description": failed_tasks[0].get(
+                                "result", "Unable to read badge metadata from file"
+                            ),
+                        }
+                    ]
+                )
+
+            query_json = store_state["input"]["value"]
+
+            if isinstance(query_json, bytes):
+                query_json = query_json.decode("utf-8")
+
+            # If unbaked data is a URL, fetch content manually to bypass
+            if isinstance(query_json, str) and query_json.startswith("http"):
+                try:
+                    r = requests.get(
+                        query_json,
+                        headers={"Accept": "application/ld+json, application/json"},
+                        timeout=10,
+                    )
+                    if r.status_code == 200:
+                        query_json = r.text
+                except Exception:
+                    pass
+
+            # Normalize once: downstream code always receives a dict
+            if isinstance(query_json, dict):
+                verifier_input = query_json
+            elif isinstance(query_json, (str, bytes, bytearray)):
+                try:
+                    verifier_input = json.loads(query_json)
+                except (ValueError, TypeError):
+                    verifier_input = None
+            else:
+                verifier_input = None
+
+            if verifier_input is None:
+                raise ValueError(f"Invalid badge input type: {type(query_json)}")
 
             is_v3 = assertion_is_v3(verifier_input)
 
@@ -277,9 +321,31 @@ class ImportedBadgeHelper:
                 response = cls.validate_v3(verifier_input, badgecheck_recipient_profile)
 
             else:
+                # Check if the user is mistakenly uploading a BadgeClass definition
+                badge_type = verifier_input.get("type")
+                if badge_type == "BadgeClass" or (
+                    isinstance(badge_type, list) and "BadgeClass" in badge_type
+                ):
+                    raise ValidationError(
+                        [
+                            {
+                                "name": "INVALID_INPUT_TYPE",
+                                "description": "This file contains a Badge Class definition. Please upload an awarded Badge Assertion instead.",
+                            }
+                        ]
+                    )
+
                 # ob2 validation through openbadges library
+                # openbadges.verify() expects a URL, JSON string, or file — not a dict.
+                # Pass the original URL when available (avoids double-fetch); otherwise
+                # serialise the dict back to a JSON string.
+                if isinstance(query, str) and query.startswith("http"):
+                    verify_input = query
+                else:
+                    verify_input = json.dumps(verifier_input)
+
                 response = openbadges.verify(
-                    query,
+                    verify_input,
                     recipient_profile=badgecheck_recipient_profile,
                     **cls.badgecheck_options(),
                 )
