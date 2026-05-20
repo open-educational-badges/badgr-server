@@ -154,7 +154,7 @@ class BadgePDFCreator:
 
         studyload_text = self._format_studyload(studyload_minutes=studyLoad)
         studyload_text = (
-            f"<br />{studyload_text}" if studyload_text is not None else None
+            f"<br />{studyload_text}" if studyload_text is not None else ""
         )
 
         text = _(
