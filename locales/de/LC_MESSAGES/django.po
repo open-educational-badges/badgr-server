@@ -80,7 +80,7 @@ msgstr "hat am %(date_text)s"
 msgid ""
 "earned the following Badge <br />%(place_and_date_part)s %(duration_part)s:"
 msgstr ""
-"%(place_and_date_part)s %(duration_part)s<br/> den folgenden Badge erhalten:"
+"%(place_and_date_part)s %(duration_part)s<br/> den folgenden Badge erworben:"
 
 #: apps/mainsite/badge_pdf.py:234
 msgid "hour"
