@@ -80,7 +80,7 @@ msgstr "hat am %(date_text)s"
 msgid ""
 "earned the following Badge <br />%(place_and_date_part)s %(duration_part)s:"
 msgstr ""
-"%(place_and_date_part)s %(duration_part)s<br/> den folgenden Badge erhalten:"
+"%(place_and_date_part)s %(duration_part)s<br/> den folgenden Badge erworben:"
 
 #: apps/mainsite/badge_pdf.py:234
 msgid "hour"
@@ -105,6 +105,14 @@ msgstr "und"
 #: apps/mainsite/badge_pdf.py:245
 msgid "within"
 msgstr "innerhalb von"
+
+#: apps/mainsite/badge_pdf.py:358
+msgid "CREATED VIA"
+msgstr "ERSTELLT ÜBER"
+
+#: apps/mainsite/badge_pdf.py:361
+msgid "Use the QR code to retrieve the digital badge."
+msgstr "Der digitale Badge kann über den QR-Code abgerufen werden."
 
 #: apps/mainsite/badge_pdf.py:410 apps/mainsite/badge_pdf.py:431
 msgid "<strong>Competencies</strong>"

@@ -154,10 +154,12 @@ def is_partner_issuer_staff(user, badgeclass):
 
 @rules.predicate
 def is_learningpath_staff(user, learningpath):
-    return any(
-        staff.user_id == user.id
-        for staff in learningpath.cached_issuer.cached_issuerstaff()
-    )
+    issuer = learningpath.cached_issuer
+    if any(staff.user_id == user.id for staff in issuer.cached_issuerstaff()):
+        return True
+    if issuer.is_network:
+        return is_network_member(user, issuer)
+    return False
 
 
 @rules.predicate
