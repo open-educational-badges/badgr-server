@@ -34,12 +34,14 @@ jobs:
               with:
                 repository: ${{ secrets.DASHBOARD_URL }}
                 path: .tmp/dashboard
+                token: ${{ secrets.PLUGINS_ACCESS_TOKEN }}
 
             - name: Checkout pdfeditor plugin
               uses: actions/checkout@v6
               with:
                 repository: ${{ secrets.PDFEDITOR_URL }}
                 path: .tmp/pdfeditor
+                token: ${{ secrets.PLUGINS_ACCESS_TOKEN }}
 
             - name: Inject plugin apps
               run: |
