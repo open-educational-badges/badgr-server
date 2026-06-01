@@ -47,6 +47,7 @@ from .models import (
     LearningPath,
     LearningPathBadge,
     NetworkInvite,
+    NetworkMembership,
     QrCode,
     Quota,
     RequestedBadge,
@@ -173,8 +174,30 @@ class BaseIssuerSerializerV1(
 
 class NetworkSerializerV1(BaseIssuerSerializerV1):
     url = serializers.URLField(max_length=1024, required=False, allow_blank=True)
+    parent_issuer = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, allow_null=True, write_only=True
+    )
 
     def create(self, validated_data, **kwargs):
+        parent_issuer_slug = validated_data.pop("parent_issuer", None)
+        parent_issuer = None
+
+        if parent_issuer_slug:
+            request = self.context.get("request")
+            if not request or not request.user:
+                raise serializers.ValidationError({"parent_issuer": "Authentication required."})
+
+            try:
+                parent_issuer = Issuer.objects.get(entity_id=parent_issuer_slug, is_network=False)
+            except Issuer.DoesNotExist:
+                raise serializers.ValidationError({"parent_issuer": "Institution not found."})
+
+            staff = parent_issuer.cached_issuerstaff().filter(user=request.user).first()
+            if not staff or staff.role not in ("owner", "editor"):
+                raise serializers.ValidationError(
+                    {"parent_issuer": "You must be an owner or editor of the parent institution."}
+                )
+
         new_network = Issuer(**validated_data)
 
         new_network.is_network = True
@@ -186,6 +209,9 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
         )
 
         new_network.save()
+
+        if parent_issuer:
+            NetworkMembership.objects.get_or_create(network=new_network, issuer=parent_issuer)
 
         return new_network
 
