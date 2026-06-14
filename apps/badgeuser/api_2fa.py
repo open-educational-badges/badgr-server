@@ -3,15 +3,15 @@ import datetime
 import hashlib
 import io
 import json
+import logging
 import os
-
-from allauth.account.adapter import get_adapter
 
 import pyotp
 import qrcode
-
+from allauth.account.adapter import get_adapter
 from django.conf import settings
 from django.core.cache import cache
+from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from oauth2_provider.models import get_application_model, get_access_token_model
@@ -19,6 +19,8 @@ from oauthlib.common import generate_token
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 
 def _generate_backup_codes(count=10):
@@ -101,6 +103,10 @@ class TwoFactorVerifyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Consume the partial token immediately — prevents two concurrent requests
+        # both passing the cache.get check and receiving valid tokens.
+        cache.delete(f"2fa_partial:{partial_token}")
+
         from badgeuser.models import BadgeUser
 
         try:
@@ -110,25 +116,27 @@ class TwoFactorVerifyView(APIView):
                 {"error": "User not found."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        totp_valid = pyotp.TOTP(user.totp_secret).verify(code)
+        totp_valid = (
+            pyotp.TOTP(user.totp_secret).verify(code) if user.totp_secret else False
+        )
 
         if not totp_valid:
-            if user.backup_codes:
-                code_hash = hashlib.sha256(code.encode()).hexdigest()
-                hashed_codes = json.loads(user.backup_codes)
-                if code_hash in hashed_codes:
-                    hashed_codes.remove(code_hash)
-                    user.backup_codes = json.dumps(hashed_codes)
-                    user.save()
-                    totp_valid = True
+            with transaction.atomic():
+                user = BadgeUser.objects.select_for_update().get(pk=user.pk)
+                if user.backup_codes:
+                    code_hash = hashlib.sha256(code.encode()).hexdigest()
+                    hashed_codes = json.loads(user.backup_codes)
+                    if code_hash in hashed_codes:
+                        hashed_codes.remove(code_hash)
+                        user.backup_codes = json.dumps(hashed_codes)
+                        user.save()
+                        totp_valid = True
 
         if not totp_valid:
             return Response(
                 {"error": "Invalid code. Please try again."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        cache.delete(f"2fa_partial:{partial_token}")
 
         Application = get_application_model()
         AccessToken = get_access_token_model()
@@ -182,13 +190,13 @@ class TwoFactorDisableView(APIView):
 
         if not user.check_password(password):
             return Response(
-                {"error": "Falsches Passwort. Bitte versuche es erneut."},
+                {"error": "Incorrect password. Please try again."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not user.totp_enabled:
             return Response(
-                {"error": "2FA ist für dieses Konto nicht aktiviert."},
+                {"error": "2FA is not enabled for this account."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -208,6 +216,8 @@ class TwoFactorDisableView(APIView):
                 {"user": user},
             )
         except Exception:
-            pass
+            logger.exception(
+                "Failed to send 2FA disabled confirmation email to user %s", user.pk
+            )
 
         return Response({"success": True})

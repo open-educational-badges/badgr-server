@@ -757,11 +757,11 @@ class TokenView(OAuth2ProviderTokenView):
                         token=access_token_value
                     )
                     user = token_obj.user
-                    if user.totp_enabled:
-                        token_obj.delete()
+                    if user.totp_enabled and user.totp_confirmed:
                         partial = str(uuid.uuid4())
+                        cache_key = f"2fa_partial:{partial}"
                         cache.set(
-                            f"2fa_partial:{partial}",
+                            cache_key,
                             {
                                 "user_id": user.pk,
                                 "client_id": client_id or "public",
@@ -771,14 +771,24 @@ class TokenView(OAuth2ProviderTokenView):
                             },
                             timeout=300,
                         )
-                        return HttpResponse(
-                            json.dumps(
-                                {"requires_2fa": True, "partial_token": partial}
-                            ),
-                            status=200,
-                            content_type="application/json",
-                        )
-            except (AccessToken.DoesNotExist, KeyError):
+                        try:
+                            token_obj.delete()
+                        except Exception:
+                            cache.delete(cache_key)
+                            logger.exception(
+                                "Failed to revoke access token during 2FA interception "
+                                "for user %s; falling back to normal login",
+                                user.pk,
+                            )
+                        else:
+                            return HttpResponse(
+                                json.dumps(
+                                    {"requires_2fa": True, "partial_token": partial}
+                                ),
+                                status=401,
+                                content_type="application/json",
+                            )
+            except (AccessToken.DoesNotExist, KeyError, ValueError):
                 pass
 
         if oauth_app and not oauth_app.applicationinfo.issue_refresh_token:

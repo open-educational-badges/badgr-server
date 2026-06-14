@@ -24,3 +24,4 @@ CELERY_ALWAYS_EAGER = True
 SECRET_KEY = "aninsecurekeyusedfortesting"
 UNSUBSCRIBE_SECRET_KEY = str(SECRET_KEY)
 AUTHCODE_SECRET_KEY = Fernet.generate_key()
+FIELD_ENCRYPTION_KEY = Fernet.generate_key().decode()
