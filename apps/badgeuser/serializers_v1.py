@@ -60,6 +60,8 @@ class BadgeUserProfileSerializerV1(serializers.Serializer):
     source = serializers.CharField(write_only=True, required=False)
     date_joined = serializers.DateTimeField(read_only=True)
     quota_release_informed = serializers.BooleanField(read_only=False, required=False)
+    totp_enabled = serializers.BooleanField(read_only=True, required=False)
+    mfa_reminder_dismissed = serializers.BooleanField(required=False)
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_has_password_set(self, obj):
@@ -124,6 +126,9 @@ class BadgeUserProfileSerializerV1(serializers.Serializer):
 
         if "quota_release_informed" in validated_data:
             user.quota_release_informed = validated_data.get("quota_release_informed")
+
+        if "mfa_reminder_dismissed" in validated_data:
+            user.mfa_reminder_dismissed = validated_data.get("mfa_reminder_dismissed")
 
         user.save()
         return user

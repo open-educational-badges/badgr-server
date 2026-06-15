@@ -73,6 +73,9 @@ Edit the `settings_local.dev.py` and/or `settings_local.prod.py` to adjust the f
     -   Remove that part `.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(40))` to prevent issues with the admin panel login
 -   Set `AUTHCODE_SECRET_KEY` to a 32 byte url-safe base64-encoded random string. This key is used for symmetrical encryption of authentication tokens. If not defined, services like OAuth will not work.
     -   Generate a value with: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key())"`
+-   Set `FIELD_ENCRYPTION_KEY` to a Fernet key. This key encrypts sensitive 2FA data (TOTP secrets) in the database. **This value must remain stable** — changing it makes existing 2FA secrets unreadable and will lock users out.
+    -   Generate a value with: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+    -   In production, set this via an environment variable or secrets manager, never hardcoded.
 
 #### Additional configuration options
 

@@ -1,0 +1,21 @@
+{% extends "email/base.html" %}
+{% load static %}
+{% load mjml %}
+{% mjml %}
+{% block main %}
+    <mj-section background-color="#ffffff">
+    <mj-column>
+    <mj-image src="{% static '/images/Logo-Oeb.png' %}" alt="Logo" href="https://openbadges.education" padding-left="25px" padding-bottom="60px" width="150px" height="77px" align="left" />
+    <mj-text font-size="32px" font-weight="bold">
+    Die 2-Faktor-Authentifizierung für Dein <a href="https://openbadges.education" target="_blank">openbadges.education</a> Konto wurde deaktiviert.
+    </mj-text>
+    <mj-text>
+    Wenn Du diese Änderung nicht vorgenommen hast, kontaktiere uns bitte umgehend und sichere Dein Konto.
+    Vielen Dank für die Verwendung von OpenEducationalBadges!
+    </mj-text>
+    </mj-column>
+    </mj-section>
+{% endblock main %}
+{% block button %}
+{% endblock button %}
+{% endmjml %}

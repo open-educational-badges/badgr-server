@@ -4,10 +4,12 @@ import base64
 import requests
 import json
 import re
+import uuid
 from urllib.parse import urlparse
 import datetime
 import jwt
 
+from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.core.validators import URLValidator
@@ -743,6 +745,55 @@ class TokenView(OAuth2ProviderTokenView):
         else:
             # All other grant types our parent can handle
             response = super(TokenView, self).post(request, *args, **kwargs)
+
+        # 2FA interception: if password login succeeded and user has TOTP enabled,
+        # revoke the issued token and return a short-lived partial token instead.
+        if grant_type == "password" and response.status_code == 200:
+            try:
+                response_data = json.loads(response.content)
+                access_token_value = response_data.get("access_token")
+                if access_token_value:
+                    token_obj = AccessToken.objects.select_related("user").get(
+                        token=access_token_value
+                    )
+                    user = token_obj.user
+                    if user.totp_enabled and user.totp_confirmed:
+                        partial = str(uuid.uuid4())
+                        cache_key = f"2fa_partial:{partial}"
+                        cache.set(
+                            cache_key,
+                            {
+                                "user_id": user.pk,
+                                "client_id": client_id or "public",
+                                "scope": token_obj.scope,
+                            },
+                            timeout=300,
+                        )
+                        try:
+                            token_obj.delete()
+                        except Exception:
+                            cache.delete(cache_key)
+                            logger.exception(
+                                "Failed to revoke access token during 2FA interception "
+                                "for user %s",
+                                user.pk,
+                            )
+                            return HttpResponse(
+                                json.dumps(
+                                    {"error": "Login failed. Please try again."}
+                                ),
+                                status=500,
+                                content_type="application/json",
+                            )
+                        return HttpResponse(
+                            json.dumps(
+                                {"requires_2fa": True, "partial_token": partial}
+                            ),
+                            status=401,
+                            content_type="application/json",
+                        )
+            except (AccessToken.DoesNotExist, KeyError, ValueError):
+                pass
 
         if oauth_app and not oauth_app.applicationinfo.issue_refresh_token:
             data = json.loads(response.content)
