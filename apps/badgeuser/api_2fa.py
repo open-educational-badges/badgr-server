@@ -46,6 +46,14 @@ class TwoFactorSetupView(APIView):
     def post(self, request, **kwargs):
         user = request.user
 
+        if user.totp_enabled:
+            return Response(
+                {
+                    "error": "2FA is already enabled. Disable it first before setting up again."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         secret = pyotp.random_base32()
         issuer = getattr(settings, "OPERATOR_NAME", None) or "OEB Badges"
         uri = pyotp.TOTP(secret).provisioning_uri(
