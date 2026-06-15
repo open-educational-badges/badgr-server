@@ -765,9 +765,7 @@ class TokenView(OAuth2ProviderTokenView):
                             {
                                 "user_id": user.pk,
                                 "client_id": client_id or "public",
-                                "scope": request.POST.get(
-                                    "scope", "rw:profile rw:issuer rw:backpack"
-                                ),
+                                "scope": token_obj.scope,
                             },
                             timeout=300,
                         )
@@ -777,17 +775,23 @@ class TokenView(OAuth2ProviderTokenView):
                             cache.delete(cache_key)
                             logger.exception(
                                 "Failed to revoke access token during 2FA interception "
-                                "for user %s; falling back to normal login",
+                                "for user %s",
                                 user.pk,
                             )
-                        else:
                             return HttpResponse(
                                 json.dumps(
-                                    {"requires_2fa": True, "partial_token": partial}
+                                    {"error": "Login failed. Please try again."}
                                 ),
-                                status=401,
+                                status=500,
                                 content_type="application/json",
                             )
+                        return HttpResponse(
+                            json.dumps(
+                                {"requires_2fa": True, "partial_token": partial}
+                            ),
+                            status=401,
+                            content_type="application/json",
+                        )
             except (AccessToken.DoesNotExist, KeyError, ValueError):
                 pass
 
