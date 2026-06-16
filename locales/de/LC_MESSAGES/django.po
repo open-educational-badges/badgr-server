@@ -161,6 +161,22 @@ msgstr ""
 msgid "The competence descriptions according to ESCO are available at "
 msgstr "Die Kompetenzbeschreibung gemäß ESCO sind abrufbar über "
 
+#: apps/pdfeditor/badge_pdf.py
+msgid "earned the following badge:"
+msgstr "folgenden Badge erworben:"
+
+#: apps/pdfeditor/badge_pdf.py
+msgid "Competencies"
+msgstr "Kompetenzen"
+
+#: apps/pdfeditor/badge_pdf.py
+msgid "Evidence URL"
+msgstr "Nachweis-URL"
+
+#: apps/pdfeditor/badge_pdf.py
+msgid "[E] = Competency according to ESCO (European Skills, Competencies, Qualifications and Occupations)."
+msgstr "[E] = Kompetenz nach ESCO (European Skills, Competencies, Qualifications and Occupations)."
+
 #: apps/mainsite/drf_fields.py:19
 msgid "Base64 string is incorrect"
 msgstr "Ungültiger Base64 String"
