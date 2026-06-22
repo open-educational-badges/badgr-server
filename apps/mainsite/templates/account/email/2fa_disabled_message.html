@@ -1,0 +1,37 @@
+{% extends "email/base.html" %}
+{% load static %}
+{% load mjml %}
+{% mjml %}
+{% block main %}
+    <mj-section background-color="#f5f5f5">
+    <mj-column>
+    <mj-image src="{% static '/images/Logo-Oeb.png' %}" alt="Open Educational Badges Logo" href="https://openbadges.education" padding-right="25px" padding-bottom="40px" width="150px" align="right" />
+    <mj-text font-size="24px" font-weight="bold" color="#323232" padding-bottom="16px">
+    Deine Zwei-Faktor-Authentisierung (2FA) wurde deaktiviert
+    </mj-text>
+    <mj-text font-size="16px" color="#323232" padding-bottom="16px">
+    Die Zwei-Faktor-Authentisierung (2FA) für deinen OEB-Account wurde soeben erfolgreich <b>deaktiviert</b>. Dein Konto ist nun nur noch mit deinem Passwort geschützt.
+    </mj-text>
+    <mj-text font-size="16px" color="#323232" font-weight="bold" padding-bottom="8px">
+    Falls du diese Änderung nicht selbst vorgenommen hast, hat möglicherweise jemand Zugriff auf dein Konto erhalten. Bitte handele in diesem Fall sofort:
+    </mj-text>
+    <mj-text font-size="16px" color="#323232" padding-bottom="24px">
+    1. Ändere umgehend dein Passwort unter Konto → Mein Account.
+    <br />
+    2. Aktiviere die Zwei-Faktor-Authentifizierung erneut.
+    <br />
+    3. Kontaktiere unseren Support, falls du weitere Hilfe benötigst: <a href="mailto:support@openbadges.education">support@openbadges.education</a>
+    </mj-text>
+    <mj-text font-size="16px" color="#323232">
+    Beste Grüße
+    <br />
+    dein OEB-Team
+    </mj-text>
+    </mj-column>
+    </mj-section>
+{% endblock main %}
+{% block button %}
+{% endblock button %}
+{% block footer %}
+{% endblock footer %}
+{% endmjml %}

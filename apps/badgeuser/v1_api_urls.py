@@ -1,5 +1,11 @@
 from django.urls import re_path
 
+from badgeuser.api_2fa import (
+    TwoFactorSetupView,
+    TwoFactorConfirmView,
+    TwoFactorVerifyView,
+    TwoFactorDisableView,
+)
 from badgeuser.api import (
     BadgeUserConfirmStaffRequest,
     BadgeUserSaveMicroDegree,
@@ -88,5 +94,15 @@ urlpatterns = [
         r"^confirm-network-invitation/(?P<inviteSlug>[^/]+)$",
         ConfirmNetworkInvitation.as_view(),
         name="v1_api_user_confirm_network_invite",
+    ),
+    re_path(r"^2fa/setup$", TwoFactorSetupView.as_view(), name="v1_api_user_2fa_setup"),
+    re_path(
+        r"^2fa/confirm$", TwoFactorConfirmView.as_view(), name="v1_api_user_2fa_confirm"
+    ),
+    re_path(
+        r"^2fa/verify$", TwoFactorVerifyView.as_view(), name="v1_api_user_2fa_verify"
+    ),
+    re_path(
+        r"^2fa/disable$", TwoFactorDisableView.as_view(), name="v1_api_user_2fa_disable"
     ),
 ]

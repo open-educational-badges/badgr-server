@@ -1,6 +1,7 @@
 from itertools import chain
 
 import cachemodel
+from encrypted_model_fields.fields import EncryptedCharField, EncryptedTextField
 from allauth.account.models import EmailAddress, EmailConfirmation
 from basic_models.models import IsActive
 from django.core.cache import cache
@@ -259,6 +260,12 @@ class BadgeUser(BaseVersionedEntity, AbstractUser, cachemodel.CacheModel):
     quota_release_informed = models.BooleanField(default=False)
 
     zip_code = models.CharField(max_length=100, blank=True, default=None, null=True)
+
+    totp_secret = EncryptedCharField(max_length=64, blank=True, null=True, default=None)
+    totp_enabled = models.BooleanField(default=False)
+    totp_confirmed = models.BooleanField(default=False)
+    mfa_reminder_dismissed = models.BooleanField(default=False)
+    backup_codes = EncryptedTextField(blank=True, null=True, default=None)
 
     objects = BadgeUserManager()
 

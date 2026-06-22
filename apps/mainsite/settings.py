@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "backpack",
     # api docs
     "drf_spectacular",
+    "encrypted_model_fields",
     # deprecated
     "composition",
     "django_filters",
@@ -503,6 +504,8 @@ OPERATOR_URL = None
 # OVERRIDE THESE VALUES WITH YOUR OWN STABLE VALUES IN LOCAL SETTINGS
 AUTHCODE_SECRET_KEY = Fernet.generate_key()
 
+FIELD_ENCRYPTION_KEY = None  # must be set in local settings
+
 AUTHCODE_EXPIRES_SECONDS = (
     600  # needs to be long enough to fetch information from socialauth providers
 )
@@ -580,5 +583,5 @@ MJML_EXEC_CMD = ["mjml", "--config.fonts", "{}"]
 # MJML_CHECK_CMD_ON_STARTUP = False
 
 # datetime.strptime('2026-04-01 00:00:00', '%Y-%m-%d %H:%M:%S')
-QUOTAS_ENABLED_DATE=None
+QUOTAS_ENABLED_DATE = None
 QUOTAS_EMAIL = ""
