@@ -221,6 +221,9 @@ class BadgeClassSerializerV2(DetailSerializerV2, OriginalJsonSerializerMixin):
     tags = serializers.ListField(
         child=StripTagsCharField(max_length=254), source="tag_items", required=False
     )
+    areas = serializers.ListField(
+        child=StripTagsCharField(max_length=254), source="area_items", required=False
+    )
 
     expiration = serializers.IntegerField(
         required=False,

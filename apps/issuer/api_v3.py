@@ -53,10 +53,11 @@ from .serializers_v1 import (
     NetworkSerializerV1,
 )
 
-from .serializers_v3 import QuotaSerializer, TagSerializerV3
+from .serializers_v3 import QuotaSerializer, TagSerializerV3, AreaSerializerV3
 
 from .models import (
     BadgeClass,
+    BadgeClassArea,
     BadgeClassTag,
     BadgeInstance,
     Issuer,
@@ -71,6 +72,7 @@ from django.db.models import Q, Count
 
 class BadgeFilter(EntityFilter):
     tags = TagFilter(field_name="badgeclasstag__name", lookup_expr="icontains")
+    areas = TagFilter(field_name="badgeclassarea__name", lookup_expr="icontains")
 
 
 class IssuerFilter(EntityFilter):
@@ -168,6 +170,27 @@ class Badges(EntityViewSet):
             .distinct()
         )
         return Response(list(tag_names))
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[permissions.AllowAny],
+        url_path="areas",
+        serializer_class=AreaSerializerV3,
+    )
+    @extend_schema(
+        summary="Get a list of all available badge areas",
+        tags=["BadgeClasses"],
+        description="Fetch all available areas that existing Badges may be filtered by",
+        responses=AreaSerializerV3,
+    )
+    def areas(self, request, **kwargs):
+        area_names = (
+            BadgeClassArea.objects.order_by("name")
+            .values_list("name", flat=True)
+            .distinct()
+        )
+        return Response(list(area_names))
 
     def get(self, request, **kwargs):
         pass
