@@ -101,6 +101,7 @@ class BadgePDFCreator:
         activityCity=None,
         activityOnline=False,
         studyLoad=None,
+        dateOfBirth=None,
     ):
         document_width, document_height = A4
         recipient_style = ParagraphStyle(
@@ -116,6 +117,22 @@ class BadgePDFCreator:
         first_page_content.append(Paragraph(recipient_name, recipient_style))
         first_page_content.append(Spacer(1, 8))
         self.used_space += 8 + 19.2  # spacer and paragraph
+
+        if dateOfBirth:
+            date_of_birth_style = ParagraphStyle(
+                name="DateOfBirth",
+                fontSize=12,
+                alignment=TA_CENTER,
+                leading=15.6,
+            )
+            date_of_birth_text = _("born on %(dob)s") % {
+                "dob": f"<strong>{dateOfBirth.strftime('%d.%m.%Y')}</strong>"
+            }
+            first_page_content.append(
+                Paragraph(date_of_birth_text, date_of_birth_style)
+            )
+            first_page_content.append(Spacer(1, 4))
+            self.used_space += 4 + 15.6  # spacer and paragraph
 
         text_style = ParagraphStyle(
             name="Text_Style",
@@ -820,8 +837,10 @@ class BadgePDFCreator:
 
         first_page_content = []
 
-        first_page_content.append(Spacer(1, 80))
-        self.used_space += 80
+        # make room for the date-of-birth line so the layout stays consistent
+        top_spacing = 60 if badge_instance.date_of_birth else 80
+        first_page_content.append(Spacer(1, top_spacing))
+        self.used_space += top_spacing
 
         cert_style = ParagraphStyle(
             name="Certificate",
@@ -860,6 +879,7 @@ class BadgePDFCreator:
             activityCity=badge_instance.activity_city,
             activityOnline=badge_instance.activity_online,
             studyLoad=studyload_minutes,
+            dateOfBirth=badge_instance.date_of_birth,
         )
         self.add_badge_image(first_page_content, badge_instance.image)
         self.add_title(first_page_content, badge_class.name)

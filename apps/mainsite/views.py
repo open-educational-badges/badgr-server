@@ -4,6 +4,7 @@ import json
 import time
 import re
 import os
+from datetime import datetime
 from hashlib import md5
 import html
 
@@ -310,6 +311,7 @@ def createCaptchaChallenge(req):
             "lastname": serializers.CharField(),
             "email": serializers.EmailField(),
             "ageConfirmation": serializers.BooleanField(),
+            "dateOfBirth": serializers.DateField(required=False, allow_null=True),
         },
     ),
     responses={
@@ -373,6 +375,16 @@ def requestBadge(req, qrCodeId):
         lastName = data.get("lastname")
         email = data.get("email")
         ageConfirmation = data.get("ageConfirmation")
+        dateOfBirth = data.get("dateOfBirth") or None
+
+        if dateOfBirth is not None:
+            try:
+                dateOfBirth = datetime.strptime(dateOfBirth, "%Y-%m-%d").date()
+            except (TypeError, ValueError):
+                return JsonResponse(
+                    {"error": "Invalid dateOfBirth, expected format YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if not all([firstName, lastName, email]):
             return JsonResponse(
@@ -396,6 +408,7 @@ def requestBadge(req, qrCodeId):
             firstName=firstName,
             lastName=lastName,
             email=email,
+            dateOfBirth=dateOfBirth,
         )
 
         badge.badgeclass = qrCode.badgeclass
