@@ -307,19 +307,46 @@ class Issuer(
 
     quota = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
 
-    quota_period_start = models.DateTimeField(blank=False, null=False, default=timezone.now, verbose_name="Period start")
-    quota_network_period_start = models.DateTimeField(blank=False, null=False, default=timezone.now, verbose_name="Network period start")
+    quota_period_start = models.DateTimeField(
+        blank=False, null=False, default=timezone.now, verbose_name="Period start"
+    )
+    quota_network_period_start = models.DateTimeField(
+        blank=False,
+        null=False,
+        default=timezone.now,
+        verbose_name="Network period start",
+    )
 
-    quota_badge_create = models.PositiveIntegerField(blank=True, null=True, verbose_name="Create Badges")
-    quota_badge_award = models.PositiveIntegerField(blank=True, null=True, verbose_name="Award Badges")
-    quota_learningpath_create = models.PositiveIntegerField(blank=True, null=True, verbose_name="Create Learningpaths")
-    quota_accounts_admin = models.PositiveIntegerField(blank=True, null=True, verbose_name="Admin Accounts")
-    quota_accounts_member = models.PositiveIntegerField(blank=True, null=True, verbose_name="Member Accounts")
-    quota_aiskills_requests = models.PositiveIntegerField(blank=True, null=True, verbose_name="AI Tool Requests")
-    quota_pdfeditor = models.BooleanField(blank=True, null=True, verbose_name="PDF Editor")
-    quota_dashboard = models.BooleanField(blank=True, null=True, verbose_name="Dashboard")
-    quota_network_memberships = models.PositiveIntegerField(blank=True, null=True, verbose_name="Network Memberships")
-    quota_network_create = models.BooleanField(blank=True, null=True, verbose_name="Create Networks")
+    quota_badge_create = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="Create Badges"
+    )
+    quota_badge_award = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="Award Badges"
+    )
+    quota_learningpath_create = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="Create Learningpaths"
+    )
+    quota_accounts_admin = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="Admin Accounts"
+    )
+    quota_accounts_member = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="Member Accounts"
+    )
+    quota_aiskills_requests = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="AI Tool Requests"
+    )
+    quota_pdfeditor = models.BooleanField(
+        blank=True, null=True, verbose_name="PDF Editor"
+    )
+    quota_dashboard = models.BooleanField(
+        blank=True, null=True, verbose_name="Dashboard"
+    )
+    quota_network_memberships = models.PositiveIntegerField(
+        blank=True, null=True, verbose_name="Network Memberships"
+    )
+    quota_network_create = models.BooleanField(
+        blank=True, null=True, verbose_name="Create Networks"
+    )
 
     def get_quota_object(self):
         quota = self.quota
@@ -341,22 +368,21 @@ class Issuer(
 
         # find current yearly quota period based on period start
         dt_end_yr = self.quota_period_start
-        while(dt_end_yr < timezone.now()):
+        while dt_end_yr < timezone.now():
             dt_end_yr = dt_end_yr + relativedelta(years=1)
         dt_start_yr = dt_end_yr - relativedelta(years=1)
 
         # find current monthly quota period based on period start
         dt_end_mo = self.quota_period_start
-        while(dt_end_mo < timezone.now()):
+        while dt_end_mo < timezone.now():
             dt_end_mo = dt_end_mo + relativedelta(months=1)
         dt_start_mo = dt_end_mo - relativedelta(months=1)
-
 
         if quota_name == "BADGE_CREATE":
             value = len(
                 self.cached_badgeclasses()
-                    .filter(learningpath_as_participationbadge=None)
-                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+                .filter(learningpath_as_participationbadge=None)
+                .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
             )
 
         if quota_name == "BADGE_AWARD":
@@ -364,44 +390,44 @@ class Issuer(
                 # find all self-issued instances of self owned badges
                 value = len(
                     self.badgeinstance_set.all()
-                        .filter(revoked=False)
-                        # this removes network badges from the count
-                        .filter(badgeclass__issuer=self)
-                        # this removes partner badges from the count
-                        .filter(badgeclass__network_shares__id=None)
-                        .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+                    .filter(revoked=False)
+                    # this removes network badges from the count
+                    .filter(badgeclass__issuer=self)
+                    # this removes partner badges from the count
+                    .filter(badgeclass__network_shares__id=None)
+                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
                 )
             else:
                 # if network, find all network and partner badge instances
                 value = len(
-                    BadgeInstance.objects
-                        .filter(revoked=False)
-                        .filter(
-                            Q(badgeclass__issuer=self)
-                            | Q(badgeclass__network_shares__network=self)
-                        )
-                        .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+                    BadgeInstance.objects.filter(revoked=False)
+                    .filter(
+                        Q(badgeclass__issuer=self)
+                        | Q(badgeclass__network_shares__network=self)
+                    )
+                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
                 )
 
         if quota_name == "LEARNINGPATH_CREATE":
             value = len(
-                self.cached_learningpaths()
-                    .filter(created_at__date__range=(dt_start_yr, dt_end_yr))
+                self.cached_learningpaths().filter(
+                    created_at__date__range=(dt_start_yr, dt_end_yr)
+                )
             )
 
         staff = self.cached_issuerstaff()
 
         if quota_name == "ACCOUNTS_ADMIN":
-            value = len(
-                [x for x in staff if x.role == "owner" or x.role == "editor"]
-            )
+            value = len([x for x in staff if x.role == "owner" or x.role == "editor"])
         if quota_name == "ACCOUNTS_MEMBER":
-            value = len(
-                [x for x in staff if x.role != "owner" and x.role != "editor"]
-            )
+            value = len([x for x in staff if x.role != "owner" and x.role != "editor"])
 
         if quota_name == "AISKILLS_REQUESTS":
-            value = len(self.aiskill_requests.filter(created_at__date__range=(dt_start_mo, dt_end_mo)))
+            value = len(
+                self.aiskill_requests.filter(
+                    created_at__date__range=(dt_start_mo, dt_end_mo)
+                )
+            )
 
         if quota_name == "PDFEDITOR":
             value = max_quota
@@ -410,7 +436,9 @@ class Issuer(
             value = max_quota
 
         if quota_name == "NETWORK_MEMBERSHIPS":
-            value = len(self.partner_issuers.all()) + len(self.invites.filter(status="Pending").all())
+            value = len(self.partner_issuers.all()) + len(
+                self.invites.filter(status="Pending").all()
+            )
 
         if quota_name == "NETWORK_CREATE":
             value = max_quota
@@ -419,7 +447,7 @@ class Issuer(
 
     def get_max_quota(self, quota_name: str):
         try:
-            attr = getattr(self, f'quota_{quota_name.lower()}')
+            attr = getattr(self, f"quota_{quota_name.lower()}")
             if attr is not None:
                 return attr
         except AttributeError:
@@ -438,7 +466,7 @@ class Issuer(
     # check if a custom value has been set and differs from the default value
     def is_custom_quota(self, quota_name: str):
         try:
-            attr = getattr(self, f'quota_{quota_name.lower()}')
+            attr = getattr(self, f"quota_{quota_name.lower()}")
             if attr is not None:
                 try:
                     return getattr(self.get_quota_object(), quota_name.lower()) != attr
@@ -451,7 +479,7 @@ class Issuer(
 
     def get_next_quota_payment(self):
         dt_next = self.quota_period_start
-        while(dt_next < timezone.now()):
+        while dt_next < timezone.now():
             dt_next = dt_next + relativedelta(years=1)
 
         return dt_next
@@ -2379,7 +2407,8 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                     json["badge"]["issuer"] = self.cached_issuer.get_json(
                         obi_version=obi_version
                     )
-                json["image"] = self.image.url
+                if self.image:
+                    json["image"] = self.image_url()
 
         # FIXME: 'support' 1_1 for v1 serializer classes
         if obi_version == "1_1":
@@ -3217,7 +3246,11 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
         related_name="learningpaths",
     )
     participationBadge = models.ForeignKey(
-        BadgeClass, blank=False, null=False, on_delete=models.CASCADE, related_name='learningpath_as_participationbadge'
+        BadgeClass,
+        blank=False,
+        null=False,
+        on_delete=models.CASCADE,
+        related_name="learningpath_as_participationbadge",
     )
     badgrapp = models.ForeignKey(
         "mainsite.BadgrApp",
@@ -3436,7 +3469,9 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
 
     def delete(self, *args, **kwargs):
         affected_lp_badges = list(
-            LearningPathBadge.objects.filter(badge=self.participationBadge).exclude(learning_path=self)
+            LearningPathBadge.objects.filter(badge=self.participationBadge).exclude(
+                learning_path=self
+            )
         )
         for lpb in affected_lp_badges:
             lpb.delete()
@@ -3478,33 +3513,45 @@ class RequestedLearningPath(BaseVersionedEntity):
         max_length=254, blank=False, null=False, default="Pending"
     )
 
+
 class QuotaDefaults(models.TextChoices):
     NONE = "NONE", "None"
     ISSUER = "ISSUER", "Issuer"
     NETWORK = "NETWORK", "Network"
-class Quota(cachemodel.CacheModel):
 
+
+class Quota(cachemodel.CacheModel):
     name = models.CharField(max_length=254, blank=False, null=False)
     key = models.CharField(max_length=254, blank=False, null=False, unique=True)
     price = models.DecimalField(max_digits=11, decimal_places=2, blank=True, null=True)
-    upgrade = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
+    upgrade = models.ForeignKey(
+        "Quota", on_delete=models.SET_NULL, blank=True, null=True
+    )
     default = models.CharField(
-        max_length=254, choices=QuotaDefaults.choices, default=QuotaDefaults.NONE, unique=False
+        max_length=254,
+        choices=QuotaDefaults.choices,
+        default=QuotaDefaults.NONE,
+        unique=False,
     )
 
     badge_create = models.PositiveIntegerField(verbose_name="Create Badges")
     badge_award = models.PositiveIntegerField(verbose_name="Award Badges")
-    learningpath_create = models.PositiveIntegerField(verbose_name="Create Learningpaths")
+    learningpath_create = models.PositiveIntegerField(
+        verbose_name="Create Learningpaths"
+    )
     accounts_admin = models.PositiveIntegerField(verbose_name="Admin Accounts")
     accounts_member = models.PositiveIntegerField(verbose_name="Member Accounts")
-    aiskills_requests: PositiveIntegerField = models.PositiveIntegerField(verbose_name="AI Tool Requests")
+    aiskills_requests: PositiveIntegerField = models.PositiveIntegerField(
+        verbose_name="AI Tool Requests"
+    )
     pdfeditor = models.BooleanField(verbose_name="PDF Editor")
     dashboard = models.BooleanField(verbose_name="Dashboard")
-    network_memberships = models.PositiveIntegerField(verbose_name="Network Memberships")
+    network_memberships = models.PositiveIntegerField(
+        verbose_name="Network Memberships"
+    )
 
     def __str__(self):
         return str(self.name)
-
 
 
 class QuotaUpgradeRequest(models.Model):
@@ -3518,7 +3565,7 @@ class QuotaUpgradeRequest(models.Model):
     quota = models.ForeignKey("Quota", on_delete=models.SET_NULL, blank=True, null=True)
 
     class Meta:
-        verbose_name_plural  = "Quotas: Upgrade Requests"
+        verbose_name_plural = "Quotas: Upgrade Requests"
 
     def notify(self):
         """
@@ -3527,7 +3574,6 @@ class QuotaUpgradeRequest(models.Model):
 
         email = getattr(settings, "QUOTAS_EMAIL", None)
         if email:
-
             adapter = get_adapter()
 
             email_context = {
@@ -3540,12 +3586,7 @@ class QuotaUpgradeRequest(models.Model):
 
             template_name = "issuer/email/quotas/notify_sales"
 
-            adapter.send_mail(
-                template_name,
-                email,
-                context=email_context
-            )
-
+            adapter.send_mail(template_name, email, context=email_context)
 
 
 class AiSkillRequest(BaseAuditedModel):
