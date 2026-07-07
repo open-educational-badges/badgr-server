@@ -874,8 +874,6 @@ class BadgeInstanceSerializerV1(OriginalJsonSerializerMixin, serializers.Seriali
     )
     activity_online = serializers.BooleanField(required=False, default=False)
 
-    # Displayed on the badge PDF only; intentionally kept out of the public
-    # assertion JSON for privacy reasons.
     date_of_birth = serializers.DateField(required=False, allow_null=True)
 
     create_notification = HumanReadableBooleanField(

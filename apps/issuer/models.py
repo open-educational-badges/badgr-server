@@ -1925,7 +1925,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         blank=True,
         null=True,
         default=None,
-        help_text="The recipient's date of birth, displayed on the badge PDF only",
+        help_text="The recipient's date of birth, displayed on the badge PDF and in the OB 3.0 credential subject",
     )
 
     ob_json_2_0 = models.TextField(blank=True, null=True, default=None)
@@ -2580,6 +2580,9 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
             )
         if self.activity_end_date:
             credential_subject["activityEndDate"] = self.activity_end_date.isoformat()
+
+        if self.date_of_birth:
+            credential_subject["dateOfBirth"] = self.date_of_birth.isoformat()
 
         if self.activity_city or self.activity_zip:
             activity_location = {"type": ["Address"]}

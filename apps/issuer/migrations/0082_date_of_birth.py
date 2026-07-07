@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             field=models.DateField(
                 blank=True,
                 default=None,
-                help_text="The recipient's date of birth, displayed on the badge PDF only",
+                help_text="The recipient's date of birth, displayed on the badge PDF and in the OB 3.0 credential subject",
                 null=True,
             ),
         ),
