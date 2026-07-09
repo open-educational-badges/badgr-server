@@ -75,6 +75,11 @@ msgstr "hat vom %(date_text)s"
 msgid "on %(date_text)s"
 msgstr "hat am %(date_text)s"
 
+#: apps/mainsite/badge_pdf.py:125
+#, python-format
+msgid "born on %(dob)s"
+msgstr "geboren am %(dob)s"
+
 #: apps/mainsite/badge_pdf.py:137
 #, python-format
 msgid ""

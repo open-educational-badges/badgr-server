@@ -874,6 +874,8 @@ class BadgeInstanceSerializerV1(OriginalJsonSerializerMixin, serializers.Seriali
     )
     activity_online = serializers.BooleanField(required=False, default=False)
 
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+
     create_notification = HumanReadableBooleanField(
         write_only=True, required=False, default=False
     )
@@ -1012,6 +1014,7 @@ class BadgeInstanceSerializerV1(OriginalJsonSerializerMixin, serializers.Seriali
                 extensions=validated_data.get("extension_items", None),
                 issuerSlug=issuer_slug,
                 course_url=validated_data.get("course_url", ""),
+                date_of_birth=validated_data.get("date_of_birth", None),
             )
         except DjangoValidationError as e:
             raise serializers.ValidationError(e.message)
