@@ -55,6 +55,17 @@ pdfmetrics.registerFont(TTFont("Rubik-Medium", font_path_rubik_medium))
 pdfmetrics.registerFont(TTFont("Rubik-Bold", font_path_rubik_bold))
 pdfmetrics.registerFont(TTFont("Rubik-Italic", font_path_rubik_italic))
 
+# map <strong>/<b> and <i> inside paragraphs to the Rubik variants instead of
+# the Helvetica fallback (there is no Rubik bold-italic, so bold wins)
+for base_font in ("Rubik-Regular", "Rubik-Medium", "Rubik-Bold", "Rubik-Italic"):
+    pdfmetrics.registerFontFamily(
+        base_font,
+        normal=base_font,
+        bold="Rubik-Bold",
+        italic="Rubik-Italic",
+        boldItalic="Rubik-Bold",
+    )
+
 
 def get_leaf_badges(lp, lp_map=None, visited=None):
     if lp_map is None:
@@ -124,6 +135,7 @@ class BadgePDFCreator:
                 fontSize=12,
                 alignment=TA_CENTER,
                 leading=15.6,
+                fontName="Rubik-Regular",
             )
             date_of_birth_text = _("born on %(dob)s") % {
                 "dob": f"<strong>{dateOfBirth.strftime('%d.%m.%Y')}</strong>"
