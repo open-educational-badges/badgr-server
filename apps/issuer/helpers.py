@@ -437,6 +437,7 @@ class ImportedBadgeHelper:
             recipient_identifier=recipient_identifier,
             recipient_type=recipient_type,
             revoked=False,
+            acceptance=BadgeInstance.ACCEPTANCE_ACCEPTED,
             badgeclass__name=badgeclass_data.get("name", ""),
             issuer__url=issuer_data.get("url", ""),
         ).first()
