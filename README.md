@@ -289,3 +289,150 @@ You can access it at:
 - **Redoc:** `/redoc/`
 - **OpenAPI schema (JSON):** `/api/schema/`
 
+## Embed Endpoints
+
+Embed endpoints allow external platforms (e.g. Moodle, WordPress) to embed OEB UI components in an iframe. They are intentionally excluded from the auto-generated API docs since they do not follow standard REST conventions.
+
+### How it works
+
+1. Your server POSTs to an embed endpoint with the required parameters and a valid `Authorization: Bearer <token>` header
+2. The server returns a single-use URL: `{"url": "https://.../iframes/<uuid>/"}`
+3. Your page renders that URL in an `<iframe>`
+4. The URL expires after one use — generate a fresh one on each page load
+
+> **Note:** The embedded URL is single-use and the access token inside it is valid for 1 hour. Your server should request a new URL on each page load rather than storing the URL.
+
+### Authentication
+
+All embed endpoints require a valid OAuth2 bearer token with `rw:issuer` scope. The authenticated user must be a staff member of the relevant issuer.
+
+---
+
+### Issuer Dashboard
+
+Embeds the issuer analytics dashboard (badge statistics, learner overview).
+
+```
+POST /v3/issuer/dashboard-embed
+```
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `issuerSlug` | string | yes | The `entity_id` of the issuer |
+| `language` | string | no | `"de"` or `"en"` (default: `"de"`) |
+
+**Example:**
+```json
+POST /v3/issuer/dashboard-embed
+{
+  "issuerSlug": "rJnFwhJES-WnRzV-op-yhA",
+  "language": "de"
+}
+```
+
+**Response:**
+```json
+{ "url": "https://api.openbadges.education/iframes/abc-123/" }
+```
+
+---
+
+### Badge Creation
+
+Embeds the badge creation form.
+
+```
+POST /v3/issuer/badge-create-embed
+```
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `issuer` | string | no | The `entity_id` of the issuer to pre-select |
+| `lang` | string | no | `"de"` or `"en"` |
+
+---
+
+### Badge Editing
+
+Embeds the badge edit form for an existing badge.
+
+```
+POST /v3/issuer/badge-edit-embed
+```
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `badge` | string | yes | The `entity_id` of the badge to edit |
+| `lang` | string | no | `"de"` or `"en"` |
+
+---
+
+### Learner Profile
+
+Embeds a skill visualisation for a learner's earned badges.
+
+```
+POST /v3/issuer/learnersprofile
+```
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `email` | string | yes | Comma-separated email address(es) of the learner(s) |
+| `lang` | string | no | `"de"` or `"en"` |
+
+---
+
+### Learner Competencies
+
+Embeds a competency overview for a learner's earned badges.
+
+```
+POST /v3/issuer/learners-competencies
+```
+
+**Request body:** same as Learner Profile (`email`, `lang`)
+
+---
+
+### Learner Badges
+
+Embeds a badge overview for a learner.
+
+```
+POST /v3/issuer/learners-badges
+```
+
+**Request body:** same as Learner Profile (`email`, `lang`)
+
+---
+
+### Learner Learning Paths
+
+Embeds a learning path overview for a learner.
+
+```
+POST /v3/issuer/learners-learningpaths
+```
+
+**Request body:** same as Learner Profile (`email`, `lang`)
+
+---
+
+### Learner Backpack
+
+Embeds the full learner backpack (badges, competencies, and learning paths combined).
+
+```
+POST /v3/issuer/learners-backpack
+```
+
+**Request body:** same as Learner Profile (`email`, `lang`)
+
