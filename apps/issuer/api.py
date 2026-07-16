@@ -429,9 +429,15 @@ class IssuerBadgeClassList(
     def get_queryset(self, request=None, **kwargs):
         issuer = self.get_object(request, **kwargs)
 
-        if self.get_page_size(request) is None:
-            return issuer.cached_badgeclasses()
-        return BadgeClass.objects.filter(issuer=issuer)
+        qs = (
+            issuer.cached_badgeclasses()
+            if self.get_page_size(request) is None
+            else BadgeClass.objects.filter(issuer=issuer)
+        )
+        return qs.select_related("issuer").prefetch_related(
+            "network_shares__network",
+            "badgeclassextension_set",
+        )
 
     def get_context_data(self, **kwargs):
         context = super(IssuerBadgeClassList, self).get_context_data(**kwargs)
@@ -459,7 +465,7 @@ class IssuerBadgeClassList(
         description="Authenticated user must have owner, editor, or staff status on the Issuer",
         tags=["Issuers", "BadgeClasses"],
     )
-    @quota_check('BADGE_CREATE')
+    @quota_check("BADGE_CREATE")
     def post(self, request, **kwargs):
         self.get_object(request, **kwargs)  # trigger a has_object_permissions() check
         return super(IssuerBadgeClassList, self).post(request, **kwargs)
@@ -629,7 +635,7 @@ class IssuerLearningPathList(
         description="Authenticated user must have owner, editor, or staff status",
         tags=["Issuers", "LearningPaths"],
     )
-    @quota_check('LEARNINGPATH_CREATE')
+    @quota_check("LEARNINGPATH_CREATE")
     def post(self, request, **kwargs):
         self.get_object(request, **kwargs)  # trigger a has_object_permissions() check
         return super(IssuerLearningPathList, self).post(request, **kwargs)
@@ -724,6 +730,7 @@ class BadgeClassDetail(BaseEntityDetailView):
     def put(self, request, **kwargs):
         return super(BadgeClassDetail, self).put(request, **kwargs)
 
+
 class BadgeInstancesBatchAssertionTask:
     def process_batch_assertions(
         self,
@@ -762,7 +769,9 @@ class BadgeInstancesBatchAssertionTask:
                         instance = serializer.save(created_by=user)
                         successful.append(
                             {
-                                "badge_instance": BadgeInstanceSerializerV1(instance).data,
+                                "badge_instance": BadgeInstanceSerializerV1(
+                                    instance
+                                ).data,
                                 "request_entity_id": request_entity_id,
                             }
                         )
@@ -804,6 +813,7 @@ class BadgeInstancesBatchAssertionTask:
 @shared_task(bind=True)
 def process_batch_assertions(*args, **kwargs):
     return BadgeInstancesBatchAssertionTask.process_batch_assertions(*args, **kwargs)
+
 
 class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
     model = BadgeClass  # used by .get_object()
@@ -864,17 +874,15 @@ class BatchAssertionsIssue(VersionedObjectMixin, BaseEntityView):
         if not self.has_object_permissions(request, badgeclass):
             return Response(status=HTTP_404_NOT_FOUND)
 
-
         try:
             create_notification = request.data.get("create_notification", False)
         except AttributeError:
             return Response(status=HTTP_400_BAD_REQUEST)
 
-
         # raise error if creating assertions would exceed quota
         issuer = Issuer.objects.get(entity_id=issuerSlug)
-        max_quota = issuer.get_max_quota('BADGE_AWARD')
-        usage = issuer.get_quota_usage('BADGE_AWARD')
+        max_quota = issuer.get_max_quota("BADGE_AWARD")
+        usage = issuer.get_quota_usage("BADGE_AWARD")
         if max_quota is not None and max(0, max_quota - usage) < len(assertions):
             raise BadgrQuotaExceededException
 
@@ -1300,7 +1308,7 @@ class IssuerBadgeInstanceList(
         summary="Issue a new Assertion to a recipient",
         tags=["Assertions", "Issuers"],
     )
-    @quota_check('BADGE_AWARD')
+    @quota_check("BADGE_AWARD")
     def post(self, request, **kwargs):
         kwargs["issuer"] = self.get_object(
             request, **kwargs
@@ -2640,8 +2648,8 @@ class NetworkInvitationList(BaseEntityListView):
             slugs.append(slug)
 
         # raise error if creating invitations would exceed quota
-        max_quota = network.get_max_quota('NETWORK_MEMBERSHIPS')
-        usage = network.get_quota_usage('NETWORK_MEMBERSHIPS')
+        max_quota = network.get_max_quota("NETWORK_MEMBERSHIPS")
+        usage = network.get_quota_usage("NETWORK_MEMBERSHIPS")
         if max_quota is not None and max(0, max_quota - usage) < len(slugs):
             raise BadgrQuotaExceededException
 
@@ -2909,10 +2917,7 @@ class QuotaUpgradeRequestView(BaseEntityListView):
     model = QuotaUpgradeRequest
     permission_classes = [
         IsServerAdmin
-        | (
-            AuthenticatedWithVerifiedIdentifier
-            & BadgrOAuthTokenHasScope
-        )
+        | (AuthenticatedWithVerifiedIdentifier & BadgrOAuthTokenHasScope)
         | BadgrOAuthTokenHasEntityScope
     ]
     serializer_class = QuotaUpgradeRequestSerializer

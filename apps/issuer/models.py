@@ -1482,6 +1482,7 @@ class BadgeClass(
         activity_city=None,
         activity_online=False,
         course_url="",
+        date_of_birth=None,
         **kwargs,
     ):
         return BadgeInstance.objects.create(
@@ -1503,6 +1504,7 @@ class BadgeClass(
             activity_city=activity_city,
             activity_online=activity_online,
             course_url=course_url,
+            date_of_birth=date_of_birth,
             **kwargs,
         )
 
@@ -1918,6 +1920,13 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         max_length=255, null=True, blank=True, default=None
     )
     activity_online = models.BooleanField(blank=True, null=False, default=False)
+
+    date_of_birth = models.DateField(
+        blank=True,
+        null=True,
+        default=None,
+        help_text="The recipient's date of birth, displayed on the badge PDF and in the OB 3.0 credential subject",
+    )
 
     ob_json_2_0 = models.TextField(blank=True, null=True, default=None)
     ob_json_3_0 = models.TextField(blank=True, null=True, default=None)
@@ -2572,6 +2581,9 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         if self.activity_end_date:
             credential_subject["activityEndDate"] = self.activity_end_date.isoformat()
 
+        if self.date_of_birth:
+            credential_subject["dateOfBirth"] = self.date_of_birth.isoformat()
+
         if self.activity_city or self.activity_zip:
             activity_location = {"type": ["Address"]}
 
@@ -3223,6 +3235,7 @@ class RequestedBadge(BaseVersionedEntity):
     firstName = models.CharField(max_length=254, blank=False, null=False)
     lastName = models.CharField(max_length=254, blank=False, null=False)
     email = models.CharField(max_length=254, blank=True, null=True)
+    dateOfBirth = models.DateField(blank=True, null=True, default=None)
 
     requestedOn = models.DateTimeField(blank=False, null=False, default=timezone.now)
 

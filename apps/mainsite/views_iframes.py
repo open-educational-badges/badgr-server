@@ -71,6 +71,13 @@ def iframe(request, *args, **kwargs):
                 iframe.params["learningpaths"],
                 iframe.params["language"],
             )
+        if iframe.name == "dashboard":
+            return iframe_dashboard(
+                request,
+                iframe.params["issuerSlug"],
+                iframe.params["token"],
+                iframe.params["language"],
+            )
     except Exception as e:
         # show errors while debug
         if settings.DEBUG:
@@ -145,6 +152,19 @@ def iframe_backpack(request, skills, badges, learningpaths, language):
             "skill_json": skill_json,
             "badges_json": badges_json,
             "learningpaths_json": learningpaths_json,
+            "language": language,
+        },
+    )
+
+
+def iframe_dashboard(request, issuer_slug: str, token: str, language: str):
+    return render(
+        request,
+        "iframes/dashboard/index.html",
+        context={
+            "asset_path": settings.WEBCOMPONENTS_ASSETS_PATH,
+            "issuer_slug": issuer_slug,
+            "token": token,
             "language": language,
         },
     )
