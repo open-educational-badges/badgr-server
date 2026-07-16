@@ -1391,6 +1391,7 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
         new_learningpath.tag_items = tags
 
         new_learningpath.learningpath_badges = badges_with_order
+        new_learningpath.sync_participation_badge_competencies()
         return new_learningpath
 
     def update(self, instance, validated_data):
@@ -1422,6 +1423,7 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
                 badges_with_order.append((badge, order))
 
             instance.learningpath_badges = badges_with_order
+            instance.sync_participation_badge_competencies()
 
         instance.save()
 
