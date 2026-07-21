@@ -3533,6 +3533,24 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
             extension.original_json = original_json
             extension.save()
 
+    def recipient_date_of_birth(self, recipient_identifier):
+        """
+        Reuse the recipient's date of birth from the path badges they earned so
+        the micro degree PDF can show it like the individual badge PDFs do.
+        """
+        badgeclasses = [lp_badge.badge for lp_badge in self.learningpath_badges]
+        instance = (
+            BadgeInstance.objects.filter(
+                recipient_identifier=recipient_identifier,
+                badgeclass__in=badgeclasses,
+                revoked=False,
+                date_of_birth__isnull=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        return instance.date_of_birth if instance else None
+
     def issue_participation_badge(self, recipient_identifier, notify=False):
         """
         Issue the micro degree badge with the aggregated path competencies
@@ -3548,6 +3566,7 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
             notify=notify,
             microdegree_id=self.entity_id,
             extensions=extensions,
+            date_of_birth=self.recipient_date_of_birth(recipient_identifier),
         )
 
     def delete(self, *args, **kwargs):
