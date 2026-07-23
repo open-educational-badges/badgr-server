@@ -148,9 +148,9 @@ class BadgePDFCreator:
 
         text_style = ParagraphStyle(
             name="Text_Style",
-            fontSize=14,
+            fontSize=12,
             alignment=TA_CENTER,
-            leading=18.2,  # 130%
+            leading=15.6,  # 130%
         )
 
         if (
