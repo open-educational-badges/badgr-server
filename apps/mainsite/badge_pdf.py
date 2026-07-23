@@ -148,9 +148,9 @@ class BadgePDFCreator:
 
         text_style = ParagraphStyle(
             name="Text_Style",
-            fontSize=14,
+            fontSize=12,
             alignment=TA_CENTER,
-            leading=18.2,  # 130%
+            leading=15.6,  # 130%
         )
 
         if (
@@ -569,8 +569,29 @@ class BadgePDFCreator:
                         "extensions:CompetencyExtension"
                     ]
                     for competency in competencies:
-                        if competency not in self.competencies:
-                            self.competencies.append(competency)
+                        key = competency.get("framework_identifier") or (
+                            competency.get("framework"),
+                            competency.get("name"),
+                        )
+                        existing = next(
+                            (
+                                c
+                                for c in self.competencies
+                                if (
+                                    c.get("framework_identifier")
+                                    or (c.get("framework"), c.get("name"))
+                                )
+                                == key
+                            ),
+                            None,
+                        )
+                        if existing is None:
+                            # copy so summing never mutates the cached badge json
+                            self.competencies.append(dict(competency))
+                        else:
+                            existing["studyLoad"] = existing.get(
+                                "studyLoad", 0
+                            ) + competency.get("studyLoad", 0)
 
                 if i != 0 and i % badgesPerPage == 0:
                     Story.append(PageBreak())
