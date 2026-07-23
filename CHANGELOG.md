@@ -35,14 +35,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 
 ## [2.12.9] - 2018-09-14
- - use png preview images when sharing to social 
+ - use png preview images when sharing to social
  - implement batching for the Rebake all badge images task
 
 
 ## [2.11.5] - 2018-08-14
  - Task to fix issuedOn dates for incorrectly saved backpack assertions
  - Update dependencies on vulnerability alerts: pillow, requests
- - Rebake assertion image when updated with PUT endpoint 
+ - Rebake assertion image when updated with PUT endpoint
  - Add SSO support for Microsoft Azure
  - Take hardcoded secret keys out of settings.py
  - Implement rate limiting on forgot password
@@ -51,9 +51,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [2.10.3] - 2018-07-20
   - include an ?expand paramter on /v2/backpack for including badge and issuer information in results
   - GDPR Compliant award notification
-  - Add Share to Pinterest 
-  - Remove Share to Portfolium 
-  - Implement rate limiting on resend verification mail 
+  - Add Share to Pinterest
+  - Remove Share to Portfolium
+  - Implement rate limiting on resend verification mail
 
 
 ## [2.9.0] - 2018-06-18
@@ -85,7 +85,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - bugfix to correctly send confirmation emails when claiming existing account
 
 
-## [2.7.1] - 2018-04-17 
+## [2.7.1] - 2018-04-17
   - cleanup to related to opensource release
       - CHANGELOG.md added
       - README updated
