@@ -45,7 +45,6 @@ from .models import (
     IssuerStaff,
     IssuerStaffRequest,
     LearningPath,
-    LearningPathBadge,
     NetworkInvite,
     NetworkMembership,
     QrCode,
@@ -175,7 +174,11 @@ class BaseIssuerSerializerV1(
 class NetworkSerializerV1(BaseIssuerSerializerV1):
     url = serializers.URLField(max_length=1024, required=False, allow_blank=True)
     parent_issuer = serializers.CharField(
-        max_length=255, required=False, allow_blank=True, allow_null=True, write_only=True
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        write_only=True,
     )
 
     def create(self, validated_data, **kwargs):
@@ -185,17 +188,25 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
         if parent_issuer_slug:
             request = self.context.get("request")
             if not request or not request.user:
-                raise serializers.ValidationError({"parent_issuer": "Authentication required."})
+                raise serializers.ValidationError(
+                    {"parent_issuer": "Authentication required."}
+                )
 
             try:
-                parent_issuer = Issuer.objects.get(entity_id=parent_issuer_slug, is_network=False)
+                parent_issuer = Issuer.objects.get(
+                    entity_id=parent_issuer_slug, is_network=False
+                )
             except Issuer.DoesNotExist:
-                raise serializers.ValidationError({"parent_issuer": "Institution not found."})
+                raise serializers.ValidationError(
+                    {"parent_issuer": "Institution not found."}
+                )
 
             staff = parent_issuer.cached_issuerstaff().filter(user=request.user).first()
             if not staff or staff.role not in ("owner", "editor"):
                 raise serializers.ValidationError(
-                    {"parent_issuer": "You must be an owner or editor of the parent institution."}
+                    {
+                        "parent_issuer": "You must be an owner or editor of the parent institution."
+                    }
                 )
 
         new_network = Issuer(**validated_data)
@@ -211,7 +222,9 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
         new_network.save()
 
         if parent_issuer:
-            NetworkMembership.objects.get_or_create(network=new_network, issuer=parent_issuer)
+            NetworkMembership.objects.get_or_create(
+                network=new_network, issuer=parent_issuer
+            )
 
         return new_network
 
@@ -276,6 +289,7 @@ class NetworkSerializerV1(BaseIssuerSerializerV1):
                 return partner_staff.role
 
         return None
+
 
 class IssuerSerializerV1(BaseIssuerSerializerV1):
     email = serializers.EmailField(max_length=255, required=True)
@@ -435,11 +449,13 @@ class IssuerSerializerV1(BaseIssuerSerializerV1):
 
         return representation
 
+
 # serializer including private informationen for members
 class QuotaRepresentationMixin(serializers.Serializer):
-
     def to_representation(self, instance):
-        representation = super(QuotaRepresentationMixin, self).to_representation(instance)
+        representation = super(QuotaRepresentationMixin, self).to_representation(
+            instance
+        )
 
         quota = instance.get_quota_object()
 
@@ -447,7 +463,11 @@ class QuotaRepresentationMixin(serializers.Serializer):
 
             def quota_dict(quota_name: str):
                 usage = instance.get_quota_usage(quota_name)
-                max_quota = -1 if instance.get_max_quota(quota_name) == 0 else instance.get_max_quota(quota_name)
+                max_quota = (
+                    -1
+                    if instance.get_max_quota(quota_name) == 0
+                    else instance.get_max_quota(quota_name)
+                )
                 custom = instance.is_custom_quota(quota_name)
 
                 if type(usage) is int:
@@ -463,8 +483,6 @@ class QuotaRepresentationMixin(serializers.Serializer):
                         "custom": custom,
                     }
 
-
-
             # nextLevel = instance.get_next_quota_level()
             upgradeQuota = quota.upgrade
 
@@ -475,26 +493,29 @@ class QuotaRepresentationMixin(serializers.Serializer):
                 "periodStart": instance.quota_period_start,
                 "nextPayment": instance.get_next_quota_payment(),
                 "quotas": {
-                    "BADGE_CREATE": quota_dict('BADGE_CREATE'),
-                    "BADGE_AWARD": quota_dict('BADGE_AWARD'),
-                    "LEARNINGPATH_CREATE": quota_dict('LEARNINGPATH_CREATE'),
-                    "ACCOUNTS_ADMIN": quota_dict('ACCOUNTS_ADMIN'),
-                    "ACCOUNTS_MEMBER": quota_dict('ACCOUNTS_MEMBER'),
-                    "AISKILLS_REQUESTS": quota_dict('AISKILLS_REQUESTS'),
-                    "PDFEDITOR": quota_dict('PDFEDITOR'),
-                    "DASHBOARD": quota_dict('DASHBOARD'),
-                    "NETWORK_MEMBERSHIPS": quota_dict('NETWORK_MEMBERSHIPS'),
-                    "NETWORK_CREATE": quota_dict('NETWORK_CREATE'),
-                }
+                    "BADGE_CREATE": quota_dict("BADGE_CREATE"),
+                    "BADGE_AWARD": quota_dict("BADGE_AWARD"),
+                    "LEARNINGPATH_CREATE": quota_dict("LEARNINGPATH_CREATE"),
+                    "ACCOUNTS_ADMIN": quota_dict("ACCOUNTS_ADMIN"),
+                    "ACCOUNTS_MEMBER": quota_dict("ACCOUNTS_MEMBER"),
+                    "AISKILLS_REQUESTS": quota_dict("AISKILLS_REQUESTS"),
+                    "PDFEDITOR": quota_dict("PDFEDITOR"),
+                    "DASHBOARD": quota_dict("DASHBOARD"),
+                    "NETWORK_MEMBERSHIPS": quota_dict("NETWORK_MEMBERSHIPS"),
+                    "NETWORK_CREATE": quota_dict("NETWORK_CREATE"),
+                },
             }
 
         return representation
 
+
 class IssuerNetworkSerializerPrivateV1(QuotaRepresentationMixin, IssuerSerializerV1):
     pass
 
+
 class NetworkSerializerV1Private(QuotaRepresentationMixin, NetworkSerializerV1):
     pass
+
 
 class IssuerRoleActionSerializerV1(serializers.Serializer):
     """A serializer used for validating user role change POSTS"""
@@ -1269,7 +1290,7 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
                     context={"exclude_fields": ["extensions:OrgImageExtension"]},
                 ).data,
             }
-            for badge in instance.learningpathbadge_set.all().order_by("order")
+            for badge in instance.learningpathbadge_set.all()
         ]
 
         default_representation = {
@@ -1282,8 +1303,8 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
             representation.update(default_representation)
             return representation
 
-        # get all badgeclasses for this lp
-        lp_badges = LearningPathBadge.objects.filter(learning_path=instance)
+        # get all badgeclasses for this lp — reuse prefetched set
+        lp_badges = instance.learningpathbadge_set.all()
         lp_badgeclasses = [lp_badge.badge for lp_badge in lp_badges]
 
         # get user completed badges filtered by lp badgeclasses
@@ -1515,8 +1536,7 @@ class QuotaUpgradeRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=254, required=True)
     issuer_id = serializers.CharField(max_length=254, required=True)
     quota = serializers.CharField(
-        validators=[lambda value: Quota.objects.get(key=value)],
-        required=True
+        validators=[lambda value: Quota.objects.get(key=value)], required=True
     )
 
     def create(self, validated_data, **kwargs):
@@ -1535,7 +1555,7 @@ class QuotaUpgradeRequestSerializer(serializers.Serializer):
             name=validated_data.get("name"),
             email=validated_data.get("email"),
             issuer=issuer,
-            quota=quota
+            quota=quota,
         )
 
         new_QuotaUpgradeRequest.notify()
