@@ -865,11 +865,21 @@ class LearningPathList(BaseEntityListView):
     valid_scopes = ["rw:profile"]
     v1_serializer_class = LearningPathSerializerV1
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            context["user_badgeinstances"] = list(
+                self.request.user.cached_badgeinstances()
+                .filter(revoked=False)
+                .select_related("badgeclass")
+            )
+        return context
+
     def get_objects(self, request, **kwargs):
         badgeinstances = request.user.cached_badgeinstances().all()
         badges = list(
             {
-                badgeinstance.badgeclass
+                badgeinstance.cached_badgeclass
                 for badgeinstance in badgeinstances
                 if badgeinstance.revoked is False
             }
