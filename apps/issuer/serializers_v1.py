@@ -1305,14 +1305,21 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
 
         # get all badgeclasses for this lp — reuse prefetched set
         lp_badges = instance.learningpathbadge_set.all()
-        lp_badgeclasses = [lp_badge.badge for lp_badge in lp_badges]
+        lp_badgeclasses_pks = {lp_badge.badge_id for lp_badge in lp_badges}
 
-        # get user completed badges filtered by lp badgeclasses
-        user_badgeinstances = request.user.cached_badgeinstances().filter(
-            badgeclass__in=lp_badgeclasses, revoked=False
+        # use pre-fetched instances from context to avoid N+1 DB queries per LP
+        all_user_instances = self.context.get("user_badgeinstances") or list(
+            request.user.cached_badgeinstances()
+            .filter(revoked=False)
+            .select_related("badgeclass")
         )
+
         user_completed_badges = list(
-            {badgeinstance.badgeclass for badgeinstance in user_badgeinstances}
+            {
+                i.badgeclass
+                for i in all_user_instances
+                if i.badgeclass_id in lp_badgeclasses_pks
+            }
         )
 
         required = instance.required_badges_count or len(lp_badges)
@@ -1323,25 +1330,24 @@ class LearningPathSerializerV1(ExcludeFieldsMixin, serializers.Serializer):
         else:
             progress_pct = 0
 
-        learningPathBadgeInstance = list(
-            filter(
-                lambda badge: (
-                    badge.badgeclass.entity_id
-                    == representation["participationBadge_id"]
-                ),
-                request.user.cached_badgeinstances().filter(revoked=False),
-            )
-        )
+        participation_badge_id = representation["participationBadge_id"]
+        learningPathBadgeInstance = [
+            i
+            for i in all_user_instances
+            if i.badgeclass.entity_id == participation_badge_id
+        ]
         if learningPathBadgeInstance:
-            learningPathBadgeInstanceSlug = learningPathBadgeInstance[0].entity_id
-            representation["learningPathBadgeInstanceSlug"] = (
-                learningPathBadgeInstanceSlug
-            )
+            representation["learningPathBadgeInstanceSlug"] = learningPathBadgeInstance[
+                0
+            ].entity_id
 
-        lp_instance = (
-            request.user.cached_badgeinstances()
-            .filter(badgeclass=instance.participationBadge, revoked=False)
-            .first()
+        lp_instance = next(
+            (
+                i
+                for i in all_user_instances
+                if i.badgeclass_id == instance.participationBadge_id
+            ),
+            None,
         )
 
         completed_at = lp_instance.issued_on if lp_instance else None
