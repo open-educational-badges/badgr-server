@@ -18,11 +18,7 @@ def process_learning_path_activation(pk):
         for user in BadgeUser.objects.all():
             for identifier in user.all_verified_recipient_identifiers:
                 if learning_path.user_should_have_badge(identifier):
-                    learning_path.participationBadge.issue(
-                        recipient_id=identifier,
-                        notify=True,
-                        microdegree_id=learning_path.entity_id,
-                    )
+                    learning_path.issue_participation_badge(identifier, notify=True)
 
         return f"Successfully processed learning path activation for {pk}"
 

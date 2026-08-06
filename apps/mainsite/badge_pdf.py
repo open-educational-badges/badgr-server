@@ -55,6 +55,17 @@ pdfmetrics.registerFont(TTFont("Rubik-Medium", font_path_rubik_medium))
 pdfmetrics.registerFont(TTFont("Rubik-Bold", font_path_rubik_bold))
 pdfmetrics.registerFont(TTFont("Rubik-Italic", font_path_rubik_italic))
 
+# map <strong>/<b> and <i> inside paragraphs to the Rubik variants instead of
+# the Helvetica fallback (there is no Rubik bold-italic, so bold wins)
+for base_font in ("Rubik-Regular", "Rubik-Medium", "Rubik-Bold", "Rubik-Italic"):
+    pdfmetrics.registerFontFamily(
+        base_font,
+        normal=base_font,
+        bold="Rubik-Bold",
+        italic="Rubik-Italic",
+        boldItalic="Rubik-Bold",
+    )
+
 
 def get_leaf_badges(lp, lp_map=None, visited=None):
     if lp_map is None:
@@ -101,6 +112,7 @@ class BadgePDFCreator:
         activityCity=None,
         activityOnline=False,
         studyLoad=None,
+        dateOfBirth=None,
     ):
         document_width, document_height = A4
         recipient_style = ParagraphStyle(
@@ -117,11 +129,28 @@ class BadgePDFCreator:
         first_page_content.append(Spacer(1, 8))
         self.used_space += 8 + 19.2  # spacer and paragraph
 
+        if dateOfBirth:
+            date_of_birth_style = ParagraphStyle(
+                name="DateOfBirth",
+                fontSize=12,
+                alignment=TA_CENTER,
+                leading=15.6,
+                fontName="Rubik-Regular",
+            )
+            date_of_birth_text = _("born on %(dob)s") % {
+                "dob": f"<strong>{dateOfBirth.strftime('%d.%m.%Y')}</strong>"
+            }
+            first_page_content.append(
+                Paragraph(date_of_birth_text, date_of_birth_style)
+            )
+            first_page_content.append(Spacer(1, 4))
+            self.used_space += 4 + 15.6  # spacer and paragraph
+
         text_style = ParagraphStyle(
             name="Text_Style",
-            fontSize=14,
+            fontSize=12,
             alignment=TA_CENTER,
-            leading=18.2,  # 130%
+            leading=15.6,  # 130%
         )
 
         if (
@@ -540,8 +569,29 @@ class BadgePDFCreator:
                         "extensions:CompetencyExtension"
                     ]
                     for competency in competencies:
-                        if competency not in self.competencies:
-                            self.competencies.append(competency)
+                        key = competency.get("framework_identifier") or (
+                            competency.get("framework"),
+                            competency.get("name"),
+                        )
+                        existing = next(
+                            (
+                                c
+                                for c in self.competencies
+                                if (
+                                    c.get("framework_identifier")
+                                    or (c.get("framework"), c.get("name"))
+                                )
+                                == key
+                            ),
+                            None,
+                        )
+                        if existing is None:
+                            # copy so summing never mutates the cached badge json
+                            self.competencies.append(dict(competency))
+                        else:
+                            existing["studyLoad"] = existing.get(
+                                "studyLoad", 0
+                            ) + competency.get("studyLoad", 0)
 
                 if i != 0 and i % badgesPerPage == 0:
                     Story.append(PageBreak())
@@ -820,8 +870,10 @@ class BadgePDFCreator:
 
         first_page_content = []
 
-        first_page_content.append(Spacer(1, 80))
-        self.used_space += 80
+        # make room for the date-of-birth line so the layout stays consistent
+        top_spacing = 60 if badge_instance.date_of_birth else 80
+        first_page_content.append(Spacer(1, top_spacing))
+        self.used_space += top_spacing
 
         cert_style = ParagraphStyle(
             name="Certificate",
@@ -860,6 +912,7 @@ class BadgePDFCreator:
             activityCity=badge_instance.activity_city,
             activityOnline=badge_instance.activity_online,
             studyLoad=studyload_minutes,
+            dateOfBirth=badge_instance.date_of_birth,
         )
         self.add_badge_image(first_page_content, badge_instance.image)
         self.add_title(first_page_content, badge_class.name)

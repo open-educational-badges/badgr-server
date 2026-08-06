@@ -460,10 +460,8 @@ class BadgeInstanceManager(BaseOpenBadgeObjectManager):
             # all learningpath badges collected but participationBadge not yet issued
             if learningpath.user_should_have_badge(recipient_identifier):
                 # issue learningpath badge
-                learningpath.participationBadge.issue(
-                    recipient_id=recipient_identifier,
-                    notify=notify,
-                    microdegree_id=learningpath.entity_id,
+                learningpath.issue_participation_badge(
+                    recipient_identifier, notify=notify
                 )
 
         return new_instance

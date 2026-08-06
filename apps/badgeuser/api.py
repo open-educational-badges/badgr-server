@@ -12,6 +12,7 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 from django.contrib.auth import get_user_model
+from django.db.models import Prefetch
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
@@ -864,19 +865,39 @@ class LearningPathList(BaseEntityListView):
     valid_scopes = ["rw:profile"]
     v1_serializer_class = LearningPathSerializerV1
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            context["user_badgeinstances"] = list(
+                self.request.user.cached_badgeinstances()
+                .filter(revoked=False)
+                .select_related("badgeclass")
+            )
+        return context
+
     def get_objects(self, request, **kwargs):
         badgeinstances = request.user.cached_badgeinstances().all()
         badges = list(
             {
-                badgeinstance.badgeclass
+                badgeinstance.cached_badgeclass
                 for badgeinstance in badgeinstances
                 if badgeinstance.revoked is False
             }
         )
         lp_badges = LearningPathBadge.objects.filter(badge__in=badges)
-        lps = LearningPath.objects.filter(
-            activated=True, learningpathbadge__in=lp_badges
-        ).distinct()
+        lps = (
+            LearningPath.objects.filter(activated=True, learningpathbadge__in=lp_badges)
+            .distinct()
+            .select_related("issuer", "participationBadge")
+            .prefetch_related(
+                Prefetch(
+                    "learningpathbadge_set",
+                    queryset=LearningPathBadge.objects.select_related("badge").order_by(
+                        "order"
+                    ),
+                ),
+            )
+        )
 
         return lps
 

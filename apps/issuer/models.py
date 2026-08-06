@@ -1482,6 +1482,7 @@ class BadgeClass(
         activity_city=None,
         activity_online=False,
         course_url="",
+        date_of_birth=None,
         **kwargs,
     ):
         return BadgeInstance.objects.create(
@@ -1503,6 +1504,7 @@ class BadgeClass(
             activity_city=activity_city,
             activity_online=activity_online,
             course_url=course_url,
+            date_of_birth=date_of_birth,
             **kwargs,
         )
 
@@ -1918,6 +1920,13 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         max_length=255, null=True, blank=True, default=None
     )
     activity_online = models.BooleanField(blank=True, null=False, default=False)
+
+    date_of_birth = models.DateField(
+        blank=True,
+        null=True,
+        default=None,
+        help_text="The recipient's date of birth, displayed on the badge PDF and in the OB 3.0 credential subject",
+    )
 
     ob_json_2_0 = models.TextField(blank=True, null=True, default=None)
     ob_json_3_0 = models.TextField(blank=True, null=True, default=None)
@@ -2572,6 +2581,9 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         if self.activity_end_date:
             credential_subject["activityEndDate"] = self.activity_end_date.isoformat()
 
+        if self.date_of_birth:
+            credential_subject["dateOfBirth"] = self.date_of_birth.isoformat()
+
         if self.activity_city or self.activity_zip:
             activity_location = {"type": ["Address"]}
 
@@ -2630,15 +2642,17 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
                 extension_json = json_loads(extension.original_json)
                 extension_name = extension.name
 
-                try:
-                    extension_context = extension_json["@context"]
-                    if isinstance(extension_context, list):
-                        extension_contexts += extension_context
-                    else:
-                        extension_contexts.append(extension_context)
-
-                except KeyError:
-                    pass
+                # extensions may hold a single object or a list of objects
+                # (e.g. extensions:CompetencyExtension)
+                items = (
+                    extension_json
+                    if isinstance(extension_json, list)
+                    else [extension_json]
+                )
+                for item in items:
+                    if isinstance(item, dict) and "@context" in item:
+                        ctx = item["@context"]
+                        extension_contexts += ctx if isinstance(ctx, list) else [ctx]
 
                 json[extension_name] = extension_json
 
@@ -3223,6 +3237,7 @@ class RequestedBadge(BaseVersionedEntity):
     firstName = models.CharField(max_length=254, blank=False, null=False)
     lastName = models.CharField(max_length=254, blank=False, null=False)
     email = models.CharField(max_length=254, blank=True, null=True)
+    dateOfBirth = models.DateField(blank=True, null=True, default=None)
 
     requestedOn = models.DateTimeField(blank=False, null=False, default=timezone.now)
 
@@ -3466,6 +3481,93 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
         )
         studyLoadJson = json_loads(studyLoadExt.original_json)
         return studyLoadJson["StudyLoad"]
+
+    def competency_extension_items(self):
+        """
+        Aggregate the competencies of all badges in this learning path into a
+        single extensions:CompetencyExtension value. Competencies appearing in
+        multiple badges are merged, summing their studyLoad.
+        """
+        aggregated = OrderedDict()
+        for lp_badge in self.learningpath_badges:
+            for extension in lp_badge.badge.cached_extensions():
+                if extension.name != "extensions:CompetencyExtension":
+                    continue
+                for competency in json_loads(extension.original_json):
+                    key = competency.get("framework_identifier") or (
+                        competency.get("framework"),
+                        competency.get("name"),
+                    )
+                    existing = aggregated.get(key)
+                    if existing is None:
+                        aggregated[key] = dict(competency)
+                    else:
+                        existing["studyLoad"] = existing.get(
+                            "studyLoad", 0
+                        ) + competency.get("studyLoad", 0)
+
+        items = list(aggregated.values())
+        for competency in items:
+            studyload = competency.get("studyLoad")
+            if studyload is not None:
+                competency["hours"] = studyload // 60
+                competency["minutes"] = studyload % 60
+        return items
+
+    def sync_participation_badge_competencies(self):
+        """
+        Store the aggregated path competencies on the participation badge class,
+        so that the micro degree badge class JSON and earner notifications carry
+        them. The UI creates the participation badge with an empty
+        extensions:CompetencyExtension, so this must run whenever the path
+        badges change.
+        """
+        original_json = json_dumps(self.competency_extension_items())
+        extension, created = (
+            self.participationBadge.badgeclassextension_set.get_or_create(
+                name="extensions:CompetencyExtension",
+                defaults={"original_json": original_json},
+            )
+        )
+        if not created:
+            extension.original_json = original_json
+            extension.save()
+
+    def recipient_date_of_birth(self, recipient_identifier):
+        """
+        Reuse the recipient's date of birth from the path badges they earned so
+        the micro degree PDF can show it like the individual badge PDFs do.
+        """
+        badgeclasses = [lp_badge.badge for lp_badge in self.learningpath_badges]
+        instance = (
+            BadgeInstance.objects.filter(
+                recipient_identifier=recipient_identifier,
+                badgeclass__in=badgeclasses,
+                revoked=False,
+                date_of_birth__isnull=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        return instance.date_of_birth if instance else None
+
+    def issue_participation_badge(self, recipient_identifier, notify=False):
+        """
+        Issue the micro degree badge with the aggregated path competencies
+        attached as an assertion extension, mirroring how regular awards
+        receive extensions from the award payload.
+        """
+        competencies = self.competency_extension_items()
+        extensions = (
+            {"extensions:CompetencyExtension": competencies} if competencies else None
+        )
+        return self.participationBadge.issue(
+            recipient_id=recipient_identifier,
+            notify=notify,
+            microdegree_id=self.entity_id,
+            extensions=extensions,
+            date_of_birth=self.recipient_date_of_birth(recipient_identifier),
+        )
 
     def delete(self, *args, **kwargs):
         affected_lp_badges = list(

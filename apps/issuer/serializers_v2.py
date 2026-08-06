@@ -415,6 +415,9 @@ class BadgeInstanceSerializerV2(DetailSerializerV2, OriginalJsonSerializerMixin)
     expires = DateTimeWithUtcZAtEndField(
         source="expires_at", required=False, allow_null=True, default_timezone=pytz.utc
     )
+    dateOfBirth = serializers.DateField(
+        source="date_of_birth", required=False, allow_null=True
+    )
 
     notify = HumanReadableBooleanField(write_only=True, required=False, default=False)
     allowDuplicateAwards = serializers.BooleanField(
@@ -452,6 +455,7 @@ class BadgeInstanceSerializerV2(DetailSerializerV2, OriginalJsonSerializerMixin)
             "recipient_identifier",
             "recipient_type",
             "course_url",
+            "date_of_birth",
         ]
 
         for field_name in updateable_fields:
