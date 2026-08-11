@@ -3559,13 +3559,25 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
         """
         competencies = self.competency_extension_items()
         extensions = (
-            {"extensions:CompetencyExtension": competencies} if competencies else None
+            {"extensions:CompetencyExtension": competencies} if competencies else {}
         )
+
+        badgeclasses = [lp_badge.badge for lp_badge in self.learningpath_badges]
+        profile_ext = BadgeInstanceExtension.objects.filter(
+            badgeinstance__recipient_identifier=recipient_identifier,
+            badgeinstance__badgeclass__in=badgeclasses,
+            name="extensions:recipientProfile",
+        ).first()
+        if profile_ext:
+            extensions["extensions:recipientProfile"] = json_loads(
+                profile_ext.original_json
+            )
+
         return self.participationBadge.issue(
             recipient_id=recipient_identifier,
             notify=notify,
             microdegree_id=self.entity_id,
-            extensions=extensions,
+            extensions=extensions if extensions else None,
             date_of_birth=self.recipient_date_of_birth(recipient_identifier),
         )
 
