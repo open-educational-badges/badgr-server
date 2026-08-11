@@ -810,7 +810,11 @@ class Issuer(
 
     @cachemodel.cached_method(auto_publish=True)
     def cached_learningpaths(self):
-        return self.learningpaths.all().order_by("created_at")
+        return (
+            self.learningpaths.select_related("issuer", "participationBadge")
+            .prefetch_related("learningpathbadge_set__badge", "learningpathtag_set")
+            .order_by("created_at")
+        )
 
     @property
     def image_preview(self):
