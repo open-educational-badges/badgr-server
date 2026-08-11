@@ -657,7 +657,6 @@ class LearningPathParticipantsList(BaseEntityView):
         learning_path = LearningPath.objects.get(entity_id=learning_path_slug)
         badge_instances = BadgeInstance.objects.filter(
             badgeclass=learning_path.participationBadge,
-            user__isnull=False,
             revoked=False,
         )
         return badge_instances

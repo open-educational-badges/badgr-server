@@ -1463,6 +1463,20 @@ class LearningPathParticipantSerializerV1(serializers.Serializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        if instance.user is None:
+            ext = instance.badgeinstanceextension_set.filter(
+                name="extensions:recipientProfile"
+            ).first()
+            name = ""
+            if ext:
+                profile = json.loads(ext.original_json)
+                name = profile.get("name", "")
+            parts = name.split(" ", 1)
+            data["user"] = {
+                "first_name": parts[0] if parts else "",
+                "last_name": parts[1] if len(parts) > 1 else "",
+                "email": instance.recipient_identifier,
+            }
         data["participationBadgeAssertion"] = BadgeInstanceSerializerV1(instance).data
         return data
 
