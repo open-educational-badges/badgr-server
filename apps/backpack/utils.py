@@ -15,6 +15,15 @@ _6_MONTHS = 60 * 60 * 24 * 180
 # pulls esco competencies from badge assertions and enhances them with
 # tree structure breadcrumbs using the AI Tool APIs
 def get_skills_tree(badge_instances, language):
+    if not hasattr(badge_instances, "select_related"):
+        from issuer.models import BadgeInstance
+
+        badge_instances = BadgeInstance.objects.filter(
+            pk__in=[b.pk for b in badge_instances]
+        )
+    badge_instances = badge_instances.select_related("badgeclass").prefetch_related(
+        "badgeclass__badgeclassextension_set"
+    )
     skill_studyloads = {}
     for instance in badge_instances:
         if len(instance.badgeclass.cached_extensions()) > 0:
