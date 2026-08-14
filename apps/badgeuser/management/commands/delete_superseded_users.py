@@ -43,14 +43,7 @@ class Command(BaseCommand):
                 try:
                     # Find the verified cached email for this user email
                     verified = cached.get(email=dup["email"])
-                    self.log(
-                        "Verified email {0}: {1} {2} {3}".format(
-                            verified.email,
-                            verified.user_id,
-                            verified.user.first_name,
-                            verified.user.last_name,
-                        )
-                    )
+                    self.log("Verified user ID: {}".format(verified.user_id))
 
                     # get all the users with this email expect the verified id, delete them
                     users = BadgeUser.objects.filter(email=verified.email).exclude(
@@ -60,23 +53,17 @@ class Command(BaseCommand):
                     for user in users:
                         if not user.cached_emails():
                             self.log(
-                                "   Deleting duplicate {0}: {1} {2} {3}".format(
-                                    user.email, user.id, user.first_name, user.last_name
-                                )
+                                "   Deleting duplicate user ID: {}".format(user.id)
                             )
                             BadgeUser.delete(user)
 
                 except MultipleObjectsReturned:
                     self.log(
-                        "[ERROR] More then one verified CachedEmail found for: {}".format(
-                            dup["email"]
-                        )
+                        "[ERROR] More than one verified CachedEmail found for a duplicate entry."
                     )
                 except ObjectDoesNotExist:
                     self.log(
-                        "[ERROR] No verified CachedEmail found for: {}".format(
-                            dup["email"]
-                        )
+                        "[ERROR] No verified CachedEmail found for a duplicate entry."
                     )
 
             processing_index = processing_index + 1
