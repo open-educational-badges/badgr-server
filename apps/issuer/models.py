@@ -2174,7 +2174,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         Sends an email notification to the badge recipient.
         """
 
-        categoryExtension = None
+        categoryExtension = {}
 
         competencyExtensions = {}
 
@@ -2285,7 +2285,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
             email_context = {
                 "name": name,
                 "badge_name": self.badgeclass.name,
-                "badge_category": categoryExtension["Category"],
+                "badge_category": categoryExtension.get("Category"),
                 "badge_id": self.entity_id,
                 "badge_description": self.badgeclass.description,
                 "badge_language": self.badgeclass.language,
@@ -2319,7 +2319,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         template_name = "issuer/email/notify_earner"
 
         if (
-            categoryExtension["Category"] == "learningpath"
+            categoryExtension.get("Category") == "learningpath"
             and microdegree_id is not None
         ):
             # if the recipient does not have an account no micro degree email is sent
@@ -3213,6 +3213,8 @@ class QrCode(BaseVersionedEntity):
     evidence_items = JSONField(default=list, blank=True)
 
     notifications = models.BooleanField(null=False, default=False)
+
+    auto_issuance = models.BooleanField(null=False, default=False)
 
 
 class RequestedBadge(BaseVersionedEntity):
