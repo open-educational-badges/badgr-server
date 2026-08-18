@@ -22,6 +22,7 @@ from django.http import (
 )
 from django.shortcuts import redirect
 from django.template import loader
+from django.utils.html import strip_tags
 from django.template.exceptions import TemplateDoesNotExist
 from django.utils.decorators import method_decorator
 from django.views.decorators.clickjacking import xframe_options_exempt
@@ -403,11 +404,24 @@ def requestBadge(req, qrCodeId):
             return JsonResponse({"error": "Invalid qrCodeId"}, status=400)
 
         if qrCode.auto_issuance:
+            name = strip_tags("{} {}".format(firstName, lastName)).strip()
+            extensions = (
+                {
+                    "extensions:recipientProfile": {
+                        "@context": "https://api.openbadges.education/static/extensions/recipientProfile/context.json",
+                        "type": ["Extension", "extensions:RecipientProfile"],
+                        "name": name,
+                    }
+                }
+                if name
+                else None
+            )
             qrCode.badgeclass.issue(
                 recipient_id=email,
                 notify=True,
                 created_by=qrCode.created_by_user,
                 date_of_birth=dateOfBirth,
+                extensions=extensions,
             )
             return JsonResponse({"message": "Badge issued"}, status=status.HTTP_200_OK)
 
