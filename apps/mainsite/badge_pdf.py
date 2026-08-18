@@ -857,7 +857,7 @@ class BadgePDFCreator:
         activate_language(badge_class.language)
 
         buffer = BytesIO()
-        competencies = badge_class.json["extensions:CompetencyExtension"]
+        competencies = badge_class.json.get("extensions:CompetencyExtension", [])
         criteria = badge_class.criteria
         try:
             name = get_name(badge_instance)
@@ -935,8 +935,15 @@ class BadgePDFCreator:
         Story = []
         Story.extend(first_page_content)
 
-        categoryExtension = extensions.get(name="extensions:CategoryExtension")
-        category = json_loads(categoryExtension.original_json)["Category"]
+        categoryExtension = extensions.filter(
+            name="extensions:CategoryExtension"
+        ).first()
+        category = None
+        if categoryExtension and categoryExtension.original_json:
+            try:
+                category = json_loads(categoryExtension.original_json).get("Category")
+            except Exception:
+                category = None
 
         if category == "learningpath":
             lp = LearningPath.objects.filter(participationBadge=badge_class).first()

@@ -227,7 +227,6 @@ def call_aiskills_api(endpoint, method, payload: dict):
 @authentication_classes(
     [TokenAuthentication, SessionAuthentication, BasicAuthentication]
 )
-
 # require valid altcha challenge for demo on start page
 @permission_classes([ValidAltcha])
 def aiskills(req):
@@ -366,9 +365,8 @@ def requestBadge(req, qrCodeId):
             return JsonResponse(
                 {"error": validity_error}, status=status.HTTP_400_BAD_REQUEST
             )
-        try:
-            data = json.loads(req.data)
-        except json.JSONDecodeError:
+        data = req.data
+        if not isinstance(data, dict):
             return JsonResponse({"error": "Invalid JSON data"}, status=400)
 
         firstName = data.get("firstname")
@@ -403,6 +401,15 @@ def requestBadge(req, qrCodeId):
 
         except QrCode.DoesNotExist:
             return JsonResponse({"error": "Invalid qrCodeId"}, status=400)
+
+        if qrCode.auto_issuance:
+            qrCode.badgeclass.issue(
+                recipient_id=email,
+                notify=True,
+                created_by=qrCode.created_by_user,
+                date_of_birth=dateOfBirth,
+            )
+            return JsonResponse({"message": "Badge issued"}, status=status.HTTP_200_OK)
 
         badge = RequestedBadge(
             firstName=firstName,
