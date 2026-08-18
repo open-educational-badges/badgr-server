@@ -96,6 +96,25 @@ class QrCodeAutoIssuanceTests(BadgrTestCase):
         )
         self.assertFalse(RequestedBadge.objects.filter(qrcode=qr_code).exists())
 
+    def test_auto_issuance_carries_submitted_name(self):
+        from mainsite.utils import get_name
+
+        qr_code = QrCode.objects.create(
+            badgeclass=self.badgeclass,
+            issuer=self.issuer,
+            title="Auto issuance QR",
+            createdBy=self.user.email,
+            created_by_user=self.user,
+            auto_issuance=True,
+        )
+
+        self.submit_request(qr_code)
+
+        assertion = self.badgeclass.badgeinstances.get(
+            recipient_identifier="janice@example.test"
+        )
+        self.assertEqual(get_name(assertion), "Janice M")
+
     def test_double_encoded_json_body_is_rejected(self):
         # badgr-ui used to double-JSON-encode this request body to work
         # around requestBadge() expecting a raw string; that workaround is
