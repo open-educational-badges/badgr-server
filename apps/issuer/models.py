@@ -810,7 +810,11 @@ class Issuer(
 
     @cachemodel.cached_method(auto_publish=True)
     def cached_learningpaths(self):
-        return self.learningpaths.all().order_by("created_at")
+        return (
+            self.learningpaths.select_related("issuer", "participationBadge")
+            .prefetch_related("learningpathbadge_set__badge", "learningpathtag_set")
+            .order_by("created_at")
+        )
 
     @property
     def image_preview(self):
@@ -2170,7 +2174,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         Sends an email notification to the badge recipient.
         """
 
-        categoryExtension = None
+        categoryExtension = {}
 
         competencyExtensions = {}
 
@@ -2281,7 +2285,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
             email_context = {
                 "name": name,
                 "badge_name": self.badgeclass.name,
-                "badge_category": categoryExtension["Category"],
+                "badge_category": categoryExtension.get("Category"),
                 "badge_id": self.entity_id,
                 "badge_description": self.badgeclass.description,
                 "badge_language": self.badgeclass.language,
@@ -2315,7 +2319,7 @@ class BadgeInstance(BaseAuditedModel, BaseVersionedEntity, BaseOpenBadgeObjectMo
         template_name = "issuer/email/notify_earner"
 
         if (
-            categoryExtension["Category"] == "learningpath"
+            categoryExtension.get("Category") == "learningpath"
             and microdegree_id is not None
         ):
             # if the recipient does not have an account no micro degree email is sent
@@ -3210,6 +3214,8 @@ class QrCode(BaseVersionedEntity):
 
     notifications = models.BooleanField(null=False, default=False)
 
+    auto_issuance = models.BooleanField(null=False, default=False)
+
 
 class RequestedBadge(BaseVersionedEntity):
     badgeclass = models.ForeignKey(
@@ -3559,13 +3565,25 @@ class LearningPath(BaseVersionedEntity, BaseAuditedModel):
         """
         competencies = self.competency_extension_items()
         extensions = (
-            {"extensions:CompetencyExtension": competencies} if competencies else None
+            {"extensions:CompetencyExtension": competencies} if competencies else {}
         )
+
+        badgeclasses = [lp_badge.badge for lp_badge in self.learningpath_badges]
+        profile_ext = BadgeInstanceExtension.objects.filter(
+            badgeinstance__recipient_identifier=recipient_identifier,
+            badgeinstance__badgeclass__in=badgeclasses,
+            name="extensions:recipientProfile",
+        ).first()
+        if profile_ext:
+            extensions["extensions:recipientProfile"] = json_loads(
+                profile_ext.original_json
+            )
+
         return self.participationBadge.issue(
             recipient_id=recipient_identifier,
             notify=notify,
             microdegree_id=self.entity_id,
-            extensions=extensions,
+            extensions=extensions if extensions else None,
             date_of_birth=self.recipient_date_of_birth(recipient_identifier),
         )
 

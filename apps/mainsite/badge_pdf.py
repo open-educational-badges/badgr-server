@@ -71,7 +71,9 @@ def get_leaf_badges(lp, lp_map=None, visited=None):
     if lp_map is None:
         all_lps = LearningPath.objects.prefetch_related("learningpathbadge_set")
         lp_map = {
-            nested_lp.participationBadge_id: nested_lp for nested_lp in all_lps if nested_lp.participationBadge_id
+            nested_lp.participationBadge_id: nested_lp
+            for nested_lp in all_lps
+            if nested_lp.participationBadge_id
         }
 
     if visited is None:
@@ -182,9 +184,7 @@ class BadgePDFCreator:
             place_and_date_part += " <strong>online</strong>"
 
         studyload_text = self._format_studyload(studyload_minutes=studyLoad)
-        studyload_text = (
-            f"<br />{studyload_text}" if studyload_text is not None else ""
-        )
+        studyload_text = f"<br />{studyload_text}" if studyload_text is not None else ""
 
         text = _(
             "earned the following Badge <br />%(place_and_date_part)s %(duration_part)s:"
@@ -609,6 +609,8 @@ class BadgePDFCreator:
                     Story.append(Paragraph(text, text_style))
                     Story.append(Spacer(1, 30))
 
+                if not badges[i].image:
+                    continue
                 img = image_file_to_image(badges[i].image, 74)
 
                 lp_badge_info_style = ParagraphStyle(
@@ -855,7 +857,7 @@ class BadgePDFCreator:
         activate_language(badge_class.language)
 
         buffer = BytesIO()
-        competencies = badge_class.json["extensions:CompetencyExtension"]
+        competencies = badge_class.json.get("extensions:CompetencyExtension", [])
         criteria = badge_class.criteria
         try:
             name = get_name(badge_instance)
@@ -933,17 +935,31 @@ class BadgePDFCreator:
         Story = []
         Story.extend(first_page_content)
 
-        categoryExtension = extensions.get(name="extensions:CategoryExtension")
-        category = json_loads(categoryExtension.original_json)["Category"]
+        categoryExtension = extensions.filter(
+            name="extensions:CategoryExtension"
+        ).first()
+        category = None
+        if categoryExtension and categoryExtension.original_json:
+            try:
+                category = json_loads(categoryExtension.original_json).get("Category")
+            except Exception:
+                category = None
 
         if category == "learningpath":
             lp = LearningPath.objects.filter(participationBadge=badge_class).first()
             lp_badges = get_leaf_badges(lp)
-            badgeuser = BadgeUser.objects.get(email=badge_instance.recipient_identifier)
+            badgeuser = BadgeUser.objects.filter(
+                email=badge_instance.recipient_identifier
+            ).first()
+            recipient_emails = (
+                badgeuser.verified_emails
+                if badgeuser
+                else [badge_instance.recipient_identifier]
+            )
             badge_ids = (
                 BadgeInstance.objects.filter(
                     badgeclass__in=lp_badges,
-                    recipient_identifier__in=badgeuser.verified_emails,
+                    recipient_identifier__in=recipient_emails,
                 )
                 .values("badgeclass")
                 .annotate(max_id=Max("id"))
