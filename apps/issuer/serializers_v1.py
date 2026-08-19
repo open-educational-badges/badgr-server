@@ -1069,6 +1069,7 @@ class QrCodeSerializerV1(serializers.Serializer):
     issuer_id = serializers.CharField(max_length=254)
     request_count = serializers.SerializerMethodField()
     notifications = serializers.BooleanField(default=False)
+    auto_issuance = serializers.BooleanField(default=False)
 
     activity_start_date = DateTimeWithUtcZAtEndField(
         required=False, allow_null=True, default_timezone=pytz.utc
@@ -1103,6 +1104,7 @@ class QrCodeSerializerV1(serializers.Serializer):
         badgeclass_id = validated_data.get("badgeclass_id")
         issuer_id = validated_data.get("issuer_id")
         notifications = validated_data.get("notifications")
+        auto_issuance = validated_data.get("auto_issuance")
 
         try:
             issuer = Issuer.objects.get(entity_id=issuer_id)
@@ -1139,6 +1141,7 @@ class QrCodeSerializerV1(serializers.Serializer):
             activity_online=validated_data.get("activity_online", False),
             evidence_items=validated_data.get("evidence_items", []),
             notifications=notifications,
+            auto_issuance=auto_issuance,
             course_url=validated_data.get("course_url", ""),
         )
 
@@ -1165,6 +1168,9 @@ class QrCodeSerializerV1(serializers.Serializer):
             instance.evidence_items = validated_data["evidence_items"]
         instance.notifications = validated_data.get(
             "notifications", instance.notifications
+        )
+        instance.auto_issuance = validated_data.get(
+            "auto_issuance", instance.auto_issuance
         )
         if "course_url" in validated_data:
             instance.course_url = validated_data["course_url"]
