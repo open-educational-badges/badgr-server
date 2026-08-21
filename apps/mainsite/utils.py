@@ -586,7 +586,9 @@ def get_name(badgeinstance):
 
     This is either the name that was specified in the award process of the badge
     (which is by now mandatory) or, if none was specified, the full profile of the
-    recipient. If no name was specified and the profile can't be found, we return `None`.
+    recipient. If no name was specified and the profile can't be found, we fall
+    back to the recipient identifier (email) rather than returning nothing, so
+    callers never render a literal "None" on a certificate or in an email.
     """
 
     from badgeuser.models import BadgeUser
@@ -604,7 +606,7 @@ def get_name(badgeinstance):
         last_name = badgeuser.last_name.capitalize()
         return f"{first_name} {last_name}"
     except BadgeUser.DoesNotExist:
-        return None
+        return badgeinstance.recipient_identifier
 
 
 def validate_qr_code_validity(qrCode):

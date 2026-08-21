@@ -1,9 +1,14 @@
 from hashlib import sha256
 
 import requests
-from requests.exceptions import ConnectionError
+from requests.exceptions import RequestException
 
 from django.conf import settings
+
+# Bounds how long a badge-issuance request will wait on this external
+# service. Held for the duration of a DB row lock (see requestBadge()),
+# so this must never be allowed to hang indefinitely.
+BLACKLIST_REQUEST_TIMEOUT_SECONDS = 10
 
 
 def api_submit_recipient_id(id_type, recipient_id):
@@ -21,8 +26,9 @@ def api_submit_recipient_id(id_type, recipient_id):
                         api_key=blacklist_api_key
                     ),
                 },
+                timeout=BLACKLIST_REQUEST_TIMEOUT_SECONDS,
             )
-        except ConnectionError:
+        except RequestException:
             return None
 
         return response
@@ -44,8 +50,9 @@ def api_query_recipient_id(
             headers={
                 "Authorization": "BEARER {api_key}".format(api_key=blacklist_api_key),
             },
+            timeout=BLACKLIST_REQUEST_TIMEOUT_SECONDS,
         )
-    except ConnectionError:
+    except RequestException:
         return None
 
     return response
