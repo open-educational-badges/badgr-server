@@ -562,12 +562,21 @@ class BadgePDFCreator:
 
             for i in range(num_badges):
                 extensions = badges[i].badgeclass.cached_extensions()
-                categoryExtension = extensions.get(name="extensions:CategoryExtension")
-                category = json_loads(categoryExtension.original_json)["Category"]
+                categoryExtension = extensions.filter(
+                    name="extensions:CategoryExtension"
+                ).first()
+                category = None
+                if categoryExtension and categoryExtension.original_json:
+                    try:
+                        category = json_loads(categoryExtension.original_json).get(
+                            "Category"
+                        )
+                    except Exception:
+                        category = None
                 if category == "competency":
-                    competencies = badges[i].badgeclass.json[
-                        "extensions:CompetencyExtension"
-                    ]
+                    competencies = badges[i].badgeclass.json.get(
+                        "extensions:CompetencyExtension", []
+                    )
                     for competency in competencies:
                         key = competency.get("framework_identifier") or (
                             competency.get("framework"),
