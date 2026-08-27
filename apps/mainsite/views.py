@@ -12,7 +12,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import reverse_lazy
-from django.db import IntegrityError
+from django.db import IntegrityError, OperationalError, transaction
 from django.core.cache import cache
 from django.http import (
     HttpResponseServerError,
@@ -403,43 +403,92 @@ def requestBadge(req, qrCodeId):
         except QrCode.DoesNotExist:
             return JsonResponse({"error": "Invalid qrCodeId"}, status=400)
 
-        if qrCode.auto_issuance:
-            name = strip_tags("{} {}".format(firstName, lastName)).strip()
-            extensions = (
+        try:
+            with transaction.atomic():
+                # Lock the badge class for the duration of the duplicate
+                # check + write so two concurrent requests for the same
+                # person/badge (even via different QR codes) can't both
+                # slip past the checks below before either has committed.
+                badgeclass = BadgeClass.objects.select_for_update().get(
+                    pk=qrCode.badgeclass_id
+                )
+
+                if BadgeInstance.objects.filter(
+                    badgeclass=badgeclass,
+                    recipient_identifier__iexact=email,
+                    revoked=False,
+                ).exists():
+                    return JsonResponse(
+                        {"status": "duplicate_issued"}, status=status.HTTP_200_OK
+                    )
+
+                if RequestedBadge.objects.filter(
+                    badgeclass=badgeclass, email__iexact=email
+                ).exists():
+                    return JsonResponse(
+                        {"status": "duplicate_pending"}, status=status.HTTP_200_OK
+                    )
+
+                if qrCode.auto_issuance:
+                    name = strip_tags("{} {}".format(firstName, lastName)).strip()
+                    extensions = (
+                        {
+                            "extensions:recipientProfile": {
+                                "@context": "https://api.openbadges.education/static/extensions/recipientProfile/context.json",
+                                "type": ["Extension", "extensions:RecipientProfile"],
+                                "name": name,
+                            }
+                        }
+                        if name
+                        else None
+                    )
+                    try:
+                        badgeclass.issue(
+                            recipient_id=email,
+                            notify=True,
+                            created_by=qrCode.created_by_user,
+                            date_of_birth=dateOfBirth,
+                            extensions=extensions,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to auto-issue badge for qrCode '%s' to '%s'",
+                            qrCode.entity_id,
+                            email,
+                        )
+                        return JsonResponse(
+                            {
+                                "error": "Unable to issue this badge right now. Please try again later."
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    return JsonResponse({"status": "issued"}, status=status.HTTP_200_OK)
+
+                badge = RequestedBadge(
+                    firstName=firstName,
+                    lastName=lastName,
+                    email=email,
+                    dateOfBirth=dateOfBirth,
+                )
+
+                badge.badgeclass = badgeclass
+                badge.qrcode = qrCode
+
+                badge.save()
+
+                return JsonResponse({"status": "pending"}, status=status.HTTP_200_OK)
+        except OperationalError:
+            logger.exception(
+                "Timed out waiting for badge class lock while processing "
+                "request for qrCode '%s'",
+                qrCode.entity_id,
+            )
+            return JsonResponse(
                 {
-                    "extensions:recipientProfile": {
-                        "@context": "https://api.openbadges.education/static/extensions/recipientProfile/context.json",
-                        "type": ["Extension", "extensions:RecipientProfile"],
-                        "name": name,
-                    }
-                }
-                if name
-                else None
+                    "error": "This badge is receiving a lot of requests right now. Please try again in a moment."
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
-            qrCode.badgeclass.issue(
-                recipient_id=email,
-                notify=True,
-                created_by=qrCode.created_by_user,
-                date_of_birth=dateOfBirth,
-                extensions=extensions,
-            )
-            return JsonResponse({"message": "Badge issued"}, status=status.HTTP_200_OK)
-
-        badge = RequestedBadge(
-            firstName=firstName,
-            lastName=lastName,
-            email=email,
-            dateOfBirth=dateOfBirth,
-        )
-
-        badge.badgeclass = qrCode.badgeclass
-        badge.qrcode = qrCode
-
-        badge.save()
-
-        return JsonResponse(
-            {"message": "Badge request received"}, status=status.HTTP_200_OK
-        )
 
 
 @extend_schema(

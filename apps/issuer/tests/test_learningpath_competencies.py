@@ -6,6 +6,7 @@ from django.test import override_settings
 from issuer import jsonld_loader
 from issuer.models import BadgeClass, Issuer, LearningPath, LearningPathBadge
 from mainsite import TOP_DIR
+from mainsite.badge_pdf import BadgePDFCreator
 from mainsite.tests.base import BadgrTestCase
 
 COMPETENCY_CONTEXT_URL = (
@@ -54,7 +55,9 @@ class LearningPathCompetencyTests(BadgrTestCase):
                 "document": json.load(f),
             }
 
-        self.user = self.setup_user(email="issuer@example.test", token_scope="rw:issuer")
+        self.user = self.setup_user(
+            email="issuer@example.test", token_scope="rw:issuer"
+        )
         self.issuer = Issuer.objects.create(
             name="Test Issuer",
             verified=True,
@@ -142,6 +145,32 @@ class LearningPathCompetencyTests(BadgrTestCase):
             ),
             ["Skill A", "Skill B", "Skill C"],
         )
+
+    def test_add_learningpath_badges_does_not_crash_without_leaf_category_extension(
+        self,
+    ):
+        # generate_pdf() reaches add_learningpath_badges() for a badge class
+        # whose CategoryExtension is "learningpath" (as set by badgr-ui when
+        # a learning path is created), passing it the leaf badge instances.
+        # Those leaf badges (badge_one/badge_two here) don't carry a
+        # CategoryExtension themselves -- this must not crash. Calling the
+        # method directly (rather than through generate_pdf -> doc.build())
+        # isolates this from unrelated PDF-rendering/static-asset concerns.
+        recipient = "recipient@example.test"
+        instance_one = self.badge_one.issue(recipient_id=recipient)
+        instance_two = self.badge_two.issue(recipient_id=recipient)
+
+        creator = BadgePDFCreator()
+        story = []
+        creator.add_learningpath_badges(
+            story,
+            [instance_one, instance_two],
+            "Recipient Name",
+            "Test MD Badge",
+            competencies=[],
+        )
+
+        self.assertTrue(len(story) > 0)
 
     def test_sync_participation_badge_competencies(self):
         self.lp.sync_participation_badge_competencies()
